@@ -29,7 +29,7 @@ public class MavenLoggingMeterRegistry extends MeterRegistry {
         this.log = log;
     }
 
-    public void log() {
+    public void close() {
             getMeters().stream()
                     .sorted((m1, m2) -> {
                         int typeComp = m1.getId().getType().compareTo(m2.getId().getType());
@@ -147,7 +147,10 @@ public class MavenLoggingMeterRegistry extends MeterRegistry {
 
     @Override
     protected DistributionStatisticConfig defaultHistogramConfig() {
-        return DistributionStatisticConfig.builder().build();
+        return DistributionStatisticConfig.builder()
+                .expiry(Duration.ofMinutes(1))
+                .bufferLength(3)
+                .build();
     }
 
     class Printer {

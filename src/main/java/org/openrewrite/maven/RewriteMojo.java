@@ -2,6 +2,7 @@ package org.openrewrite.maven;
 
 import io.micrometer.core.instrument.Clock;
 import io.micrometer.core.instrument.MeterRegistry;
+import io.micrometer.core.instrument.binder.system.ProcessorMetrics;
 import io.micrometer.core.instrument.composite.CompositeMeterRegistry;
 import io.micrometer.prometheus.PrometheusConfig;
 import io.micrometer.prometheus.PrometheusMeterRegistry;
@@ -81,29 +82,30 @@ public class RewriteMojo extends AbstractMojo {
 
         MeterRegistry meterRegistry = getMeterRegistry();
 
-        getLog().info("Checkstyle config: " + configLocation);
         File checkstyleConfig = new File(configLocation);
 
-        if (checkstyleConfig.exists()) {
-            getLog().info("Fixing any checkstyle issues.");
+        try {
+            if (checkstyleConfig.exists()) {
+                try (FileInputStream checkstyleIn = new FileInputStream(checkstyleConfig)) {
+                    RewriteCheckstyle rewriteCheckstyle = new RewriteCheckstyle(checkstyleIn, excludes == null ? Collections.emptySet() : excludes, null);
 
-            try (FileInputStream checkstyleIn = new FileInputStream(checkstyleConfig)) {
-                RewriteCheckstyle rewriteCheckstyle = new RewriteCheckstyle(checkstyleIn, excludes == null ? Collections.emptySet() : excludes, null);
+                    rewriteSourceSet(meterRegistry, rewriteCheckstyle, project.getBuild().getSourceDirectory());
+                    rewriteSourceSet(meterRegistry, rewriteCheckstyle, project.getBuild().getTestSourceDirectory());
 
-                rewriteSourceSet(meterRegistry, rewriteCheckstyle, project.getBuild().getSourceDirectory());
-                rewriteSourceSet(meterRegistry, rewriteCheckstyle, project.getBuild().getTestSourceDirectory());
-
-                if (metricsClient != null) {
-                    try {
-                        // Don't bother blocking long here. If the build ends before the dying push can happen, so be it.
-                        metricsClient.pushAndClose().block(Duration.ofSeconds(3));
-                    } catch (Throwable ignore) {
-                        // sometimes fails when connection already closed, e.g. due to flaky internet connection
+                    if (metricsClient != null) {
+                        try {
+                            // Don't bother blocking long here. If the build ends before the dying push can happen, so be it.
+                            metricsClient.pushAndClose().block(Duration.ofSeconds(3));
+                        } catch (Throwable ignore) {
+                            // sometimes fails when connection already closed, e.g. due to flaky internet connection
+                        }
                     }
+                } catch (IOException e) {
+                    throw new MojoFailureException("Unable to read checkstyle configuration", e);
                 }
-            } catch (IOException e) {
-                throw new MojoFailureException("Unable to read checkstyle configuration", e);
             }
+        } finally {
+            meterRegistry.close();
         }
     }
 
@@ -115,8 +117,10 @@ public class RewriteMojo extends AbstractMojo {
 
         Path sourceRoot = sourceDirectoryFile.toPath();
         List<Path> sources = Files.walk(sourceRoot)
-                .filter(f -> !Files.isDirectory(f) && f.endsWith(".java"))
+                .filter(f -> !Files.isDirectory(f) && f.toFile().getName().endsWith(".java"))
                 .collect(Collectors.toList());
+
+        getLog().info("Total sources: " + sources.size());
 
         List<J.CompilationUnit> cus = new JavaParser()
                 .setLogCompilationWarningsAndErrors(false)
@@ -137,7 +141,7 @@ public class RewriteMojo extends AbstractMojo {
             }
 
             reportOutputDirectory.mkdirs();
-            try (BufferedWriter writer = Files.newBufferedWriter(reportOutputDirectory.toPath())) {
+            try (BufferedWriter writer = Files.newBufferedWriter(reportOutputDirectory.toPath().resolve("rewrite.patch"))) {
                 for (Change<J.CompilationUnit> change : changes) {
                     writer.write(change.diff() + "\n");
                     if (action.compareTo(RewriteAction.FIX) >= 0) {
