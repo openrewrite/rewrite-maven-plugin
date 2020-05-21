@@ -3,7 +3,6 @@ package org.openrewrite.maven;
 import io.micrometer.core.instrument.Clock;
 import io.micrometer.core.instrument.MeterRegistry;
 import io.micrometer.core.instrument.composite.CompositeMeterRegistry;
-import io.micrometer.core.instrument.logging.LoggingMeterRegistry;
 import io.micrometer.prometheus.PrometheusConfig;
 import io.micrometer.prometheus.PrometheusMeterRegistry;
 import io.micrometer.prometheus.rsocket.PrometheusRSocketClient;
@@ -24,12 +23,18 @@ import reactor.netty.http.client.HttpClient;
 import reactor.netty.tcp.TcpClient;
 import reactor.util.retry.Retry;
 
-import java.io.*;
+import java.io.BufferedWriter;
+import java.io.File;
+import java.io.FileInputStream;
+import java.io.IOException;
 import java.net.URI;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.time.Duration;
-import java.util.*;
+import java.util.Base64;
+import java.util.Collections;
+import java.util.List;
+import java.util.Set;
 import java.util.stream.Collectors;
 
 import static io.rsocket.transport.netty.UriUtils.getPort;
@@ -41,7 +46,7 @@ public class RewriteMojo extends AbstractMojo {
     // from AbstractCheckstyleReport default and config
     private static final String DEFAULT_CONFIG_LOCATION = "sun_checks.xml";
 
-    @Parameter(property = "checkstyle.config.location", defaultValue = DEFAULT_CONFIG_LOCATION)
+    @Parameter(property = "configLocation", defaultValue = DEFAULT_CONFIG_LOCATION)
     protected String configLocation;
 
     @Parameter(property = "reportOutputDirectory", defaultValue = "${project.reporting.outputDirectory}/rewrite", required = true)
@@ -76,15 +81,19 @@ public class RewriteMojo extends AbstractMojo {
 
         MeterRegistry meterRegistry = getMeterRegistry();
 
+        getLog().info("Checkstyle config: " + configLocation);
         File checkstyleConfig = new File(configLocation);
+
         if (checkstyleConfig.exists()) {
+            getLog().info("Fixing any checkstyle issues.");
+
             try (FileInputStream checkstyleIn = new FileInputStream(checkstyleConfig)) {
                 RewriteCheckstyle rewriteCheckstyle = new RewriteCheckstyle(checkstyleIn, excludes == null ? Collections.emptySet() : excludes, null);
 
                 rewriteSourceSet(meterRegistry, rewriteCheckstyle, project.getBuild().getSourceDirectory());
                 rewriteSourceSet(meterRegistry, rewriteCheckstyle, project.getBuild().getTestSourceDirectory());
 
-                if(metricsClient != null) {
+                if (metricsClient != null) {
                     try {
                         // Don't bother blocking long here. If the build ends before the dying push can happen, so be it.
                         metricsClient.pushAndClose().block(Duration.ofSeconds(3));
@@ -99,7 +108,12 @@ public class RewriteMojo extends AbstractMojo {
     }
 
     private void rewriteSourceSet(MeterRegistry meterRegistry, RewriteCheckstyle rewriteCheckstyle, String sourceDirectory) throws IOException {
-        Path sourceRoot = new File(sourceDirectory).toPath();
+        File sourceDirectoryFile = new File(sourceDirectory);
+        if (!sourceDirectoryFile.exists()) {
+            return;
+        }
+
+        Path sourceRoot = sourceDirectoryFile.toPath();
         List<Path> sources = Files.walk(sourceRoot)
                 .filter(f -> !Files.isDirectory(f) && f.endsWith(".java"))
                 .collect(Collectors.toList());
@@ -121,15 +135,16 @@ public class RewriteMojo extends AbstractMojo {
                     getLog().warn("   " + rule);
                 }
             }
-        }
 
-        try (BufferedWriter writer = Files.newBufferedWriter(reportOutputDirectory.toPath())) {
-            for (Change<J.CompilationUnit> change : changes) {
-                writer.write(change.diff() + "\n");
-                if (action.compareTo(RewriteAction.FIX) >= 0) {
-                    try (BufferedWriter sourceFileWriter = Files.newBufferedWriter(
-                            project.getBasedir().toPath().resolve(change.getOriginal().getSourcePath()))) {
-                        sourceFileWriter.write(change.getFixed().print());
+            reportOutputDirectory.mkdirs();
+            try (BufferedWriter writer = Files.newBufferedWriter(reportOutputDirectory.toPath())) {
+                for (Change<J.CompilationUnit> change : changes) {
+                    writer.write(change.diff() + "\n");
+                    if (action.compareTo(RewriteAction.FIX) >= 0) {
+                        try (BufferedWriter sourceFileWriter = Files.newBufferedWriter(
+                                project.getBasedir().toPath().resolve(change.getOriginal().getSourcePath()))) {
+                            sourceFileWriter.write(change.getFixed().print());
+                        }
                     }
                 }
             }
@@ -137,13 +152,11 @@ public class RewriteMojo extends AbstractMojo {
     }
 
     private MeterRegistry getMeterRegistry() {
-        if(metricsUri == null) {
+        if (metricsUri == null) {
             return new CompositeMeterRegistry();
-        }
-        else if(metricsUri.equals("LOG")) {
-            return new LoggingMeterRegistry();
-        }
-        else {
+        } else if(metricsUri.equals("LOG")) {
+            return new MavenLoggingMeterRegistry(getLog());
+        } else {
             try {
                 URI uri = URI.create(metricsUri);
                 PrometheusMeterRegistry registry = new PrometheusMeterRegistry(PrometheusConfig.DEFAULT, new CollectorRegistry(), Clock.SYSTEM);
@@ -177,7 +190,7 @@ public class RewriteMojo extends AbstractMojo {
                         .connect();
 
                 return registry;
-            } catch(Throwable t) {
+            } catch (Throwable t) {
                 getLog().warn("Unable to publish metrics", t);
             }
         }

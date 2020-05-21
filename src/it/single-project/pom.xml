@@ -24,11 +24,7 @@
                 <configuration>
                     <action>WARN_ONLY</action>
                     <metricsUri>LOG</metricsUri>
-                    <checkstyle>
-                        <config>
-                            <location>checkstyle.xml</location>
-                        </config>
-                    </checkstyle>
+                    <configLocation>checkstyle.xml</configLocation>
                 </configuration>
             </plugin>
         </plugins>
