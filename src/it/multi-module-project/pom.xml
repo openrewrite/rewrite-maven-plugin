@@ -21,9 +21,9 @@
                     <artifactId>@project.artifactId@</artifactId>
                     <version>@project.version@</version>
                     <configuration>
-                        <action>WARN_ONLY</action>
                         <metricsUri>LOG</metricsUri>
-                        <configLocation>checkstyle.xml</configLocation>
+                        <configLocation>rewrite.yml</configLocation>
+                        <profiles>checkstyle</profiles>
                     </configuration>
                 </plugin>
             </plugins>

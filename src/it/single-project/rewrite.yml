@@ -1,0 +1,5 @@
+profile: checkstyle
+
+configure:
+  org.openrewrite.checkstyle.*:
+    configFile: checkstyle.xml
