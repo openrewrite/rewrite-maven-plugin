@@ -80,10 +80,7 @@ public abstract class AbstractRewriteMojo extends AbstractMojo {
             }
             if(configure != null) {
                 profile.setConfigure(configure.stream()
-                        .collect(toMap(prop -> {
-                            System.out.println(prop.visitor + "{" + prop.key + "}=" + prop.value);
-                            return prop.visitor + "." + prop.key;
-                        }, prop -> prop.value)));
+                        .collect(toMap(prop -> prop.visitor + "." + prop.key, prop -> prop.value)));
             }
             return profile;
         }

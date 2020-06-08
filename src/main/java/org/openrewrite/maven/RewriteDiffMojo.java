@@ -15,6 +15,7 @@
  */
 package org.openrewrite.maven;
 
+import org.apache.maven.execution.MavenSession;
 import org.apache.maven.plugin.MojoExecutionException;
 import org.apache.maven.plugins.annotations.*;
 import org.openrewrite.Change;
@@ -26,12 +27,16 @@ import java.io.IOException;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.util.List;
+import java.util.Optional;
 
 @Mojo(name = "diff", requiresDependencyResolution = ResolutionScope.COMPILE, threadSafe = true)
 @Execute(phase = LifecyclePhase.PROCESS_SOURCES)
 public class RewriteDiffMojo extends AbstractRewriteMojo {
     @Parameter(property = "reportOutputDirectory", defaultValue = "${project.reporting.outputDirectory}/rewrite", required = true)
     private File reportOutputDirectory;
+
+    @Parameter(defaultValue = "${session}", readonly = true)
+    private MavenSession mavenSession;
 
     @Override
     public void execute() throws MojoExecutionException {
@@ -59,8 +64,8 @@ public class RewriteDiffMojo extends AbstractRewriteMojo {
                 throw new MojoExecutionException("Unable to generate rewrite diff file.", e);
             }
 
-            getLog().warn("A patch file has been generated. Run 'git apply -f " + patchFile
-                    .relativize(project.getBasedir().toPath()).toString() + "' to apply.");
+            getLog().warn("A patch file has been generated. Run 'git apply -f " +
+                    Path.of(mavenSession.getExecutionRootDirectory()).relativize(patchFile).toString() + "' to apply.");
         }
     }
 }
