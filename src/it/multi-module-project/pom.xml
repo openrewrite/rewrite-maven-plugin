@@ -22,8 +22,19 @@
                     <version>@project.version@</version>
                     <configuration>
                         <metricsUri>LOG</metricsUri>
-                        <configLocation>rewrite.yml</configLocation>
-                        <profiles>checkstyle</profiles>
+                        <activeProfiles>checkstyle</activeProfiles>
+                        <profiles>
+                            <profile>
+                                <name>checkstyle</name>
+                                <configure>
+                                    <property>
+                                        <visitor>org.openrewrite.checkstyle.*</visitor>
+                                        <key>configFile</key>
+                                        <value>${project.basedir}/../checkstyle.xml</value>
+                                    </property>
+                                </configure>
+                            </profile>
+                        </profiles>
                     </configuration>
                 </plugin>
             </plugins>

@@ -9,8 +9,7 @@ import org.openrewrite.Change;
 import org.openrewrite.RefactorPlan;
 import org.openrewrite.SourceVisitor;
 import org.openrewrite.config.ProfileConfiguration;
-import org.openrewrite.config.ProfileConfigurationLoader;
-import org.openrewrite.config.YamlProfileConfigurationLoader;
+import org.openrewrite.config.YamlResourceLoader;
 import org.openrewrite.java.JavaParser;
 import org.openrewrite.java.tree.J;
 
@@ -24,6 +23,7 @@ import java.util.stream.Collectors;
 
 import static java.util.Collections.emptyList;
 import static java.util.stream.Collectors.toList;
+import static java.util.stream.Collectors.toMap;
 
 public abstract class AbstractRewriteMojo extends AbstractMojo {
     @Parameter(property = "configLocation", defaultValue = "rewrite.yml")
@@ -32,8 +32,8 @@ public abstract class AbstractRewriteMojo extends AbstractMojo {
     @Parameter(defaultValue = "${project}", readonly = true, required = true)
     protected MavenProject project;
 
-    @Parameter(property = "profiles", defaultValue = "default")
-    Set<String> profiles;
+    @Parameter(property = "activeProfiles", defaultValue = "default")
+    Set<String> activeProfiles;
 
     @Parameter(property = "excludes")
     Set<String> excludes;
@@ -47,22 +47,77 @@ public abstract class AbstractRewriteMojo extends AbstractMojo {
     @Parameter(property = "metricsPassword")
     private String metricsPassword;
 
+    @Parameter(property = "profiles", defaultValue = "")
+    private List<MavenProfileConfiguration> profiles;
+
+    public static class MavenProfileConfiguration {
+        @Parameter(property = "name", defaultValue = "default")
+        String name;
+
+        @Parameter(property = "includes")
+        private Set<String> include;
+
+        @Parameter(property = "excludes")
+        private Set<String> exclude;
+
+        @Parameter(property = "extend")
+        private Set<String> extend;
+
+        @Parameter(property = "configure")
+        List<MavenProfileProperty> configure;
+
+        public ProfileConfiguration toProfileConfiguration() {
+            ProfileConfiguration profile = new ProfileConfiguration();
+            profile.setName(name);
+            if(include != null) {
+                profile.setInclude(include);
+            }
+            if(exclude != null) {
+                profile.setExclude(exclude);
+            }
+            if(extend != null) {
+                profile.setExtend(extend);
+            }
+            if(configure != null) {
+                profile.setConfigure(configure.stream()
+                        .collect(toMap(prop -> {
+                            System.out.println(prop.visitor + "{" + prop.key + "}=" + prop.value);
+                            return prop.visitor + "." + prop.key;
+                        }, prop -> prop.value)));
+            }
+            return profile;
+        }
+    }
+
+    public static class MavenProfileProperty {
+        @Parameter(property = "visitor", required = true)
+        String visitor;
+
+        @Parameter(property = "key", required = true)
+        String key;
+
+        @Parameter(property = "value", required = true)
+        String value;
+    }
+
     protected RefactorPlan plan() throws MojoExecutionException {
-        Map<String, Object> baseDirConfigure = new HashMap<>();
-        baseDirConfigure.put("*.baseDir", project.getBasedir().toPath());
-
-        ProfileConfiguration baseDir = new ProfileConfiguration();
-        baseDir.setName("default");
-        baseDir.setConfigure(baseDirConfigure);
-
         RefactorPlan.Builder plan = RefactorPlan.builder()
-                .scanProfiles()
-                .loadProfile(baseDir);
+                .compileClasspath(project.getArtifacts().stream()
+                        .map(d -> d.getFile().toPath())
+                        .collect(Collectors.toList()))
+                .scanResources()
+                .scanUserHome();
+
+        if(profiles != null) {
+            profiles.forEach(profile -> plan.loadProfile(profile.toProfileConfiguration()));
+        }
 
         File rewriteConfig = new File(project.getBasedir() + "/" + configLocation);
         if (rewriteConfig.exists()) {
             try (FileInputStream is = new FileInputStream(rewriteConfig)) {
-                plan.loadProfiles(new YamlProfileConfigurationLoader(is));
+                YamlResourceLoader resourceLoader = new YamlResourceLoader(is);
+                plan.loadProfiles(resourceLoader);
+                plan.loadVisitors(resourceLoader);
             } catch (IOException e) {
                 throw new MojoExecutionException("Unable to load rewrite configuration", e);
             }
@@ -77,7 +132,7 @@ public abstract class AbstractRewriteMojo extends AbstractMojo {
             MeterRegistry meterRegistry = meterRegistryProvider.registry();
 
             RefactorPlan plan = plan();
-            Collection<SourceVisitor<J>> javaVisitors = plan.visitors(J.class, profiles);
+            Collection<SourceVisitor<J>> javaVisitors = plan.visitors(J.class, activeProfiles);
 
             List<Path> dependencies = project.getArtifacts().stream()
                     .map(d -> d.getFile().toPath())

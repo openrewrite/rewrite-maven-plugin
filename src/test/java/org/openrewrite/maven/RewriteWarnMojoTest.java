@@ -35,7 +35,7 @@ class RewriteWarnMojoTest extends AbstractMojoTestCase {
 
     @Test
     void checkstyle() throws Exception {
-        testMojo.profiles = singleton("checkstyle");
+        testMojo.activeProfiles = singleton("checkstyle");
         testMojo.configLocation = "rewrite.yml";
         testMojo.execute();
     }
