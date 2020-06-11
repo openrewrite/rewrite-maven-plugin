@@ -10,6 +10,8 @@ import org.openrewrite.RefactorPlan;
 import org.openrewrite.SourceVisitor;
 import org.openrewrite.config.ProfileConfiguration;
 import org.openrewrite.config.YamlResourceLoader;
+import org.openrewrite.java.Java11Parser;
+import org.openrewrite.java.Java8Parser;
 import org.openrewrite.java.JavaParser;
 import org.openrewrite.java.tree.J;
 
@@ -47,7 +49,7 @@ public abstract class AbstractRewriteMojo extends AbstractMojo {
     @Parameter(property = "metricsPassword")
     private String metricsPassword;
 
-    @Parameter(property = "profiles", defaultValue = "")
+    @Parameter(property = "profiles")
     private List<MavenProfileConfiguration> profiles;
 
     public static class MavenProfileConfiguration {
@@ -68,7 +70,9 @@ public abstract class AbstractRewriteMojo extends AbstractMojo {
 
         public ProfileConfiguration toProfileConfiguration() {
             ProfileConfiguration profile = new ProfileConfiguration();
-            profile.setName(name);
+            if(name != null) {
+                profile.setName(name);
+            }
             if(include != null) {
                 profile.setInclude(include);
             }
@@ -139,9 +143,19 @@ public abstract class AbstractRewriteMojo extends AbstractMojo {
             sources.addAll(listJavaSources(project.getBuild().getSourceDirectory()));
             sources.addAll(listJavaSources(project.getBuild().getTestSourceDirectory()));
 
-            List<J.CompilationUnit> cus = new JavaParser(dependencies)
-                    .setLogCompilationWarningsAndErrors(false)
-                    .setMeterRegistry(meterRegistry)
+            JavaParser.Builder<? extends JavaParser, ?> javaParser;
+            if(System.getProperty("java.version").startsWith("1.8")) {
+                javaParser = Java8Parser.builder();
+            }
+            else {
+                javaParser = Java11Parser.builder();
+            }
+
+            List<J.CompilationUnit> cus = javaParser
+                    .classpath(dependencies)
+                    .logCompilationWarningsAndErrors(false)
+                    .meterRegistry(meterRegistry)
+                    .build()
                     .parse(sources, project.getBasedir().toPath());
 
             return cus.stream()

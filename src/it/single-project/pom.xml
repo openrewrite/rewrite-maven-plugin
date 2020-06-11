@@ -23,6 +23,18 @@
                 <version>@project.version@</version>
                 <configuration>
                     <metricsUri>LOG</metricsUri>
+                    <metrics>
+                        <tags>
+                            <tag>
+                                <key>project</key>
+                                <value>${project.name}</value>
+                            </tag>
+                            <tag>
+                                <key>team</key>
+                                <value>myteam</value>
+                            </tag>
+                        </tags>
+                    </metrics>
                     <activeProfiles>checkstyle</activeProfiles>
                     <profiles>
                         <profile>
