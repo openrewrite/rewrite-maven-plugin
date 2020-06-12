@@ -11,10 +11,10 @@ import static org.assertj.core.api.Assertions.assertThat;
 class AbstractRewriteMojoTest {
     @Test
     void profileXml() {
-        AbstractRewriteMojo.MavenProfileConfiguration config = new AbstractRewriteMojo.MavenProfileConfiguration();
+        MavenProfileConfiguration config = new MavenProfileConfiguration();
         config.name = "default";
 
-        AbstractRewriteMojo.MavenProfileProperty prop = new AbstractRewriteMojo.MavenProfileProperty();
+        MavenProfileProperty prop = new MavenProfileProperty();
         prop.visitor = "org.openrewrite.checkstyle.*";
         prop.key = "config";
         prop.value = "<?xml version=\"1.0\"?>\n" +

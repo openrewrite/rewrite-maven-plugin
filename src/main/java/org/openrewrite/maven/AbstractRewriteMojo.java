@@ -8,8 +8,8 @@ import org.apache.maven.project.MavenProject;
 import org.openrewrite.Change;
 import org.openrewrite.RefactorPlan;
 import org.openrewrite.SourceVisitor;
-import org.openrewrite.config.ProfileConfiguration;
 import org.openrewrite.config.YamlResourceLoader;
+import org.openrewrite.java.AddImport;
 import org.openrewrite.java.Java11Parser;
 import org.openrewrite.java.Java8Parser;
 import org.openrewrite.java.JavaParser;
@@ -52,55 +52,6 @@ public abstract class AbstractRewriteMojo extends AbstractMojo {
     @Parameter(property = "profiles")
     private List<MavenProfileConfiguration> profiles;
 
-    public static class MavenProfileConfiguration {
-        @Parameter(property = "name", defaultValue = "default")
-        String name;
-
-        @Parameter(property = "includes")
-        private Set<String> include;
-
-        @Parameter(property = "excludes")
-        private Set<String> exclude;
-
-        @Parameter(property = "extend")
-        private Set<String> extend;
-
-        @Parameter(property = "configure")
-        List<MavenProfileProperty> configure;
-
-        public ProfileConfiguration toProfileConfiguration() {
-            ProfileConfiguration profile = new ProfileConfiguration();
-            if(name != null) {
-                profile.setName(name);
-            }
-            if(include != null) {
-                profile.setInclude(include);
-            }
-            if(exclude != null) {
-                profile.setExclude(exclude);
-            }
-            if(extend != null) {
-                profile.setExtend(extend);
-            }
-            if(configure != null) {
-                profile.setConfigure(configure.stream()
-                        .collect(toMap(prop -> prop.visitor + "." + prop.key, prop -> prop.value)));
-            }
-            return profile;
-        }
-    }
-
-    public static class MavenProfileProperty {
-        @Parameter(property = "visitor", required = true)
-        String visitor;
-
-        @Parameter(property = "key", required = true)
-        String key;
-
-        @Parameter(property = "value", required = true)
-        String value;
-    }
-
     protected RefactorPlan plan() throws MojoExecutionException {
         RefactorPlan.Builder plan = RefactorPlan.builder()
                 .compileClasspath(project.getArtifacts().stream()
@@ -134,6 +85,8 @@ public abstract class AbstractRewriteMojo extends AbstractMojo {
 
             RefactorPlan plan = plan();
             Collection<SourceVisitor<J>> javaVisitors = plan.visitors(J.class, activeProfiles);
+
+            plan.configure(AddImport.orderImports, "default");
 
             List<Path> dependencies = project.getArtifacts().stream()
                     .map(d -> d.getFile().toPath())
