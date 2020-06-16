@@ -42,7 +42,7 @@
 
     <properties>
         <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
-        <java.version>11</java.version>
+        <java.version>1.8</java.version>
 
         <!-- Plugins -->
         <maven-surefire-plugin.version>2.22.2</maven-surefire-plugin.version>
