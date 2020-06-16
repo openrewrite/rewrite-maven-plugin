@@ -96,15 +96,15 @@ public abstract class AbstractRewriteMojo extends AbstractMojo {
             sources.addAll(listJavaSources(project.getBuild().getSourceDirectory()));
             sources.addAll(listJavaSources(project.getBuild().getTestSourceDirectory()));
 
-            JavaParser.Builder<? extends JavaParser, ?> javaParserBuilder;
+            JavaParser.Builder<? extends JavaParser, ?> javaParser;
             try {
                 if (System.getProperty("java.version").startsWith("1.8")) {
-                    javaParserBuilder = (JavaParser.Builder<? extends JavaParser, ?>) Class
+                    javaParser = (JavaParser.Builder<? extends JavaParser, ?>) Class
                             .forName("org.openrewrite.java.Java8Parser")
                             .getDeclaredMethod("builder")
                             .invoke(null);
                 } else {
-                    javaParserBuilder = (JavaParser.Builder<? extends JavaParser, ?>) Class
+                    javaParser = (JavaParser.Builder<? extends JavaParser, ?>) Class
                             .forName("org.openrewrite.java.Java11Parser")
                             .getDeclaredMethod("builder")
                             .invoke(null);

@@ -26,8 +26,8 @@ import java.io.File;
 import java.io.IOException;
 import java.nio.file.Files;
 import java.nio.file.Path;
+import java.nio.file.Paths;
 import java.util.List;
-import java.util.Optional;
 
 @Mojo(name = "diff", requiresDependencyResolution = ResolutionScope.COMPILE, threadSafe = true)
 @Execute(phase = LifecyclePhase.PROCESS_SOURCES)
@@ -65,7 +65,7 @@ public class RewriteDiffMojo extends AbstractRewriteMojo {
             }
 
             getLog().warn("A patch file has been generated. Run 'git apply -f " +
-                    Path.of(mavenSession.getExecutionRootDirectory()).relativize(patchFile).toString() + "' to apply.");
+                    Paths.get(mavenSession.getExecutionRootDirectory()).relativize(patchFile).toString() + "' to apply.");
         }
     }
 }
