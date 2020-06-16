@@ -2,3 +2,4 @@ build/
 .mvn/
 .java-version
 ry/
+release.properties
