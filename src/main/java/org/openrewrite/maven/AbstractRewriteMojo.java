@@ -10,8 +10,6 @@ import org.openrewrite.RefactorPlan;
 import org.openrewrite.SourceVisitor;
 import org.openrewrite.config.YamlResourceLoader;
 import org.openrewrite.java.AddImport;
-import org.openrewrite.java.Java11Parser;
-import org.openrewrite.java.Java8Parser;
 import org.openrewrite.java.JavaParser;
 import org.openrewrite.java.tree.J;
 
@@ -20,12 +18,14 @@ import java.io.FileInputStream;
 import java.io.IOException;
 import java.nio.file.Files;
 import java.nio.file.Path;
-import java.util.*;
+import java.util.ArrayList;
+import java.util.Collection;
+import java.util.List;
+import java.util.Set;
 import java.util.stream.Collectors;
 
 import static java.util.Collections.emptyList;
 import static java.util.stream.Collectors.toList;
-import static java.util.stream.Collectors.toMap;
 
 public abstract class AbstractRewriteMojo extends AbstractMojo {
     @Parameter(property = "configLocation", defaultValue = "rewrite.yml")
@@ -96,12 +96,22 @@ public abstract class AbstractRewriteMojo extends AbstractMojo {
             sources.addAll(listJavaSources(project.getBuild().getSourceDirectory()));
             sources.addAll(listJavaSources(project.getBuild().getTestSourceDirectory()));
 
-            JavaParser.Builder<? extends JavaParser, ?> javaParser;
-            if(System.getProperty("java.version").startsWith("1.8")) {
-                javaParser = Java8Parser.builder();
-            }
-            else {
-                javaParser = Java11Parser.builder();
+            JavaParser.Builder<? extends JavaParser, ?> javaParserBuilder;
+            try {
+                if (System.getProperty("java.version").startsWith("1.8")) {
+                    javaParserBuilder = (JavaParser.Builder<? extends JavaParser, ?>) Class
+                            .forName("org.openrewrite.java.Java8Parser")
+                            .getDeclaredMethod("builder")
+                            .invoke(null);
+                } else {
+                    javaParserBuilder = (JavaParser.Builder<? extends JavaParser, ?>) Class
+                            .forName("org.openrewrite.java.Java11Parser")
+                            .getDeclaredMethod("builder")
+                            .invoke(null);
+                }
+            } catch (Exception e) {
+                throw new IllegalStateException("Unable to create a Java parser instance. " +
+                        "`rewrite-java-8` or `rewrite-java-11` must be on the classpath.");
             }
 
             List<J.CompilationUnit> cus = javaParser
