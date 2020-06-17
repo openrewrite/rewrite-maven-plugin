@@ -35,8 +35,8 @@
     </organization>
 
     <scm>
-        <connection>scm:git:git://github.com/openrewrite/rewrite-maven-plugin.git</connection>
-        <developerConnection>scm:git:git://github.com:openrewrite/rewrite-maven-plugin.git</developerConnection>
+        <connection>scm:git:https://github.com/openrewrite/rewrite-maven-plugin.git</connection>
+        <developerConnection>scm:git:ssh://git@github.com/openrewrite/rewrite-maven-plugin.git</developerConnection>
         <url>https://github.com/openrewrite/rewrite-maven-plugin/tree/master</url>
     </scm>
 
