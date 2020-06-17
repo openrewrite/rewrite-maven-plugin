@@ -63,7 +63,7 @@
         <dependency>
             <groupId>org.openrewrite.plan</groupId>
             <artifactId>rewrite-spring</artifactId>
-            <version>1.0.0</version>
+            <version>1.0.1</version>
         </dependency>
         <dependency>
             <groupId>org.openrewrite</groupId>
