@@ -3,3 +3,4 @@ build/
 .java-version
 ry/
 release.properties
+pom.xml.releaseBackup
