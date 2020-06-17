@@ -31,6 +31,8 @@ To configure, add the plugin to your POM:
 </project>
 ```
 
+The plugin scans all dependencies on the classpath for `META-INF/rewrite/*.yml` files and loads their configuration as well as anything in `~/rewrite.yml`.
+
 This plugin automatically adds `org.openrewrite.plan:rewrite-spring` and `org.openrewrite.plan:rewrite-checkstyle` to the plugin classpath and loads their `spring` and `checkstyle` profiles.
 
 To apply Spring best practices, you must activate the `spring` profile. It is then fully configured.
