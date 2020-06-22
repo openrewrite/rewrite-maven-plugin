@@ -21,7 +21,7 @@ To configure, add the plugin to your POM:
             <plugin>
                 <groupId>org.openrewrite.maven</groupId>
                 <artifactId>rewrite-maven-plugin</artifactId>
-                <version>1.0.1</version>
+                <version>1.1.0</version>
                 <configuration>
                     <activeProfiles>spring</activeProfiles>
                 </configuration>
@@ -52,7 +52,7 @@ Profiles can be defined directly in the POM, making it easy to share profile con
             <plugin>
                 <groupId>org.openrewrite.maven</groupId>
                 <artifactId>rewrite-maven-plugin</artifactId>
-                <version>1.0.1</version>
+                <version>1.1.0</version>
                 <configuration>
                     <activeProfiles>checkstyle</activeProfiles>
                     <profiles>
@@ -87,7 +87,7 @@ Use the `<configLocation>` property to load a Rewrite YML configuration containi
             <plugin>
                 <groupId>org.openrewrite.maven</groupId>
                 <artifactId>rewrite-maven-plugin</artifactId>
-                <version>1.0.1</version>
+                <version>1.1.0</version>
                 <configuration>
                     <configLocation>rewrite.yml</configLocation>
                 </configuration>
