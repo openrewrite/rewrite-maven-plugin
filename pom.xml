@@ -37,7 +37,7 @@
         <developerConnection>scm:git:ssh://git@github.com/openrewrite/rewrite-maven-plugin.git</developerConnection>
         <url>https://github.com/openrewrite/rewrite-maven-plugin/tree/master</url>
       <tag>HEAD</tag>
-  </scm>
+    </scm>
 
     <properties>
         <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>

@@ -12,10 +12,10 @@ public class MavenProfileConfiguration {
     @Parameter(property = "name", defaultValue = "default")
     String name;
 
-    @Parameter(property = "includes")
+    @Parameter(property = "include")
     private Set<String> include;
 
-    @Parameter(property = "excludes")
+    @Parameter(property = "exclude")
     private Set<String> exclude;
 
     @Parameter(property = "extend")
