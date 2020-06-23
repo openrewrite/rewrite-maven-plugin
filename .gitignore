@@ -1,5 +1,5 @@
 build/
-.mvn/
+target/
 .java-version
 ry/
 release.properties
