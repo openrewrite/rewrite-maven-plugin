@@ -19,7 +19,6 @@ import org.apache.maven.execution.MavenSession;
 import org.apache.maven.plugin.MojoExecutionException;
 import org.apache.maven.plugins.annotations.*;
 import org.openrewrite.Change;
-import org.openrewrite.java.tree.J;
 
 import java.io.BufferedWriter;
 import java.io.File;
@@ -27,7 +26,7 @@ import java.io.IOException;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
-import java.util.List;
+import java.util.Collection;
 
 @Mojo(name = "diff", requiresDependencyResolution = ResolutionScope.COMPILE, threadSafe = true)
 @Execute(phase = LifecyclePhase.PROCESS_SOURCES)
@@ -40,10 +39,10 @@ public class RewriteDiffMojo extends AbstractRewriteMojo {
 
     @Override
     public void execute() throws MojoExecutionException {
-        List<Change<J.CompilationUnit>> changes = listChanges();
+        Collection<Change> changes = listChanges();
 
         if (!changes.isEmpty()) {
-            for (Change<J.CompilationUnit> change : changes) {
+            for (Change change : changes) {
                 getLog().warn("Changes are suggested to " +
                         change.getOriginal().getSourcePath() +
                         " by:");
@@ -57,7 +56,7 @@ public class RewriteDiffMojo extends AbstractRewriteMojo {
 
             Path patchFile = reportOutputDirectory.toPath().resolve("rewrite.patch");
             try (BufferedWriter writer = Files.newBufferedWriter(patchFile)) {
-                for (Change<J.CompilationUnit> change : changes) {
+                for (Change change : changes) {
                     writer.write(change.diff() + "\n");
                 }
             } catch (IOException e) {

@@ -19,7 +19,7 @@ public class MavenProfileConfiguration {
     private Set<String> exclude;
 
     @Parameter(property = "extend")
-    private Set<String> extend;
+    private String extend;
 
     @Parameter(property = "configure")
     List<MavenProfileProperty> configure;

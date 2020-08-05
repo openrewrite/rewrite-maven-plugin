@@ -21,22 +21,18 @@ import org.apache.maven.plugins.annotations.LifecyclePhase;
 import org.apache.maven.plugins.annotations.Mojo;
 import org.apache.maven.plugins.annotations.ResolutionScope;
 import org.openrewrite.Change;
-import org.openrewrite.java.tree.J;
 
-import java.io.BufferedWriter;
-import java.io.IOException;
-import java.nio.file.Files;
-import java.util.List;
+import java.util.Collection;
 
 @Mojo(name = "warn", requiresDependencyResolution = ResolutionScope.COMPILE, threadSafe = true)
 @Execute(phase = LifecyclePhase.PROCESS_SOURCES)
 public class RewriteWarnMojo extends AbstractRewriteMojo {
     @Override
     public void execute() throws MojoExecutionException {
-        List<Change<J.CompilationUnit>> changes = listChanges();
+        Collection<Change> changes = listChanges();
 
         if (!changes.isEmpty()) {
-            for (Change<J.CompilationUnit> change : changes) {
+            for (Change change : changes) {
                 getLog().warn("Changes are suggested to " +
                         change.getOriginal().getSourcePath() +
                         " by:");

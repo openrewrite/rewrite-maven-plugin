@@ -1,31 +1,38 @@
 package org.openrewrite.maven;
 
 import io.micrometer.core.instrument.MeterRegistry;
+import org.apache.maven.model.Resource;
 import org.apache.maven.plugin.AbstractMojo;
 import org.apache.maven.plugin.MojoExecutionException;
 import org.apache.maven.plugins.annotations.Parameter;
 import org.apache.maven.project.MavenProject;
+import org.eclipse.aether.repository.RemoteRepository;
 import org.openrewrite.Change;
+import org.openrewrite.Refactor;
 import org.openrewrite.RefactorPlan;
-import org.openrewrite.SourceVisitor;
+import org.openrewrite.RefactorVisitor;
+import org.openrewrite.SourceFile;
 import org.openrewrite.config.YamlResourceLoader;
-import org.openrewrite.java.AddImport;
 import org.openrewrite.java.JavaParser;
-import org.openrewrite.java.tree.J;
+import org.openrewrite.properties.PropertiesParser;
+import org.openrewrite.yaml.YamlParser;
 
 import java.io.File;
 import java.io.FileInputStream;
 import java.io.IOException;
 import java.nio.file.Files;
 import java.nio.file.Path;
+import java.nio.file.Paths;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.List;
+import java.util.Objects;
 import java.util.Set;
 import java.util.stream.Collectors;
+import java.util.stream.Stream;
 
 import static java.util.Collections.emptyList;
-import static java.util.stream.Collectors.toList;
+import static java.util.Collections.singletonList;
 
 public abstract class AbstractRewriteMojo extends AbstractMojo {
     @Parameter(property = "configLocation", defaultValue = "rewrite.yml")
@@ -60,7 +67,7 @@ public abstract class AbstractRewriteMojo extends AbstractMojo {
                 .scanResources()
                 .scanUserHome();
 
-        if(profiles != null) {
+        if (profiles != null) {
             profiles.forEach(profile -> plan.loadProfile(profile.toProfileConfiguration()));
         }
 
@@ -78,56 +85,65 @@ public abstract class AbstractRewriteMojo extends AbstractMojo {
         return plan.build();
     }
 
-    protected List<Change<J.CompilationUnit>> listChanges() throws MojoExecutionException {
+    protected Collection<Change> listChanges() throws MojoExecutionException {
         try (MeterRegistryProvider meterRegistryProvider = new MeterRegistryProvider(getLog(),
                 metricsUri, metricsUsername, metricsPassword)) {
             MeterRegistry meterRegistry = meterRegistryProvider.registry();
 
             RefactorPlan plan = plan();
-            Collection<SourceVisitor<J>> javaVisitors = plan.visitors(J.class, activeProfiles);
+            Collection<RefactorVisitor<?>> visitors = plan.visitors(activeProfiles);
+            
+            List<SourceFile> sourceFiles = new ArrayList<>();
+            List<Path> javaSources = new ArrayList<>();
+            javaSources.addAll(listJavaSources(project.getBuild().getSourceDirectory()));
+            javaSources.addAll(listJavaSources(project.getBuild().getTestSourceDirectory()));
 
-            plan.configure(AddImport.orderImports, "default");
-
-            List<Path> dependencies = project.getArtifacts().stream()
-                    .map(d -> d.getFile().toPath())
-                    .collect(Collectors.toList());
-
-            List<Path> sources = new ArrayList<>();
-            sources.addAll(listJavaSources(project.getBuild().getSourceDirectory()));
-            sources.addAll(listJavaSources(project.getBuild().getTestSourceDirectory()));
-
-            JavaParser.Builder<? extends JavaParser, ?> javaParser;
-            try {
-                if (System.getProperty("java.version").startsWith("1.8")) {
-                    javaParser = (JavaParser.Builder<? extends JavaParser, ?>) Class
-                            .forName("org.openrewrite.java.Java8Parser")
-                            .getDeclaredMethod("builder")
-                            .invoke(null);
-                } else {
-                    javaParser = (JavaParser.Builder<? extends JavaParser, ?>) Class
-                            .forName("org.openrewrite.java.Java11Parser")
-                            .getDeclaredMethod("builder")
-                            .invoke(null);
-                }
-            } catch (Exception e) {
-                throw new IllegalStateException("Unable to create a Java parser instance. " +
-                        "`rewrite-java-8` or `rewrite-java-11` must be on the classpath.");
-            }
-
-            List<J.CompilationUnit> cus = javaParser
-                    .classpath(dependencies)
+            sourceFiles.addAll(JavaParser.fromJavaVersion()
+                    .classpath(project.getArtifacts().stream()
+                            .map(d -> d.getFile().toPath())
+                            .collect(Collectors.toList()))
                     .logCompilationWarningsAndErrors(false)
                     .meterRegistry(meterRegistry)
                     .build()
-                    .parse(sources, project.getBasedir().toPath());
+                    .parse(javaSources, project.getBasedir().toPath()));
 
-            return cus.stream()
-                    .map(cu -> cu.refactor()
-                            .visit(javaVisitors)
-                            .setMeterRegistry(meterRegistry)
-                            .fix())
-                    .filter(change -> !change.getRulesThatMadeChanges().isEmpty())
-                    .collect(toList());
+            sourceFiles.addAll(
+                    new YamlParser().parse(
+                            Stream.concat(project.getBuild().getResources().stream(), project.getBuild().getTestResources().stream())
+                                    .map(Resource::getTargetPath)
+                                    .filter(Objects::nonNull)
+                                    .filter(it -> it.endsWith(".yml") || it.endsWith(".yaml"))
+                                    .map(Paths::get)
+                                    .collect(Collectors.toList()),
+                            project.getBasedir().toPath())
+            );
+
+            sourceFiles.addAll(
+                    new PropertiesParser().parse(
+                            Stream.concat(project.getBuild().getResources().stream(), project.getBuild().getTestResources().stream())
+                                    .map(Resource::getTargetPath)
+                                    .filter(Objects::nonNull)
+                                    .filter(it -> it.endsWith(".properties"))
+                                    .map(Paths::get)
+                                    .collect(Collectors.toList()),
+                            project.getBasedir().toPath())
+            );
+
+            File localRepo = new File(new File(project.getBuild().getOutputDirectory(), "rewrite"), ".m2");
+            if(localRepo.mkdirs()) {
+                MavenParser.Builder parserBuilder = MavenParser.builder()
+                        .localRepository(localRepo);
+                
+                parserBuilder.remoteRepositories(project.getRepositories().stream()
+                            .map(repo -> new RemoteRepository.Builder("central", "default",
+                                    "https://repo1.maven.org/maven2/").build())
+                            .collect(Collectors.toList())
+                );
+                
+                parserBuilder.build().parse(singletonList(project.getFile().toPath()), project.getBasedir().toPath());
+            }
+            
+            return new Refactor().visit(visitors).fix(sourceFiles);
         }
     }
 

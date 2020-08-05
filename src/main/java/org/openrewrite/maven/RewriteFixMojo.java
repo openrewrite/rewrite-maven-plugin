@@ -18,13 +18,11 @@ package org.openrewrite.maven;
 import org.apache.maven.plugin.MojoExecutionException;
 import org.apache.maven.plugins.annotations.*;
 import org.openrewrite.Change;
-import org.openrewrite.java.tree.J;
 
 import java.io.BufferedWriter;
-import java.io.File;
 import java.io.IOException;
 import java.nio.file.Files;
-import java.util.List;
+import java.util.Collection;
 
 // https://medium.com/swlh/step-by-step-guide-to-developing-a-custom-maven-plugin-b6e3a0e09966
 // https://carlosvin.github.io/posts/creating-custom-maven-plugin/en/#_dependency_injection
@@ -34,10 +32,10 @@ import java.util.List;
 public class RewriteFixMojo extends AbstractRewriteMojo {
     @Override
     public void execute() throws MojoExecutionException {
-        List<Change<J.CompilationUnit>> changes = listChanges();
+        Collection<Change> changes = listChanges();
 
         if (!changes.isEmpty()) {
-            for (Change<J.CompilationUnit> change : changes) {
+            for (Change change : changes) {
                 getLog().warn("Changes have been made to " +
                         change.getOriginal().getSourcePath() +
                         " by:");
@@ -49,7 +47,7 @@ public class RewriteFixMojo extends AbstractRewriteMojo {
             getLog().warn("Please review and commit the changes.");
 
             try {
-                for (Change<J.CompilationUnit> change : changes) {
+                for (Change change : changes) {
                     try (BufferedWriter sourceFileWriter = Files.newBufferedWriter(
                             project.getBasedir().toPath().resolve(change.getOriginal().getSourcePath()))) {
                         sourceFileWriter.write(change.getFixed().print());
