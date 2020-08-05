@@ -19,8 +19,6 @@ import java.net.URI;
 import java.time.Duration;
 import java.util.Base64;
 
-import static io.rsocket.transport.netty.UriUtils.getPort;
-
 public class MeterRegistryProvider implements AutoCloseable {
     private final Log log;
     private final String uriString;
@@ -58,13 +56,13 @@ public class MeterRegistryProvider implements AutoCloseable {
                     case "ephemeral":
                     case "https":
                     case "wss": {
-                        TcpClient tcpClient = TcpClient.create().secure().host(uri.getHost()).port(getPort(uri, 443));
+                        TcpClient tcpClient = TcpClient.create().secure().host(uri.getHost()).port(uri.getPort() == -1 ? 443 : uri.getPort());
                         clientTransport = getWebsocketClientTransport(tcpClient);
                         break;
                     }
                     case "http":
                     case "ws": {
-                        TcpClient tcpClient = TcpClient.create().host(uri.getHost()).port(getPort(uri, 80));
+                        TcpClient tcpClient = TcpClient.create().host(uri.getHost()).port(uri.getPort() == -1 ? 80 : uri.getPort());
                         clientTransport = getWebsocketClientTransport(tcpClient);
                         break;
                     }
