@@ -63,7 +63,7 @@
         <dependency>
             <groupId>org.openrewrite</groupId>
             <artifactId>rewrite-java</artifactId>
-            <version>3.0.0</version>
+            <version>3.0.1</version>
         </dependency>
         <dependency>
             <groupId>org.openrewrite</groupId>
@@ -73,27 +73,27 @@
         <dependency>
             <groupId>org.openrewrite</groupId>
             <artifactId>rewrite-java-11</artifactId>
-            <version>3.0.0</version>
+            <version>3.0.1</version>
         </dependency>
         <dependency>
             <groupId>org.openrewrite</groupId>
             <artifactId>rewrite-xml</artifactId>
-            <version>3.0.0</version>
+            <version>3.0.1</version>
         </dependency>
         <dependency>
             <groupId>org.openrewrite</groupId>
             <artifactId>rewrite-maven</artifactId>
-            <version>3.0.0</version>
+            <version>3.0.1</version>
         </dependency>
         <dependency>
             <groupId>org.openrewrite</groupId>
             <artifactId>rewrite-properties</artifactId>
-            <version>3.0.0</version>
+            <version>3.0.1</version>
         </dependency>
         <dependency>
             <groupId>org.openrewrite</groupId>
             <artifactId>rewrite-yaml</artifactId>
-            <version>3.0.0</version>
+            <version>3.0.1</version>
         </dependency>
         <dependency>
             <groupId>io.micrometer.prometheus</groupId>

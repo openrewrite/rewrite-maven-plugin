@@ -7,11 +7,7 @@ import org.apache.maven.plugin.MojoExecutionException;
 import org.apache.maven.plugins.annotations.Parameter;
 import org.apache.maven.project.MavenProject;
 import org.eclipse.aether.repository.RemoteRepository;
-import org.openrewrite.Change;
-import org.openrewrite.Refactor;
-import org.openrewrite.RefactorPlan;
-import org.openrewrite.RefactorVisitor;
-import org.openrewrite.SourceFile;
+import org.openrewrite.*;
 import org.openrewrite.config.YamlResourceLoader;
 import org.openrewrite.java.JavaParser;
 import org.openrewrite.properties.PropertiesParser;
@@ -23,11 +19,7 @@ import java.io.IOException;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
-import java.util.ArrayList;
-import java.util.Collection;
-import java.util.List;
-import java.util.Objects;
-import java.util.Set;
+import java.util.*;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
 
@@ -42,10 +34,7 @@ public abstract class AbstractRewriteMojo extends AbstractMojo {
     protected MavenProject project;
 
     @Parameter(property = "activeProfiles", defaultValue = "default")
-    Set<String> activeProfiles;
-
-    @Parameter(property = "excludes")
-    Set<String> excludes;
+    String activeProfiles;
 
     @Parameter(property = "metricsUri")
     private String metricsUri;
@@ -91,8 +80,11 @@ public abstract class AbstractRewriteMojo extends AbstractMojo {
             MeterRegistry meterRegistry = meterRegistryProvider.registry();
 
             RefactorPlan plan = plan();
-            Collection<RefactorVisitor<?>> visitors = plan.visitors(activeProfiles);
-            
+            Collection<RefactorVisitor<?>> visitors = plan.visitors(
+                    Arrays.stream(activeProfiles.split(","))
+                            .map(String::trim)
+                            .toArray(String[]::new));
+
             List<SourceFile> sourceFiles = new ArrayList<>();
             List<Path> javaSources = new ArrayList<>();
             javaSources.addAll(listJavaSources(project.getBuild().getSourceDirectory()));
@@ -130,19 +122,19 @@ public abstract class AbstractRewriteMojo extends AbstractMojo {
             );
 
             File localRepo = new File(new File(project.getBuild().getOutputDirectory(), "rewrite"), ".m2");
-            if(localRepo.mkdirs()) {
-                MavenParser.Builder parserBuilder = MavenParser.builder()
-                        .localRepository(localRepo);
-                
-                parserBuilder.remoteRepositories(project.getRepositories().stream()
-                            .map(repo -> new RemoteRepository.Builder("central", "default",
-                                    "https://repo1.maven.org/maven2/").build())
-                            .collect(Collectors.toList())
+            if (localRepo.mkdirs()) {
+                sourceFiles.addAll(
+                        MavenParser.builder()
+                                .localRepository(localRepo)
+                                .remoteRepositories(project.getRepositories().stream()
+                                        .map(repo -> new RemoteRepository.Builder("central", "default",
+                                                "https://repo1.maven.org/maven2/").build())
+                                        .collect(Collectors.toList())
+                                )
+                                .build().parse(singletonList(project.getFile().toPath()), project.getBasedir().toPath())
                 );
-                
-                parserBuilder.build().parse(singletonList(project.getFile().toPath()), project.getBasedir().toPath());
             }
-            
+
             return new Refactor().visit(visitors).fix(sourceFiles);
         }
     }
