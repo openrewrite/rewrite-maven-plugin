@@ -4,3 +4,5 @@ target/
 ry/
 release.properties
 pom.xml.releaseBackup
+.idea/
+*.iml
