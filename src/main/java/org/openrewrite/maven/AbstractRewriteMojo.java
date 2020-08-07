@@ -135,7 +135,7 @@ public abstract class AbstractRewriteMojo extends AbstractMojo {
 //                );
 //            }
 
-            return new Refactor().visit(visitors).fix(sourceFiles);
+            return new Refactor().visit(visitors).setMeterRegistry(meterRegistry).fix(sourceFiles);
         }
     }
 

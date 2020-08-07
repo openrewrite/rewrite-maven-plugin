@@ -25,6 +25,8 @@ import io.micrometer.core.instrument.internal.DefaultGauge;
 import io.micrometer.core.instrument.internal.DefaultLongTaskTimer;
 import io.micrometer.core.instrument.internal.DefaultMeter;
 import io.micrometer.core.instrument.util.TimeUtils;
+import io.micrometer.core.lang.NonNullApi;
+import io.micrometer.core.lang.Nullable;
 import org.apache.maven.plugin.logging.Log;
 
 import java.time.Duration;
@@ -36,6 +38,7 @@ import java.util.stream.StreamSupport;
 import static io.micrometer.core.instrument.util.DoubleFormat.decimalOrNan;
 import static java.util.stream.Collectors.joining;
 
+@NonNullApi
 public class MavenLoggingMeterRegistry extends MeterRegistry {
     private final Log log;
 
@@ -136,7 +139,7 @@ public class MavenLoggingMeterRegistry extends MeterRegistry {
     }
 
     @Override
-    protected <T> Gauge newGauge(Meter.Id id, T obj, ToDoubleFunction<T> valueFunction) {
+    protected <T> Gauge newGauge(Meter.Id id, @Nullable T obj, ToDoubleFunction<T> valueFunction) {
         return new DefaultGauge<>(id, obj, valueFunction);
     }
 
