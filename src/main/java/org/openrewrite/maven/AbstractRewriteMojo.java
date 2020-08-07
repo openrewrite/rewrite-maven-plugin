@@ -121,19 +121,19 @@ public abstract class AbstractRewriteMojo extends AbstractMojo {
                             project.getBasedir().toPath())
             );
 
-            File localRepo = new File(new File(project.getBuild().getOutputDirectory(), "rewrite"), ".m2");
-            if (localRepo.mkdirs()) {
-                sourceFiles.addAll(
-                        MavenParser.builder()
-                                .localRepository(localRepo)
-                                .remoteRepositories(project.getRepositories().stream()
-                                        .map(repo -> new RemoteRepository.Builder("central", "default",
-                                                "https://repo1.maven.org/maven2/").build())
-                                        .collect(Collectors.toList())
-                                )
-                                .build().parse(singletonList(project.getFile().toPath()), project.getBasedir().toPath())
-                );
-            }
+//            File localRepo = new File(new File(project.getBuild().getOutputDirectory(), "rewrite"), ".m2");
+//            if (localRepo.mkdirs()) {
+//                sourceFiles.addAll(
+//                        MavenParser.builder()
+//                                .localRepository(localRepo)
+//                                .remoteRepositories(project.getRepositories().stream()
+//                                        .map(repo -> new RemoteRepository.Builder("central", "default",
+//                                                "https://repo1.maven.org/maven2/").build())
+//                                        .collect(Collectors.toList())
+//                                )
+//                                .build().parse(singletonList(project.getFile().toPath()), project.getBasedir().toPath())
+//                );
+//            }
 
             return new Refactor().visit(visitors).fix(sourceFiles);
         }
