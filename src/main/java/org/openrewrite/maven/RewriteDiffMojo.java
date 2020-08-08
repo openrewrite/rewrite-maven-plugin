@@ -28,7 +28,7 @@ import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.util.Collection;
 
-@Mojo(name = "diff", requiresDependencyResolution = ResolutionScope.COMPILE, threadSafe = true)
+@Mojo(name = "diff", requiresDependencyResolution = ResolutionScope.TEST, threadSafe = true)
 @Execute(phase = LifecyclePhase.PROCESS_SOURCES)
 public class RewriteDiffMojo extends AbstractRewriteMojo {
     @Parameter(property = "reportOutputDirectory", defaultValue = "${project.reporting.outputDirectory}/rewrite", required = true)

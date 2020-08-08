@@ -10,6 +10,7 @@ import org.eclipse.aether.repository.RemoteRepository;
 import org.openrewrite.*;
 import org.openrewrite.config.YamlResourceLoader;
 import org.openrewrite.java.JavaParser;
+import org.openrewrite.java.style.ImportLayoutStyle;
 import org.openrewrite.properties.PropertiesParser;
 import org.openrewrite.yaml.YamlParser;
 
@@ -25,6 +26,8 @@ import java.util.stream.Stream;
 
 import static java.util.Collections.emptyList;
 import static java.util.Collections.singletonList;
+import static java.util.stream.Collectors.toList;
+import static java.util.stream.Collectors.toSet;
 
 public abstract class AbstractRewriteMojo extends AbstractMojo {
     @Parameter(property = "configLocation", defaultValue = "rewrite.yml")
@@ -52,7 +55,7 @@ public abstract class AbstractRewriteMojo extends AbstractMojo {
         RefactorPlan.Builder plan = RefactorPlan.builder()
                 .compileClasspath(project.getArtifacts().stream()
                         .map(d -> d.getFile().toPath())
-                        .collect(Collectors.toList()))
+                        .collect(toList()))
                 .scanResources()
                 .scanUserHome();
 
@@ -80,20 +83,25 @@ public abstract class AbstractRewriteMojo extends AbstractMojo {
             MeterRegistry meterRegistry = meterRegistryProvider.registry();
 
             RefactorPlan plan = plan();
-            Collection<RefactorVisitor<?>> visitors = plan.visitors(
-                    Arrays.stream(activeProfiles.split(","))
-                            .map(String::trim)
-                            .toArray(String[]::new));
+            Set<String> profiles = Arrays.stream(activeProfiles.split(","))
+                    .map(String::trim)
+                    .collect(toSet());
+
+            Collection<RefactorVisitor<?>> visitors = plan.visitors(profiles);
 
             List<SourceFile> sourceFiles = new ArrayList<>();
             List<Path> javaSources = new ArrayList<>();
             javaSources.addAll(listJavaSources(project.getBuild().getSourceDirectory()));
             javaSources.addAll(listJavaSources(project.getBuild().getTestSourceDirectory()));
 
+            List<Path> dependencies = project.getArtifacts().stream()
+                    .map(d -> d.getFile().toPath())
+                    .collect(toList());
+
+            ImportLayoutStyle importLayoutStyle = plan.style(ImportLayoutStyle.class, profiles);
             sourceFiles.addAll(JavaParser.fromJavaVersion()
-                    .classpath(project.getArtifacts().stream()
-                            .map(d -> d.getFile().toPath())
-                            .collect(Collectors.toList()))
+                    .importStyle(importLayoutStyle)
+                    .classpath(dependencies)
                     .logCompilationWarningsAndErrors(false)
                     .meterRegistry(meterRegistry)
                     .build()
@@ -106,7 +114,7 @@ public abstract class AbstractRewriteMojo extends AbstractMojo {
                                     .filter(Objects::nonNull)
                                     .filter(it -> it.endsWith(".yml") || it.endsWith(".yaml"))
                                     .map(Paths::get)
-                                    .collect(Collectors.toList()),
+                                    .collect(toList()),
                             project.getBasedir().toPath())
             );
 
@@ -117,7 +125,7 @@ public abstract class AbstractRewriteMojo extends AbstractMojo {
                                     .filter(Objects::nonNull)
                                     .filter(it -> it.endsWith(".properties"))
                                     .map(Paths::get)
-                                    .collect(Collectors.toList()),
+                                    .collect(toList()),
                             project.getBasedir().toPath())
             );
 
@@ -129,7 +137,7 @@ public abstract class AbstractRewriteMojo extends AbstractMojo {
 //                                .remoteRepositories(project.getRepositories().stream()
 //                                        .map(repo -> new RemoteRepository.Builder("central", "default",
 //                                                "https://repo1.maven.org/maven2/").build())
-//                                        .collect(Collectors.toList())
+//                                        .dependencies(Collectors.toList())
 //                                )
 //                                .build().parse(singletonList(project.getFile().toPath()), project.getBasedir().toPath())
 //                );
@@ -149,7 +157,7 @@ public abstract class AbstractRewriteMojo extends AbstractMojo {
         try {
             return Files.walk(sourceRoot)
                     .filter(f -> !Files.isDirectory(f) && f.toFile().getName().endsWith(".java"))
-                    .collect(Collectors.toList());
+                    .collect(toList());
         } catch (IOException e) {
             throw new MojoExecutionException("Unable to list Java source files", e);
         }

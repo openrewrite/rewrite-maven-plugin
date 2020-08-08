@@ -27,7 +27,7 @@ import java.util.Collection;
 // https://medium.com/swlh/step-by-step-guide-to-developing-a-custom-maven-plugin-b6e3a0e09966
 // https://carlosvin.github.io/posts/creating-custom-maven-plugin/en/#_dependency_injection
 // https://developer.okta.com/blog/2019/09/23/tutorial-build-a-maven-plugin
-@Mojo(name = "fix", requiresDependencyResolution = ResolutionScope.COMPILE, threadSafe = true)
+@Mojo(name = "fix", requiresDependencyResolution = ResolutionScope.TEST, threadSafe = true)
 @Execute(phase = LifecyclePhase.PROCESS_SOURCES)
 public class RewriteFixMojo extends AbstractRewriteMojo {
     @Override
