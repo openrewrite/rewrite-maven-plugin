@@ -35,9 +35,9 @@
                             </tag>
                         </tags>
                     </metrics>
-                    <activeProfiles>checkstyle</activeProfiles>
-                    <profiles>
-                        <profile>
+                    <activeRecipes>checkstyle</activeRecipes>
+                    <recipes>
+                        <recipe>
                             <name>checkstyle</name>
                             <configure>
                                 <property>
@@ -46,8 +46,8 @@
                                     <value>${project.basedir}/checkstyle.xml</value>
                                 </property>
                             </configure>
-                        </profile>
-                    </profiles>
+                        </recipe>
+                    </recipes>
                 </configuration>
             </plugin>
         </plugins>

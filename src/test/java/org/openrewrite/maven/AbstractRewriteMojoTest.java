@@ -1,7 +1,7 @@
 package org.openrewrite.maven;
 
 import org.junit.jupiter.api.Test;
-import org.openrewrite.Profile;
+import org.openrewrite.Recipe;
 
 import static java.util.Collections.emptyList;
 import static java.util.Collections.singletonList;

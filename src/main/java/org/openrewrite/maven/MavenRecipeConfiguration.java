@@ -1,14 +1,14 @@
 package org.openrewrite.maven;
 
 import org.apache.maven.plugins.annotations.Parameter;
-import org.openrewrite.config.ProfileConfiguration;
+import org.openrewrite.config.RecipeConfiguration;
 
 import java.util.List;
 import java.util.Set;
 
 import static java.util.stream.Collectors.toMap;
 
-public class MavenProfileConfiguration {
+public class MavenRecipeConfiguration {
     @Parameter(property = "name", defaultValue = "default")
     String name;
 
@@ -22,26 +22,26 @@ public class MavenProfileConfiguration {
     private String extend;
 
     @Parameter(property = "configure")
-    List<MavenProfileProperty> configure;
+    List<MavenRecipeProperty> configure;
 
-    public ProfileConfiguration toProfileConfiguration() {
-        ProfileConfiguration profile = new ProfileConfiguration();
+    public RecipeConfiguration toRecipeConfiguration() {
+        RecipeConfiguration recipe = new RecipeConfiguration();
         if(name != null) {
-            profile.setName(name);
+            recipe.setName(name);
         }
         if(include != null) {
-            profile.setInclude(include);
+            recipe.setInclude(include);
         }
         if(exclude != null) {
-            profile.setExclude(exclude);
+            recipe.setExclude(exclude);
         }
         if(extend != null) {
-            profile.setExtend(extend);
+            recipe.setExtend(extend);
         }
         if(configure != null) {
-            profile.setConfigure(configure.stream()
+            recipe.setConfigure(configure.stream()
                     .collect(toMap(prop -> prop.visitor + "." + prop.key, prop -> prop.value)));
         }
-        return profile;
+        return recipe;
     }
 }
