@@ -1,7 +1,6 @@
 package org.openrewrite.maven;
 
 import org.junit.jupiter.api.Test;
-import org.openrewrite.Profile;
 
 import static java.util.Collections.emptyList;
 import static java.util.Collections.singletonList;
@@ -29,9 +28,9 @@ class AbstractRewriteMojoTest {
 //
 //        config.configure = singletonList(prop);
 //
-//        Profile profile = config.toProfileConfiguration().build(emptyList());
+//        Profile recipe = config.toProfileConfiguration().build(emptyList());
 //        CovariantEquals covariantEquals = new CovariantEquals();
-//        profile.configure(profile.configure(covariantEquals));
+//        recipe.configure(recipe.configure(covariantEquals));
 //
 //        assertThat(covariantEquals.validate().isValid()).isTrue();
 //    }

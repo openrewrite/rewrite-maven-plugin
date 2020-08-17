@@ -1,12 +1,12 @@
 ---
-type: beta.openrewrite.org/v1/profile
+type: openrewrite.org/v1beta/profile
 name: checkstyle
 
 configure:
   org.openrewrite.checkstyle.*:
     configFile: checkstyle.xml
 ---
-type: beta.openrewrite.org/v1/profile
+type: openrewrite.org/v1beta/profile
 name: default
 
 configure:

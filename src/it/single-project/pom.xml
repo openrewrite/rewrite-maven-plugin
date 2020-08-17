@@ -35,10 +35,10 @@
                             </tag>
                         </tags>
                     </metrics>
-                    <activeProfiles>checkstyle</activeProfiles>
-                    <profiles>
-                        <profile>
-                            <name>checkstyle</name>
+                    <activeProfiles>org.openrewrite.checkstyle</activeProfiles>
+                    <recipes>
+                        <recipe>
+                            <name>org.openrewrite.checkstyle</name>
                             <configure>
                                 <property>
                                     <visitor>org.openrewrite.checkstyle.*</visitor>
@@ -46,8 +46,8 @@
                                     <value>${project.basedir}/checkstyle.xml</value>
                                 </property>
                             </configure>
-                        </profile>
-                    </profiles>
+                        </recipe>
+                    </recipes>
                 </configuration>
             </plugin>
         </plugins>

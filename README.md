@@ -21,9 +21,9 @@ To configure, add the plugin to your POM:
             <plugin>
                 <groupId>org.openrewrite.maven</groupId>
                 <artifactId>rewrite-maven-plugin</artifactId>
-                <version>1.1.0</version>
+                <version>2.0.0</version>
                 <configuration>
-                    <activeProfiles>spring</activeProfiles>
+                    <activeRecipes>org.openrewrite.spring</activeRecipes>
                 </configuration>
             </plugin>
         </plugins>
@@ -33,15 +33,13 @@ To configure, add the plugin to your POM:
 
 The plugin scans all dependencies on the classpath for `META-INF/rewrite/*.yml` files and loads their configuration as well as anything in `~/rewrite.yml`.
 
-This plugin automatically adds `org.openrewrite.plan:rewrite-spring` and `org.openrewrite.plan:rewrite-checkstyle` to the plugin classpath and loads their `spring` and `checkstyle` profiles.
+This plugin automatically adds `org.openrewrite.plan:rewrite-spring` to the plugin classpath and loads the `org.openrewrite.spring` recipe.
 
-To apply Spring best practices, you must activate the `spring` profile. It is then fully configured.
+To apply Spring best practices, you must activate the `org.openrewrite.spring` recipe. It is then fully configured.
 
-For Checkstyle auto-fixing to take place, you need to tell the checkstyle profile where to find the checkstyle configuration XML (which should already be a part of your project), as shown in the example below.
+## Defining or configuring recipes in the POM
 
-## Defining or configuring profiles in the POM
-
-Profiles can be defined directly in the POM, making it easy to share profile configuration across many different repositories via parent POM configuration of the Rewrite plugin.
+Profiles can be defined directly in the POM, making it easy to share recipe configuration across many different repositories via parent POM configuration of the Rewrite plugin.
 
 ```xml
 <?xml version="1.0" encoding="UTF-8"?>
@@ -52,12 +50,12 @@ Profiles can be defined directly in the POM, making it easy to share profile con
             <plugin>
                 <groupId>org.openrewrite.maven</groupId>
                 <artifactId>rewrite-maven-plugin</artifactId>
-                <version>1.1.0</version>
+                <version>2.0.0</version>
                 <configuration>
-                    <activeProfiles>checkstyle</activeProfiles>
-                    <profiles>
-                        <profile>
-                            <name>checkstyle</name>
+                    <activeRecipes>org.openrewrite.checkstyle</activeRecipes>
+                    <recipes>
+                        <recipe>
+                            <name>org.openrewrite.checkstyle</name>
                             <configure>
                                 <property>
                                     <visitor>org.openrewrite.checkstyle.*</visitor>
@@ -65,8 +63,8 @@ Profiles can be defined directly in the POM, making it easy to share profile con
                                     <value>${project.basedir}/../checkstyle.xml</value>
                                 </property>
                             </configure>
-                        </profile>
-                    </profiles>
+                        </recipe>
+                    </recipes>
                 </configuration>
             </plugin>
         </plugins>
@@ -76,7 +74,7 @@ Profiles can be defined directly in the POM, making it easy to share profile con
 
 ## Applying Rewrite YML configuration
 
-Use the `<configLocation>` property to load a Rewrite YML configuration containing profile and visitor definitions.
+Use the `<configLocation>` property to load a Rewrite YML configuration containing recipe and visitor definitions.
 
 ```xml
 <?xml version="1.0" encoding="UTF-8"?>
@@ -87,7 +85,7 @@ Use the `<configLocation>` property to load a Rewrite YML configuration containi
             <plugin>
                 <groupId>org.openrewrite.maven</groupId>
                 <artifactId>rewrite-maven-plugin</artifactId>
-                <version>1.1.0</version>
+                <version>2.0.0</version>
                 <configuration>
                     <configLocation>rewrite.yml</configLocation>
                 </configuration>
@@ -97,11 +95,11 @@ Use the `<configLocation>` property to load a Rewrite YML configuration containi
 </project>
 ```
 
-`rewrite.yml` is a file in the project that can define Rewrite profile configuration.
+`rewrite.yml` is a file in the project that can define Rewrite recipe configuration.
 
 ```yaml
 ---
-type: beta.openrewrite.org/v1/profile
+type: openrewrite.org/v1beta/recipe
 name: default
 
 configure:

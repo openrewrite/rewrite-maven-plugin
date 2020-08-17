@@ -6,7 +6,6 @@ import org.apache.maven.plugin.AbstractMojo;
 import org.apache.maven.plugin.MojoExecutionException;
 import org.apache.maven.plugins.annotations.Parameter;
 import org.apache.maven.project.MavenProject;
-import org.eclipse.aether.repository.RemoteRepository;
 import org.openrewrite.*;
 import org.openrewrite.config.YamlResourceLoader;
 import org.openrewrite.java.JavaParser;
@@ -21,11 +20,9 @@ import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.util.*;
-import java.util.stream.Collectors;
 import java.util.stream.Stream;
 
 import static java.util.Collections.emptyList;
-import static java.util.Collections.singletonList;
 import static java.util.stream.Collectors.toList;
 import static java.util.stream.Collectors.toSet;
 
@@ -60,14 +57,14 @@ public abstract class AbstractRewriteMojo extends AbstractMojo {
                 .scanUserHome();
 
         if (profiles != null) {
-            profiles.forEach(profile -> plan.loadProfile(profile.toProfileConfiguration()));
+            profiles.forEach(profile -> plan.loadRecipe(profile.toRecipeConfiguration()));
         }
 
         File rewriteConfig = new File(project.getBasedir() + "/" + configLocation);
         if (rewriteConfig.exists()) {
             try (FileInputStream is = new FileInputStream(rewriteConfig)) {
                 YamlResourceLoader resourceLoader = new YamlResourceLoader(is);
-                plan.loadProfiles(resourceLoader);
+                plan.loadRecipes(resourceLoader);
                 plan.loadVisitors(resourceLoader);
             } catch (IOException e) {
                 throw new MojoExecutionException("Unable to load rewrite configuration", e);
