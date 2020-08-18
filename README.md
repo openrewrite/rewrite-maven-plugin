@@ -99,7 +99,7 @@ Use the `<configLocation>` property to load a Rewrite YML configuration containi
 
 ```yaml
 ---
-type: openrewrite.org/v1beta/recipe
+type: specs.openrewrite.org/v1beta/recipe
 name: default
 
 configure:
