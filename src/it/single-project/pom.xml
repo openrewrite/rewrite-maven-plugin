@@ -35,7 +35,7 @@
                             </tag>
                         </tags>
                     </metrics>
-                    <activeProfiles>org.openrewrite.checkstyle</activeProfiles>
+                    <activeRecipes>org.openrewrite.checkstyle</activeRecipes>
                     <recipes>
                         <recipe>
                             <name>org.openrewrite.checkstyle</name>

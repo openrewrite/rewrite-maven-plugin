@@ -2,7 +2,7 @@ package org.openrewrite.maven;
 
 import org.apache.maven.plugins.annotations.Parameter;
 
-public class MavenProfileProperty {
+public class MavenRecipeProperty {
     @Parameter(property = "visitor", required = true)
     String visitor;
 

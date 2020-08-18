@@ -25,7 +25,6 @@ import java.io.File;
 import java.io.IOException;
 import java.net.URL;
 
-import static java.util.Collections.singleton;
 import static java.util.Collections.singletonList;
 
 class RewriteWarnMojoTest extends AbstractMojoTestCase {
@@ -35,7 +34,7 @@ class RewriteWarnMojoTest extends AbstractMojoTestCase {
 
     @Test
     void checkstyle() throws Exception {
-        testMojo.activeProfiles = "checkstyle";
+        testMojo.activeRecipes = "checkstyle";
         testMojo.configLocation = "rewrite.yml";
         testMojo.execute();
     }

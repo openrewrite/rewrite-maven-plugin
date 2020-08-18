@@ -39,7 +39,7 @@ To apply Spring best practices, you must activate the `org.openrewrite.spring` r
 
 ## Defining or configuring recipes in the POM
 
-Profiles can be defined directly in the POM, making it easy to share recipe configuration across many different repositories via parent POM configuration of the Rewrite plugin.
+Recipes can be defined directly in the POM, making it easy to share recipe configuration across many different repositories via parent POM configuration of the Rewrite plugin.
 
 ```xml
 <?xml version="1.0" encoding="UTF-8"?>

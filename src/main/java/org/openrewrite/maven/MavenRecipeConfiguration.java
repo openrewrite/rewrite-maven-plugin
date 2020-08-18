@@ -8,7 +8,7 @@ import java.util.Set;
 
 import static java.util.stream.Collectors.toMap;
 
-public class MavenProfileConfiguration {
+public class MavenRecipeConfiguration {
     @Parameter(property = "name", defaultValue = "default")
     String name;
 
@@ -19,7 +19,7 @@ public class MavenProfileConfiguration {
     private Set<String> exclude;
 
     @Parameter(property = "configure")
-    List<MavenProfileProperty> configure;
+    List<MavenRecipeProperty> configure;
 
     public RecipeConfiguration toRecipeConfiguration() {
         RecipeConfiguration recipe = new RecipeConfiguration();
