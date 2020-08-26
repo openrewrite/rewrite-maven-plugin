@@ -1,6 +1,7 @@
 package org.openrewrite.maven;
 
 import io.micrometer.core.instrument.MeterRegistry;
+import org.apache.maven.model.Dependency;
 import org.apache.maven.model.Resource;
 import org.apache.maven.plugin.AbstractMojo;
 import org.apache.maven.plugin.MojoExecutionException;
@@ -10,6 +11,8 @@ import org.openrewrite.*;
 import org.openrewrite.config.YamlResourceLoader;
 import org.openrewrite.java.JavaParser;
 import org.openrewrite.java.style.ImportLayoutStyle;
+import org.openrewrite.maven.tree.Maven;
+import org.openrewrite.maven.tree.MavenModel;
 import org.openrewrite.properties.PropertiesParser;
 import org.openrewrite.yaml.YamlParser;
 
@@ -20,9 +23,11 @@ import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.util.*;
+import java.util.stream.Collectors;
 import java.util.stream.Stream;
 
 import static java.util.Collections.emptyList;
+import static java.util.Collections.singletonList;
 import static java.util.stream.Collectors.toList;
 import static java.util.stream.Collectors.toSet;
 
@@ -34,7 +39,7 @@ public abstract class AbstractRewriteMojo extends AbstractMojo {
     protected MavenProject project;
 
     @Parameter(property = "activeRecipes")
-    String activeRecipes;
+    Set<String> activeRecipes;
 
     @Parameter(property = "metricsUri")
     private String metricsUri;
@@ -79,15 +84,11 @@ public abstract class AbstractRewriteMojo extends AbstractMojo {
                 metricsUri, metricsUsername, metricsPassword)) {
             MeterRegistry meterRegistry = meterRegistryProvider.registry();
 
-            if(activeRecipes == null || activeRecipes.isEmpty()) {
+            if (activeRecipes == null || activeRecipes.isEmpty()) {
                 return emptyList();
             }
             RefactorPlan plan = plan();
-            Set<String> recipes = Arrays.stream(activeRecipes.split(","))
-                    .map(String::trim)
-                    .collect(toSet());
-
-            Collection<RefactorVisitor<?>> visitors = plan.visitors(recipes);
+            Collection<RefactorVisitor<?>> visitors = plan.visitors(activeRecipes);
 
             List<SourceFile> sourceFiles = new ArrayList<>();
             List<Path> javaSources = new ArrayList<>();
@@ -98,7 +99,7 @@ public abstract class AbstractRewriteMojo extends AbstractMojo {
                     .map(d -> d.getFile().toPath())
                     .collect(toList());
 
-            ImportLayoutStyle importLayoutStyle = plan.style(ImportLayoutStyle.class, recipes);
+            ImportLayoutStyle importLayoutStyle = plan.style(ImportLayoutStyle.class, activeRecipes);
             sourceFiles.addAll(JavaParser.fromJavaVersion()
                     .importStyle(importLayoutStyle)
                     .classpath(dependencies)
@@ -129,19 +130,33 @@ public abstract class AbstractRewriteMojo extends AbstractMojo {
                             project.getBasedir().toPath())
             );
 
-//            File localRepo = new File(new File(project.getBuild().getOutputDirectory(), "rewrite"), ".m2");
-//            if (localRepo.mkdirs()) {
-//                sourceFiles.addAll(
-//                        MavenParser.builder()
-//                                .localRepository(localRepo)
-//                                .remoteRepositories(project.getRepositories().stream()
-//                                        .map(repo -> new RemoteRepository.Builder("central", "default",
-//                                                "https://repo1.maven.org/maven2/").build())
-//                                        .dependencies(Collectors.toList())
-//                                )
-//                                .build().parse(singletonList(project.getFile().toPath()), project.getBasedir().toPath())
-//                );
-//            }
+            Maven.Pom pomAst = MavenParser.builder()
+                    .resolveDependencies(false)
+                    .build()
+                    .parse(singletonList(project.getFile().toPath()), project.getBasedir().toPath())
+                    .iterator()
+                    .next();
+
+            pomAst = pomAst.withModel(pomAst.getModel()
+                    .withTransitiveDependenciesByScope(project.getDependencies().stream()
+                            .collect(
+                                    Collectors.groupingBy(
+                                            Dependency::getScope,
+                                            Collectors.mapping(dep -> new MavenModel.ModuleVersionId(
+                                                            dep.getGroupId(),
+                                                            dep.getArtifactId(),
+                                                            dep.getClassifier(),
+                                                            dep.getVersion(),
+                                                            emptyList()
+                                                    ),
+                                                    toSet()
+                                            )
+                                    )
+                            )
+                    )
+            );
+
+            sourceFiles.add(pomAst);
 
             return new Refactor().visit(visitors).setMeterRegistry(meterRegistry).fix(sourceFiles);
         }

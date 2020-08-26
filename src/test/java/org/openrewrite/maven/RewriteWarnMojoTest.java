@@ -24,6 +24,7 @@ import org.junit.jupiter.api.Test;
 import java.io.File;
 import java.io.IOException;
 import java.net.URL;
+import java.util.Collections;
 
 import static java.util.Collections.singletonList;
 
@@ -34,7 +35,7 @@ class RewriteWarnMojoTest extends AbstractMojoTestCase {
 
     @Test
     void checkstyle() throws Exception {
-        testMojo.activeRecipes = "checkstyle";
+        testMojo.activeRecipes = Collections.singleton("checkstyle");
         testMojo.configLocation = "rewrite.yml";
         testMojo.execute();
     }
