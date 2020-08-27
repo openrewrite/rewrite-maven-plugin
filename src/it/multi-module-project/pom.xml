@@ -32,20 +32,8 @@
                     <configuration>
                         <metricsUri>LOG</metricsUri>
                         <activeRecipes>
-                            <recipe>org.openrewrite.checkstyle</recipe>
+                            <recipe>org.openrewrite.sample.checkstyle</recipe>
                         </activeRecipes>
-                        <recipes>
-                            <recipe>
-                                <name>org.openrewrite.checkstyle</name>
-                                <configure>
-                                    <property>
-                                        <visitor>org.openrewrite.checkstyle.*</visitor>
-                                        <key>configFile</key>
-                                        <value>${project.basedir}/../checkstyle.xml</value>
-                                    </property>
-                                </configure>
-                            </recipe>
-                        </recipes>
                     </configuration>
                 </plugin>
             </plugins>

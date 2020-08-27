@@ -10,7 +10,6 @@ import org.apache.maven.project.MavenProject;
 import org.openrewrite.*;
 import org.openrewrite.config.YamlResourceLoader;
 import org.openrewrite.java.JavaParser;
-import org.openrewrite.java.style.ImportLayoutStyle;
 import org.openrewrite.maven.tree.Maven;
 import org.openrewrite.maven.tree.MavenModel;
 import org.openrewrite.properties.PropertiesParser;
@@ -41,6 +40,9 @@ public abstract class AbstractRewriteMojo extends AbstractMojo {
     @Parameter(property = "activeRecipes")
     Set<String> activeRecipes;
 
+    @Parameter(property = "activeStyles")
+    Set<String> activeStyles;
+
     @Parameter(property = "metricsUri")
     private String metricsUri;
 
@@ -50,33 +52,25 @@ public abstract class AbstractRewriteMojo extends AbstractMojo {
     @Parameter(property = "metricsPassword")
     private String metricsPassword;
 
-    @Parameter(property = "recipes")
-    private List<MavenRecipeConfiguration> recipes;
-
-    protected RefactorPlan plan() throws MojoExecutionException {
-        RefactorPlan.Builder plan = RefactorPlan.builder()
+    protected Environment environment() throws MojoExecutionException {
+        Environment.Builder env = Environment
+                .builder(project.getProperties())
                 .compileClasspath(project.getArtifacts().stream()
                         .map(d -> d.getFile().toPath())
                         .collect(toList()))
                 .scanResources()
                 .scanUserHome();
 
-        if (recipes != null) {
-            recipes.forEach(recipe -> plan.loadRecipe(recipe.toRecipeConfiguration()));
-        }
-
         File rewriteConfig = new File(project.getBasedir() + "/" + configLocation);
         if (rewriteConfig.exists()) {
             try (FileInputStream is = new FileInputStream(rewriteConfig)) {
-                YamlResourceLoader resourceLoader = new YamlResourceLoader(is);
-                plan.loadRecipes(resourceLoader);
-                plan.loadVisitors(resourceLoader);
+                env.load(new YamlResourceLoader(is, rewriteConfig.toURI(), project.getProperties()));
             } catch (IOException e) {
                 throw new MojoExecutionException("Unable to load rewrite configuration", e);
             }
         }
 
-        return plan.build();
+        return env.build();
     }
 
     protected Collection<Change> listChanges() throws MojoExecutionException {
@@ -87,8 +81,9 @@ public abstract class AbstractRewriteMojo extends AbstractMojo {
             if (activeRecipes == null || activeRecipes.isEmpty()) {
                 return emptyList();
             }
-            RefactorPlan plan = plan();
-            Collection<RefactorVisitor<?>> visitors = plan.visitors(activeRecipes);
+
+            Environment env = environment();
+            Collection<RefactorVisitor<?>> visitors = env.visitors(activeRecipes);
 
             List<SourceFile> sourceFiles = new ArrayList<>();
             List<Path> javaSources = new ArrayList<>();
@@ -99,9 +94,8 @@ public abstract class AbstractRewriteMojo extends AbstractMojo {
                     .map(d -> d.getFile().toPath())
                     .collect(toList());
 
-            ImportLayoutStyle importLayoutStyle = plan.style(ImportLayoutStyle.class, activeRecipes);
             sourceFiles.addAll(JavaParser.fromJavaVersion()
-                    .importStyle(importLayoutStyle)
+                    .styles(env.styles(activeStyles))
                     .classpath(dependencies)
                     .logCompilationWarningsAndErrors(false)
                     .meterRegistry(meterRegistry)

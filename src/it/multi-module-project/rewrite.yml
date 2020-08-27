@@ -1,0 +1,9 @@
+---
+type: specs.openrewrite.org/v1beta/recipe
+name: org.openrewrite.sample.checkstyle
+include:
+  - 'org.openrewrite.checkstyle.*'
+configure:
+  org.openrewrite.checkstyle.*:
+    configFile: '${project.basedir}/../checkstyle.xml'
+
