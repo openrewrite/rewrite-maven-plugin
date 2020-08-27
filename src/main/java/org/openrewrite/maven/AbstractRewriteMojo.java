@@ -1,7 +1,6 @@
 package org.openrewrite.maven;
 
 import io.micrometer.core.instrument.MeterRegistry;
-import org.apache.maven.model.Dependency;
 import org.apache.maven.model.Resource;
 import org.apache.maven.plugin.AbstractMojo;
 import org.apache.maven.plugin.MojoExecutionException;
@@ -11,7 +10,6 @@ import org.openrewrite.*;
 import org.openrewrite.config.YamlResourceLoader;
 import org.openrewrite.java.JavaParser;
 import org.openrewrite.maven.tree.Maven;
-import org.openrewrite.maven.tree.MavenModel;
 import org.openrewrite.properties.PropertiesParser;
 import org.openrewrite.yaml.YamlParser;
 
@@ -22,13 +20,10 @@ import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.util.*;
-import java.util.stream.Collectors;
 import java.util.stream.Stream;
 
 import static java.util.Collections.emptyList;
-import static java.util.Collections.singletonList;
 import static java.util.stream.Collectors.toList;
-import static java.util.stream.Collectors.toSet;
 
 public abstract class AbstractRewriteMojo extends AbstractMojo {
     @Parameter(property = "configLocation", defaultValue = "rewrite.yml")
@@ -61,7 +56,12 @@ public abstract class AbstractRewriteMojo extends AbstractMojo {
                 .scanResources()
                 .scanUserHome();
 
-        File rewriteConfig = new File(project.getBasedir() + "/" + configLocation);
+        Path absoluteConfigLocation = Paths.get(configLocation);
+        if (!absoluteConfigLocation.isAbsolute()) {
+            absoluteConfigLocation = project.getBasedir().toPath().resolve(configLocation);
+        }
+        File rewriteConfig = absoluteConfigLocation.toFile();
+
         if (rewriteConfig.exists()) {
             try (FileInputStream is = new FileInputStream(rewriteConfig)) {
                 env.load(new YamlResourceLoader(is, rewriteConfig.toURI(), project.getProperties()));
@@ -124,39 +124,47 @@ public abstract class AbstractRewriteMojo extends AbstractMojo {
                             project.getBasedir().toPath())
             );
 
-            List<Path> projectAndLocalParents = new ArrayList<>();
-            projectAndLocalParents.add(project.getFile().toPath());
+            List<Path> allPoms = new ArrayList<>();
+            allPoms.add(project.getFile().toPath());
+
+            // children
+            project.getCollectedProjects().stream()
+                    .filter(collectedProject -> collectedProject != project)
+                    .map(collectedProject -> collectedProject.getFile().toPath())
+                    .forEach(allPoms::add);
+
+            // parents
             MavenProject parent = project.getParent();
             while(parent != null && parent.getFile() != null) {
-                projectAndLocalParents.add(parent.getFile().toPath());
+                allPoms.add(parent.getFile().toPath());
                 parent = parent.getParent();
             }
 
             Maven.Pom pomAst = MavenParser.builder()
-                    .resolveDependencies(false)
+                    .resolveDependencies(true)
                     .build()
-                    .parse(projectAndLocalParents, project.getBasedir().toPath())
+                    .parse(allPoms, project.getBasedir().toPath())
                     .iterator()
                     .next();
 
-            pomAst = pomAst.withModel(pomAst.getModel()
-                    .withTransitiveDependenciesByScope(project.getDependencies().stream()
-                            .collect(
-                                    Collectors.groupingBy(
-                                            Dependency::getScope,
-                                            Collectors.mapping(dep -> new MavenModel.ModuleVersionId(
-                                                            dep.getGroupId(),
-                                                            dep.getArtifactId(),
-                                                            dep.getClassifier(),
-                                                            dep.getVersion(),
-                                                            emptyList()
-                                                    ),
-                                                    toSet()
-                                            )
-                                    )
-                            )
-                    )
-            );
+//            pomAst = pomAst.withModel(pomAst.getModel()
+//                    .withTransitiveDependenciesByScope(project.getDependencies().stream()
+//                            .collect(
+//                                    Collectors.groupingBy(
+//                                            Dependency::getScope,
+//                                            Collectors.mapping(dep -> new MavenModel.ModuleVersionId(
+//                                                            dep.getGroupId(),
+//                                                            dep.getArtifactId(),
+//                                                            dep.getClassifier(),
+//                                                            dep.getVersion(),
+//                                                            emptyList()
+//                                                    ),
+//                                                    toSet()
+//                                            )
+//                                    )
+//                            )
+//                    )
+//            );
 
             sourceFiles.add(pomAst);
 

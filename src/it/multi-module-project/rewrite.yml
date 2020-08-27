@@ -5,5 +5,4 @@ include:
   - 'org.openrewrite.checkstyle.*'
 configure:
   org.openrewrite.checkstyle.*:
-    configFile: '${project.basedir}/../checkstyle.xml'
-
+    configFile: '${maven.multiModuleProjectDirectory}/checkstyle.xml'
