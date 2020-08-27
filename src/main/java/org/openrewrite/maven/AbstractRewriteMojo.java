@@ -130,10 +130,18 @@ public abstract class AbstractRewriteMojo extends AbstractMojo {
                             project.getBasedir().toPath())
             );
 
+            List<Path> projectAndLocalParents = new ArrayList<>();
+            projectAndLocalParents.add(project.getFile().toPath());
+            MavenProject parent = project.getParent();
+            while(parent != null && parent.getFile() != null) {
+                projectAndLocalParents.add(parent.getFile().toPath());
+                parent = parent.getParent();
+            }
+
             Maven.Pom pomAst = MavenParser.builder()
                     .resolveDependencies(false)
                     .build()
-                    .parse(singletonList(project.getFile().toPath()), project.getBasedir().toPath())
+                    .parse(projectAndLocalParents, project.getBasedir().toPath())
                     .iterator()
                     .next();
 
