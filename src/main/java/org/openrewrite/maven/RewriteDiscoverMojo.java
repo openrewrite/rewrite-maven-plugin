@@ -20,15 +20,14 @@ public class RewriteDiscoverMojo extends AbstractRewriteMojo {
         log.info("Found " + activeRecipes.size() + " active recipes and " + recipesByName.size() + " total recipes.\n");
 
         log.info("Active Recipe Names:");
-        for(String activeRecipe : activeRecipes) {
-            log.info("\t" + activeRecipe + "\n");
-        }
+        activeRecipes.forEach(activeRecipe -> log.info("\t" +
+                activeRecipe + "\n"));
 
         log.info("Recipes:");
 
         boolean isFirst = true;
-        for(Recipe recipe : recipesByName.values()) {
-            if(isFirst) {
+        for (Recipe recipe : recipesByName.values()) {
+            if (isFirst) {
                 isFirst = false;
             } else {
                 log.info("---");
@@ -37,15 +36,17 @@ public class RewriteDiscoverMojo extends AbstractRewriteMojo {
 
             log.info("\tname: " + recipe.getName());
             log.info("\tinclude: ");
-            recipe.getInclude().forEach( rec -> {
-                log.info("\t\t" + rec.pattern().replace("\\", "").replace("[^.]+", "*"));
-            });
+            recipe.getInclude().forEach(rec -> log.info("\t\t" +
+                    rec.pattern()
+                            .replace("\\", "")
+                            .replace("[^.]+", "*")));
             log.info("\texclude: ");
-            recipe.getExclude().forEach( rec -> {
-                log.info("\t\t" + rec.pattern().replace("\\", "").replace("[^.]+", "*"));
-            });
+            recipe.getExclude().forEach(rec -> log.info("\t\t" +
+                    rec.pattern()
+                            .replace("\\", "")
+                            .replace("[^.]+", "*")));
             log.info("\tvisitors: ");
-            environment.visitors(recipe.getName()).forEach( rec -> {
+            environment.visitors(recipe.getName()).forEach(rec -> {
                 log.info("\t\t" + rec.getName());
             });
             log.info("");
