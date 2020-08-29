@@ -44,7 +44,7 @@
         <java.version>1.8</java.version>
 
         <!-- Plugins -->
-        <maven-surefire-plugin.version>2.22.2</maven-surefire-plugin.version>
+        <maven-surefire-plugin.version>3.0.0-M5</maven-surefire-plugin.version>
         <maven-invoker-plugin.version>3.2.1</maven-invoker-plugin.version>
         <maven-assembly-plugin.version>2.6</maven-assembly-plugin.version>
         <maven-plugin-plugin.version>3.6.0</maven-plugin-plugin.version>
