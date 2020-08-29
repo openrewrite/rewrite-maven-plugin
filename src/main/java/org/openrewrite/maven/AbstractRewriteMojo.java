@@ -28,13 +28,13 @@ import static java.util.stream.Collectors.toList;
 import static java.util.stream.Collectors.toSet;
 
 public abstract class AbstractRewriteMojo extends AbstractMojo {
-    @Parameter(property = "configLocation", defaultValue = "rewrite.yml")
+    @Parameter(property = "configLocation", defaultValue = "${maven.multiModuleProjectDirectory}/rewrite.yml")
     String configLocation;
 
     @Parameter(defaultValue = "${project}", readonly = true, required = true)
     protected MavenProject project;
 
-    @Parameter(property = "sourceTypes")
+    @Parameter(property = "sourceTypes", defaultValue = "java,yml,xml,maven,properties")
     Set<String> sourceTypes;
 
     @Parameter(property = "activeRecipes")
