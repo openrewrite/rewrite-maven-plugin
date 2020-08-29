@@ -38,7 +38,7 @@ public abstract class AbstractRewriteMojo extends AbstractMojo {
     Set<String> sourceTypes;
 
     @Parameter(property = "activeRecipes")
-    Set<String> activeRecipes;
+    protected Set<String> activeRecipes;
 
     @Parameter(property = "activeStyles")
     Set<String> activeStyles;
