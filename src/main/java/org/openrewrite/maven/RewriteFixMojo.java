@@ -39,7 +39,7 @@ public class RewriteFixMojo extends AbstractRewriteMojo {
                 getLog().warn("Changes have been made to " +
                         change.getOriginal().getSourcePath() +
                         " by:");
-                for (String rule : change.getRulesThatMadeChanges()) {
+                for (String rule : change.getVisitorsThatMadeChanges()) {
                     getLog().warn("   " + rule);
                 }
             }

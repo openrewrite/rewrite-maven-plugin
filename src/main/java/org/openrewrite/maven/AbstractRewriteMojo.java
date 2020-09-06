@@ -1,6 +1,7 @@
 package org.openrewrite.maven;
 
 import io.micrometer.core.instrument.MeterRegistry;
+import org.apache.maven.model.Dependency;
 import org.apache.maven.model.Resource;
 import org.apache.maven.plugin.AbstractMojo;
 import org.apache.maven.plugin.MojoExecutionException;
@@ -10,6 +11,7 @@ import org.openrewrite.*;
 import org.openrewrite.config.YamlResourceLoader;
 import org.openrewrite.java.JavaParser;
 import org.openrewrite.maven.tree.Maven;
+import org.openrewrite.maven.tree.MavenModel;
 import org.openrewrite.properties.PropertiesParser;
 import org.openrewrite.yaml.YamlParser;
 
@@ -33,9 +35,6 @@ public abstract class AbstractRewriteMojo extends AbstractMojo {
 
     @Parameter(defaultValue = "${project}", readonly = true, required = true)
     protected MavenProject project;
-
-    @Parameter(property = "sourceTypes", defaultValue = "java,yml,xml,maven,properties")
-    Set<String> sourceTypes;
 
     @Parameter(property = "activeRecipes")
     protected Set<String> activeRecipes;
@@ -99,95 +98,79 @@ public abstract class AbstractRewriteMojo extends AbstractMojo {
                     .map(d -> d.getFile().toPath())
                     .collect(toList());
 
-            if(sourceTypes == null) {
-                sourceTypes = new HashSet<>(Arrays.asList("java", "properties", "yaml", "maven", "xml"));
+            sourceFiles.addAll(JavaParser.fromJavaVersion()
+                    .styles(env.styles(activeStyles))
+                    .classpath(dependencies)
+                    .logCompilationWarningsAndErrors(false)
+                    .meterRegistry(meterRegistry)
+                    .build()
+                    .parse(javaSources, project.getBasedir().toPath()));
+
+            sourceFiles.addAll(
+                    new YamlParser().parse(
+                            Stream.concat(project.getBuild().getResources().stream(), project.getBuild().getTestResources().stream())
+                                    .map(Resource::getTargetPath)
+                                    .filter(Objects::nonNull)
+                                    .filter(it -> it.endsWith(".yml") || it.endsWith(".yaml"))
+                                    .map(Paths::get)
+                                    .collect(toList()),
+                            project.getBasedir().toPath())
+            );
+
+            sourceFiles.addAll(
+                    new PropertiesParser().parse(
+                            Stream.concat(project.getBuild().getResources().stream(), project.getBuild().getTestResources().stream())
+                                    .map(Resource::getTargetPath)
+                                    .filter(Objects::nonNull)
+                                    .filter(it -> it.endsWith(".properties"))
+                                    .map(Paths::get)
+                                    .collect(toList()),
+                            project.getBasedir().toPath())
+            );
+
+            List<Path> allPoms = new ArrayList<>();
+            allPoms.add(project.getFile().toPath());
+
+            // children
+            project.getCollectedProjects().stream()
+                    .filter(collectedProject -> collectedProject != project)
+                    .map(collectedProject -> collectedProject.getFile().toPath())
+                    .forEach(allPoms::add);
+
+            // parents
+            MavenProject parent = project.getParent();
+            while (parent != null && parent.getFile() != null) {
+                allPoms.add(parent.getFile().toPath());
+                parent = parent.getParent();
             }
 
-            Set<String> sourceTypesNormalized = sourceTypes.stream()
-                    .map(String::toLowerCase)
-                    .collect(toSet());
+            Maven.Pom pomAst = MavenParser.builder()
+                    .resolveDependencies(false)
+                    .build()
+                    .parse(allPoms, project.getBasedir().toPath())
+                    .iterator()
+                    .next();
 
-            if(sourceTypesNormalized.contains("java")) {
-                sourceFiles.addAll(JavaParser.fromJavaVersion()
-                        .styles(env.styles(activeStyles))
-                        .classpath(dependencies)
-                        .logCompilationWarningsAndErrors(false)
-                        .meterRegistry(meterRegistry)
-                        .build()
-                        .parse(javaSources, project.getBasedir().toPath()));
-            }
+            pomAst = pomAst.withModel(pomAst.getModel()
+                    .withTransitiveDependenciesByScope(project.getDependencies().stream()
+                            .collect(
+                                    Collectors.groupingBy(
+                                            Dependency::getScope,
+                                            Collectors.mapping(dep -> new MavenModel.ModuleVersionId(
+                                                            dep.getGroupId(),
+                                                            dep.getArtifactId(),
+                                                            dep.getClassifier(),
+                                                            dep.getVersion(),
+                                                            "jar"
+                                                    ),
+                                                    toSet()
+                                            )
+                                    )
+                            )
+                    )
+            );
 
-            if(sourceTypesNormalized.contains("yml") || sourceTypesNormalized.contains("yaml")) {
-                sourceFiles.addAll(
-                        new YamlParser().parse(
-                                Stream.concat(project.getBuild().getResources().stream(), project.getBuild().getTestResources().stream())
-                                        .map(Resource::getTargetPath)
-                                        .filter(Objects::nonNull)
-                                        .filter(it -> it.endsWith(".yml") || it.endsWith(".yaml"))
-                                        .map(Paths::get)
-                                        .collect(toList()),
-                                project.getBasedir().toPath())
-                );
-            }
-
-            if(sourceTypesNormalized.contains("properties")) {
-                sourceFiles.addAll(
-                        new PropertiesParser().parse(
-                                Stream.concat(project.getBuild().getResources().stream(), project.getBuild().getTestResources().stream())
-                                        .map(Resource::getTargetPath)
-                                        .filter(Objects::nonNull)
-                                        .filter(it -> it.endsWith(".properties"))
-                                        .map(Paths::get)
-                                        .collect(toList()),
-                                project.getBasedir().toPath())
-                );
-            }
-
-            if(sourceTypesNormalized.contains("maven")) {
-                List<Path> allPoms = new ArrayList<>();
-                allPoms.add(project.getFile().toPath());
-
-                // children
-                project.getCollectedProjects().stream()
-                        .filter(collectedProject -> collectedProject != project)
-                        .map(collectedProject -> collectedProject.getFile().toPath())
-                        .forEach(allPoms::add);
-
-                // parents
-                MavenProject parent = project.getParent();
-                while (parent != null && parent.getFile() != null) {
-                    allPoms.add(parent.getFile().toPath());
-                    parent = parent.getParent();
-                }
-
-                Maven.Pom pomAst = MavenParser.builder()
-                        .resolveDependencies(true)
-                        .build()
-                        .parse(allPoms, project.getBasedir().toPath())
-                        .iterator()
-                        .next();
-
-//            pomAst = pomAst.withModel(pomAst.getModel()
-//                    .withTransitiveDependenciesByScope(project.getDependencies().stream()
-//                            .collect(
-//                                    Collectors.groupingBy(
-//                                            Dependency::getScope,
-//                                            Collectors.mapping(dep -> new MavenModel.ModuleVersionId(
-//                                                            dep.getGroupId(),
-//                                                            dep.getArtifactId(),
-//                                                            dep.getClassifier(),
-//                                                            dep.getVersion(),
-//                                                            emptyList()
-//                                                    ),
-//                                                    toSet()
-//                                            )
-//                                    )
-//                            )
-//                    )
-//            );
-
-                sourceFiles.add(pomAst);
-            }
+            sourceFiles.add(pomAst);
 
             return new Refactor().visit(visitors).setMeterRegistry(meterRegistry).fix(sourceFiles);
         }

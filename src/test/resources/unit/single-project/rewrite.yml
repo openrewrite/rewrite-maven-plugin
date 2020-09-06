@@ -1,18 +1,6 @@
 ---
-type: openrewrite.org/v1beta/profile
-name: checkstyle
-
+type: specs.openrewrite.org/v1beta/recipe
+name: org.openrewrite.sample.checkstyle
 configure:
   org.openrewrite.checkstyle.*:
     configFile: checkstyle.xml
----
-type: openrewrite.org/v1beta/profile
-name: default
-
-configure:
-  org.openrewrite.java.OrderImports:
-    layout:
-      blocks:
-        - import all other imports
-        - <blank line>
-        - import static all other imports

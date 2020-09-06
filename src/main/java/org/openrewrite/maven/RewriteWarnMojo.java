@@ -36,7 +36,7 @@ public class RewriteWarnMojo extends AbstractRewriteMojo {
                 getLog().warn("Changes are suggested to " +
                         change.getOriginal().getSourcePath() +
                         " by:");
-                for (String rule : change.getRulesThatMadeChanges()) {
+                for (String rule : change.getVisitorsThatMadeChanges()) {
                     getLog().warn("   " + rule);
                 }
             }
