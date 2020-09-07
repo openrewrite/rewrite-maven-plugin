@@ -17,7 +17,6 @@
             <groupId>org.openrewrite.plan</groupId>
             <artifactId>rewrite-checkstyle</artifactId>
             <version>1.1.0-SNAPSHOT</version>
-            <scope>provided</scope>
         </dependency>
     </dependencies>
 
@@ -42,8 +41,9 @@
                         </tags>
                     </metrics>
                     <activeRecipes>
-                        <recipe>org.openrewrite.sample.checkstyle</recipe>
+                        <recipe>org.openrewrite.sample.Checkstyle</recipe>
                     </activeRecipes>
+                    <configLocation>${maven.multiModuleProjectDirectory}/src/it/rewrite.yml</configLocation>
                 </configuration>
             </plugin>
         </plugins>

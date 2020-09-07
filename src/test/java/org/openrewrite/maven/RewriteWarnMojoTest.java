@@ -35,7 +35,7 @@ class RewriteWarnMojoTest extends AbstractMojoTestCase {
 
     @Test
     void checkstyle() throws Exception {
-        testMojo.activeRecipes = Collections.singleton("checkstyle");
+        testMojo.activeRecipes = Collections.singleton("org.openrewrite.sample.Checkstyle");
         testMojo.configLocation = "rewrite.yml";
         testMojo.execute();
     }

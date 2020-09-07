@@ -54,10 +54,9 @@ public abstract class AbstractRewriteMojo extends AbstractMojo {
     protected Environment environment() throws MojoExecutionException {
         Environment.Builder env = Environment
                 .builder(project.getProperties())
-                .compileClasspath(project.getArtifacts().stream()
+                .scanClasspath(project.getArtifacts().stream()
                         .map(d -> d.getFile().toPath())
                         .collect(toList()))
-                .scanResources()
                 .scanUserHome();
 
         Path absoluteConfigLocation = Paths.get(configLocation);
@@ -72,6 +71,10 @@ public abstract class AbstractRewriteMojo extends AbstractMojo {
             } catch (IOException e) {
                 throw new MojoExecutionException("Unable to load rewrite configuration", e);
             }
+        }
+        else {
+            throw new MojoExecutionException("Unable to load rewrite configuration, because it does not exist: " +
+                    rewriteConfig.toString());
         }
 
         return env.build();
@@ -132,10 +135,12 @@ public abstract class AbstractRewriteMojo extends AbstractMojo {
             allPoms.add(project.getFile().toPath());
 
             // children
-            project.getCollectedProjects().stream()
-                    .filter(collectedProject -> collectedProject != project)
-                    .map(collectedProject -> collectedProject.getFile().toPath())
-                    .forEach(allPoms::add);
+            if(project.getCollectedProjects() != null) {
+                project.getCollectedProjects().stream()
+                        .filter(collectedProject -> collectedProject != project)
+                        .map(collectedProject -> collectedProject.getFile().toPath())
+                        .forEach(allPoms::add);
+            }
 
             // parents
             MavenProject parent = project.getParent();
@@ -176,7 +181,7 @@ public abstract class AbstractRewriteMojo extends AbstractMojo {
         }
     }
 
-    private List<Path> listJavaSources(String sourceDirectory) throws MojoExecutionException {
+    protected List<Path> listJavaSources(String sourceDirectory) throws MojoExecutionException {
         File sourceDirectoryFile = new File(sourceDirectory);
         if (!sourceDirectoryFile.exists()) {
             return emptyList();

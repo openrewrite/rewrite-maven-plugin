@@ -1,8 +1,0 @@
----
-type: specs.openrewrite.org/v1beta/recipe
-name: org.openrewrite.sample.checkstyle
-include:
-  - 'org.openrewrite.checkstyle.*'
-configure:
-  org.openrewrite.checkstyle.*:
-    configFile: '${maven.multiModuleProjectDirectory}/checkstyle.xml'

@@ -1,6 +1,6 @@
 ---
 type: specs.openrewrite.org/v1beta/recipe
-name: org.openrewrite.sample.checkstyle
+name: org.openrewrite.sample.Checkstyle
 include:
   - 'org.openrewrite.checkstyle.*'
 configure:
