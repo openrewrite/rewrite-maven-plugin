@@ -25,7 +25,8 @@ import org.openrewrite.Change;
 import java.util.Collection;
 
 @Mojo(name = "warn", requiresDependencyResolution = ResolutionScope.TEST, threadSafe = true,
-    defaultPhase = LifecyclePhase.PROCESS_TEST_SOURCES)
+    defaultPhase = LifecyclePhase.PROCESS_TEST_CLASSES)
+@Execute(phase = LifecyclePhase.PROCESS_TEST_CLASSES)
 public class RewriteWarnMojo extends AbstractRewriteMojo {
     @Override
     public void execute() throws MojoExecutionException {

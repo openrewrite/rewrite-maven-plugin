@@ -1,6 +1,7 @@
 package org.openrewrite.maven;
 
 import io.micrometer.core.instrument.MeterRegistry;
+import org.apache.maven.artifact.DependencyResolutionRequiredException;
 import org.apache.maven.model.Dependency;
 import org.apache.maven.model.Resource;
 import org.apache.maven.plugin.AbstractMojo;
@@ -97,13 +98,11 @@ public abstract class AbstractRewriteMojo extends AbstractMojo {
             javaSources.addAll(listJavaSources(project.getBuild().getSourceDirectory()));
             javaSources.addAll(listJavaSources(project.getBuild().getTestSourceDirectory()));
 
-            List<Path> dependencies = project.getArtifacts().stream()
-                    .map(d -> d.getFile().toPath())
-                    .collect(toList());
-
             sourceFiles.addAll(JavaParser.fromJavaVersion()
                     .styles(env.styles(activeStyles))
-                    .classpath(dependencies)
+                    .classpath(project.getCompileClasspathElements().stream()
+                        .map(Paths::get)
+                        .collect(toList()))
                     .logCompilationWarningsAndErrors(false)
                     .meterRegistry(meterRegistry)
                     .build()
@@ -178,6 +177,8 @@ public abstract class AbstractRewriteMojo extends AbstractMojo {
             sourceFiles.add(pomAst);
 
             return new Refactor().visit(visitors).setMeterRegistry(meterRegistry).fix(sourceFiles);
+        } catch (DependencyResolutionRequiredException e) {
+            throw new MojoExecutionException("Dependency resolution required", e);
         }
     }
 

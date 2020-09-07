@@ -3,7 +3,7 @@ package sample;
 import java.nio.file.*;
 import java.util.Random;
 
-public class EmptyBlockSample {
+public class EmptyBlockSample implements MyInterface {
     int n = sideEffect();
 
     static {
