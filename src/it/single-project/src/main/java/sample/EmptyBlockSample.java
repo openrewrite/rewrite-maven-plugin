@@ -30,7 +30,7 @@ public class EmptyBlockSample {
 
     public void emptyTry() {
         try {
-            Files.readString(Path.of("somewhere"));
+            Files.lines(Paths.get("somewhere"));
         } catch (Throwable t) {
         } finally {
         }
