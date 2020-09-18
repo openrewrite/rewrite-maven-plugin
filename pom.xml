@@ -73,7 +73,7 @@
         <dependency>
             <groupId>org.openrewrite</groupId>
             <artifactId>rewrite-xml</artifactId>
-            <version>5.1.0</version>
+            <version>5.2.0</version>
         </dependency>
         <dependency>
             <groupId>org.openrewrite</groupId>
