@@ -81,13 +81,13 @@ public abstract class AbstractRewriteMojo extends AbstractMojo {
         return env.build();
     }
 
-    protected Collection<Change> listChanges() throws MojoExecutionException {
+    protected ChangesContainer listChanges() throws MojoExecutionException {
         try (MeterRegistryProvider meterRegistryProvider = new MeterRegistryProvider(getLog(),
                 metricsUri, metricsUsername, metricsPassword)) {
             MeterRegistry meterRegistry = meterRegistryProvider.registry();
 
             if (activeRecipes == null || activeRecipes.isEmpty()) {
-                return emptyList();
+                return new ChangesContainer(emptyList());
             }
 
             Environment env = environment();
@@ -175,10 +175,47 @@ public abstract class AbstractRewriteMojo extends AbstractMojo {
             );
 
             sourceFiles.add(pomAst);
-
-            return new Refactor().visit(visitors).setMeterRegistry(meterRegistry).fix(sourceFiles);
+            Collection<Change> changes = new Refactor().visit(visitors)
+                    .setMeterRegistry(meterRegistry)
+                    .fix(sourceFiles);
+            return new ChangesContainer(changes);
         } catch (DependencyResolutionRequiredException e) {
             throw new MojoExecutionException("Dependency resolution required", e);
+        }
+    }
+
+    public static class ChangesContainer {
+        final List<Change> generated = new ArrayList<>();
+        final List<Change> deleted = new ArrayList<>();
+        final List<Change> moved = new ArrayList<>();
+        final List<Change> refactoredInPlace = new ArrayList<>();
+
+        public ChangesContainer(Collection<Change> changes) {
+            for (Change change : changes) {
+                if (change.getOriginal() == null && change.getFixed() == null) {
+                    // This situation shouldn't happen / makes no sense, log and skip
+                    continue;
+                }
+                if (change.getOriginal() == null && change.getFixed() != null) {
+                    generated.add(change);
+                } else if (change.getOriginal() != null && change.getFixed() == null) {
+                    deleted.add(change);
+                } else if (change.getOriginal() != null && !change.getOriginal().getSourcePath().equals(change.getFixed().getSourcePath())) {
+                    moved.add(change);
+                } else {
+                    refactoredInPlace.add(change);
+                }
+            }
+        }
+
+        public boolean isEmpty() {
+            return generated.isEmpty() && deleted.isEmpty() && moved.isEmpty() && refactoredInPlace.isEmpty();
+        }
+        public Stream<Change> stream() {
+            return Stream.concat(
+                    Stream.concat(generated.stream(), deleted.stream()),
+                    Stream.concat(moved.stream(), refactoredInPlace.stream())
+            );
         }
     }
 
@@ -195,6 +232,12 @@ public abstract class AbstractRewriteMojo extends AbstractMojo {
                     .collect(toList());
         } catch (IOException e) {
             throw new MojoExecutionException("Unable to list Java source files", e);
+        }
+    }
+
+    protected void logVisitorsThatMadeChanges(Change change) {
+        for (String visitor : change.getVisitorsThatMadeChanges()) {
+            getLog().warn("  " + visitor);
         }
     }
 }

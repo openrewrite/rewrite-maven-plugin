@@ -22,7 +22,7 @@ import org.openrewrite.Change;
 import java.io.BufferedWriter;
 import java.io.IOException;
 import java.nio.file.Files;
-import java.util.Collection;
+import java.nio.file.Path;
 
 // https://medium.com/swlh/step-by-step-guide-to-developing-a-custom-maven-plugin-b6e3a0e09966
 // https://carlosvin.github.io/posts/creating-custom-maven-plugin/en/#_dependency_injection
@@ -32,22 +32,64 @@ import java.util.Collection;
 public class RewriteFixMojo extends AbstractRewriteMojo {
     @Override
     public void execute() throws MojoExecutionException {
-        Collection<Change> changes = listChanges();
+        ChangesContainer changes = listChanges();
 
         if (!changes.isEmpty()) {
-            for (Change change : changes) {
+            for(Change change : changes.generated) {
+                getLog().warn("Generated new file " +
+                        change.getFixed().getSourcePath() +
+                        " by:");
+                logVisitorsThatMadeChanges(change);
+            }
+            for(Change change : changes.deleted) {
+                getLog().warn("Deleted file " +
+                        change.getOriginal().getSourcePath() +
+                        " by:");
+                logVisitorsThatMadeChanges(change);
+            }
+            for(Change change : changes.moved) {
+                getLog().warn("File has been moved from " +
+                        change.getOriginal().getSourcePath() + " to " +
+                        change.getFixed().getSourcePath() + " by:");
+                logVisitorsThatMadeChanges(change);
+            }
+            for(Change change : changes.refactoredInPlace) {
                 getLog().warn("Changes have been made to " +
                         change.getOriginal().getSourcePath() +
                         " by:");
-                for (String rule : change.getVisitorsThatMadeChanges()) {
-                    getLog().warn("   " + rule);
-                }
+                logVisitorsThatMadeChanges(change);
             }
+
 
             getLog().warn("Please review and commit the changes.");
 
             try {
-                for (Change change : changes) {
+                for (Change change : changes.generated) {
+                    try (BufferedWriter sourceFileWriter = Files.newBufferedWriter(
+                            project.getBasedir().toPath().resolve(change.getFixed().getSourcePath()))) {
+                        sourceFileWriter.write(change.getFixed().print());
+                    }
+                }
+                for (Change change: changes.deleted) {
+                    Path originalLocation = project.getBasedir().toPath().resolve(change.getOriginal().getSourcePath());
+                    boolean deleteSucceeded = originalLocation.toFile().delete();
+                    if(!deleteSucceeded) {
+                        throw new IOException("Unable to delete file " + originalLocation.toAbsolutePath());
+                    }
+                }
+                for (Change change : changes.moved) {
+                    // Should we try to use git to move the file first, and only if that fails fall back to this?
+                    Path originalLocation = project.getBasedir().toPath().resolve(change.getOriginal().getSourcePath());
+                    boolean deleteSucceeded = originalLocation.toFile().delete();
+                    if(!deleteSucceeded) {
+                        throw new IOException("Unable to delete file " + originalLocation.toAbsolutePath());
+                    }
+                    try (BufferedWriter sourceFileWriter = Files.newBufferedWriter(
+                            project.getBasedir().toPath().resolve(change.getFixed().getSourcePath()))) {
+                        sourceFileWriter.write(change.getFixed().print());
+                    }
+                }
+                for (Change change : changes.refactoredInPlace) {
                     try (BufferedWriter sourceFileWriter = Files.newBufferedWriter(
                             project.getBasedir().toPath().resolve(change.getOriginal().getSourcePath()))) {
                         sourceFileWriter.write(change.getFixed().print());

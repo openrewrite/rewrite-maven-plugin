@@ -22,26 +22,39 @@ import org.apache.maven.plugins.annotations.Mojo;
 import org.apache.maven.plugins.annotations.ResolutionScope;
 import org.openrewrite.Change;
 
-import java.util.Collection;
-
 @Mojo(name = "warn", requiresDependencyResolution = ResolutionScope.TEST, threadSafe = true,
     defaultPhase = LifecyclePhase.PROCESS_TEST_CLASSES)
 @Execute(phase = LifecyclePhase.PROCESS_TEST_CLASSES)
 public class RewriteWarnMojo extends AbstractRewriteMojo {
     @Override
     public void execute() throws MojoExecutionException {
-        Collection<Change> changes = listChanges();
+        ChangesContainer changes = listChanges();
 
         if (!changes.isEmpty()) {
-            for (Change change : changes) {
-                getLog().warn("Changes are suggested to " +
+            for(Change change : changes.generated) {
+                getLog().warn("Applying fixes would generate new file " +
+                        change.getFixed().getSourcePath() +
+                        " by:");
+                logVisitorsThatMadeChanges(change);
+            }
+            for(Change change : changes.deleted) {
+                getLog().warn("Applying fixes would delete file " +
                         change.getOriginal().getSourcePath() +
                         " by:");
-                for (String rule : change.getVisitorsThatMadeChanges()) {
-                    getLog().warn("   " + rule);
-                }
+                logVisitorsThatMadeChanges(change);
             }
-
+            for(Change change : changes.moved) {
+                getLog().warn("Applying fixes would move file from " +
+                        change.getOriginal().getSourcePath() + " to " +
+                        change.getFixed().getSourcePath() + " by:");
+                logVisitorsThatMadeChanges(change);
+            }
+            for(Change change : changes.refactoredInPlace) {
+                getLog().warn("Applying fixes would make changes to " +
+                        change.getOriginal().getSourcePath() +
+                        " by:");
+                logVisitorsThatMadeChanges(change);
+            }
             getLog().warn("Run 'mvn rewrite:fix' to apply the fixes. Afterwards, review and commit the changes.");
         }
     }

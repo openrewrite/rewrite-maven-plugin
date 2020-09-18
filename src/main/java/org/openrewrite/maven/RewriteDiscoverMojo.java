@@ -24,16 +24,7 @@ public class RewriteDiscoverMojo extends AbstractRewriteMojo {
                 activeRecipe + "\n"));
 
         log.info("Recipes:");
-
-        boolean isFirst = true;
         for (Recipe recipe : recipesByName.values()) {
-            if (isFirst) {
-                isFirst = false;
-            } else {
-                log.info("---");
-                log.info("");
-            }
-
             log.info("\tname: " + recipe.getName());
             log.info("\tinclude: ");
             recipe.getInclude().forEach(rec -> log.info("\t\t" +
@@ -49,6 +40,7 @@ public class RewriteDiscoverMojo extends AbstractRewriteMojo {
             environment.visitors(recipe.getName()).forEach(rec -> {
                 log.info("\t\t" + rec.getName());
             });
+            log.info("---");
             log.info("");
         }
     }
