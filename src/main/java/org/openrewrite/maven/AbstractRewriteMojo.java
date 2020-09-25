@@ -100,9 +100,15 @@ public abstract class AbstractRewriteMojo extends AbstractMojo {
 
             sourceFiles.addAll(JavaParser.fromJavaVersion()
                     .styles(env.styles(activeStyles))
-                    .classpath(project.getCompileClasspathElements().stream()
-                        .map(Paths::get)
-                        .collect(toList()))
+                    .classpath(
+                            Stream.concat(
+                                    project.getCompileClasspathElements().stream(),
+                                    project.getTestClasspathElements().stream()
+                            )
+                                    .distinct()
+                                    .map(Paths::get)
+                                    .collect(toList())
+                    )
                     .logCompilationWarningsAndErrors(false)
                     .meterRegistry(meterRegistry)
                     .build()
