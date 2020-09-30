@@ -2,7 +2,6 @@ package org.openrewrite.maven;
 
 import io.micrometer.core.instrument.MeterRegistry;
 import org.apache.maven.artifact.DependencyResolutionRequiredException;
-import org.apache.maven.model.Dependency;
 import org.apache.maven.model.Resource;
 import org.apache.maven.plugin.AbstractMojo;
 import org.apache.maven.plugin.MojoExecutionException;
@@ -11,8 +10,6 @@ import org.apache.maven.project.MavenProject;
 import org.openrewrite.*;
 import org.openrewrite.config.YamlResourceLoader;
 import org.openrewrite.java.JavaParser;
-import org.openrewrite.maven.tree.Maven;
-import org.openrewrite.maven.tree.MavenModel;
 import org.openrewrite.properties.PropertiesParser;
 import org.openrewrite.yaml.YamlParser;
 
@@ -23,12 +20,10 @@ import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.util.*;
-import java.util.stream.Collectors;
 import java.util.stream.Stream;
 
 import static java.util.Collections.emptyList;
 import static java.util.stream.Collectors.toList;
-import static java.util.stream.Collectors.toSet;
 
 public abstract class AbstractRewriteMojo extends AbstractMojo {
     @Parameter(property = "configLocation", defaultValue = "${maven.multiModuleProjectDirectory}/rewrite.yml")
@@ -154,33 +149,33 @@ public abstract class AbstractRewriteMojo extends AbstractMojo {
                 parent = parent.getParent();
             }
 
-            Maven.Pom pomAst = MavenParser.builder()
-                    .resolveDependencies(false)
-                    .build()
-                    .parse(allPoms, project.getBasedir().toPath())
-                    .iterator()
-                    .next();
+//            Maven.Pom pomAst = MavenParser.builder()
+//                    .resolveDependencies(false)
+//                    .build()
+//                    .parse(allPoms, project.getBasedir().toPath())
+//                    .iterator()
+//                    .next();
+//
+//            pomAst = pomAst.withModel(pomAst.getModel()
+//                    .withTransitiveDependenciesByScope(project.getDependencies().stream()
+//                            .collect(
+//                                    Collectors.groupingBy(
+//                                            Dependency::getScope,
+//                                            Collectors.mapping(dep -> new MavenModel.ModuleVersionId(
+//                                                            dep.getGroupId(),
+//                                                            dep.getArtifactId(),
+//                                                            dep.getClassifier(),
+//                                                            dep.getVersion(),
+//                                                            "jar"
+//                                                    ),
+//                                                    toSet()
+//                                            )
+//                                    )
+//                            )
+//                    )
+//            );
 
-            pomAst = pomAst.withModel(pomAst.getModel()
-                    .withTransitiveDependenciesByScope(project.getDependencies().stream()
-                            .collect(
-                                    Collectors.groupingBy(
-                                            Dependency::getScope,
-                                            Collectors.mapping(dep -> new MavenModel.ModuleVersionId(
-                                                            dep.getGroupId(),
-                                                            dep.getArtifactId(),
-                                                            dep.getClassifier(),
-                                                            dep.getVersion(),
-                                                            "jar"
-                                                    ),
-                                                    toSet()
-                                            )
-                                    )
-                            )
-                    )
-            );
-
-            sourceFiles.add(pomAst);
+//            sourceFiles.add(pomAst);
             Collection<Change> changes = new Refactor().visit(visitors)
                     .setMeterRegistry(meterRegistry)
                     .fix(sourceFiles);
@@ -214,9 +209,10 @@ public abstract class AbstractRewriteMojo extends AbstractMojo {
             }
         }
 
-        public boolean isEmpty() {
-            return generated.isEmpty() && deleted.isEmpty() && moved.isEmpty() && refactoredInPlace.isEmpty();
+        public boolean isNotEmpty() {
+            return !generated.isEmpty() || !deleted.isEmpty() || !moved.isEmpty() || !refactoredInPlace.isEmpty();
         }
+
         public Stream<Change> stream() {
             return Stream.concat(
                     Stream.concat(generated.stream(), deleted.stream()),

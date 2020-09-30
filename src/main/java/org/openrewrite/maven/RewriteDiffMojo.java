@@ -26,7 +26,6 @@ import java.io.IOException;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
-import java.util.stream.Stream;
 
 @Mojo(name = "diff", requiresDependencyResolution = ResolutionScope.TEST, threadSafe = true)
 @Execute(phase = LifecyclePhase.PROCESS_TEST_CLASSES)
@@ -41,7 +40,7 @@ public class RewriteDiffMojo extends AbstractRewriteMojo {
     public void execute() throws MojoExecutionException {
         ChangesContainer changes = listChanges();
 
-        if (!changes.isEmpty()) {
+        if (changes.isNotEmpty()) {
             for(Change change : changes.generated) {
                 getLog().warn("Applying patch would generate new file " +
                         change.getFixed().getSourcePath() +

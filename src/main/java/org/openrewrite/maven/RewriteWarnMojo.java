@@ -30,7 +30,7 @@ public class RewriteWarnMojo extends AbstractRewriteMojo {
     public void execute() throws MojoExecutionException {
         ChangesContainer changes = listChanges();
 
-        if (!changes.isEmpty()) {
+        if (changes.isNotEmpty()) {
             for(Change change : changes.generated) {
                 getLog().warn("Applying fixes would generate new file " +
                         change.getFixed().getSourcePath() +
