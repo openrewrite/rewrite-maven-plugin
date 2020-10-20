@@ -85,7 +85,7 @@ public class RewriteDiffMojo extends AbstractRewriteMojo {
                 throw new MojoExecutionException("Unable to generate rewrite diff file.", e);
             }
 
-            getLog().warn("A patch file has been generated. Run 'git apply -f " +
+            getLog().warn("A patch file has been generated. Run 'git apply " +
                     Paths.get(mavenSession.getExecutionRootDirectory()).relativize(patchFile).toString() + "' to apply.");
         }
     }
