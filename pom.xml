@@ -230,7 +230,7 @@
                 <artifactId>maven-invoker-plugin</artifactId>
                 <version>${maven-invoker-plugin.version}</version>
                 <configuration>
-                    <postBuildHookScript>verify</postBuildHookScript> (3)
+                    <postBuildHookScript>verify</postBuildHookScript>
                     <showVersion>true</showVersion>
                     <streamLogs>true</streamLogs>
                     <noLog>false</noLog>

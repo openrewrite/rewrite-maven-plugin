@@ -2,6 +2,7 @@ package org.openrewrite.maven;
 
 import io.micrometer.core.instrument.MeterRegistry;
 import org.apache.maven.artifact.DependencyResolutionRequiredException;
+import org.apache.maven.model.Dependency;
 import org.apache.maven.model.Resource;
 import org.apache.maven.plugin.AbstractMojo;
 import org.apache.maven.plugin.MojoExecutionException;
@@ -10,6 +11,8 @@ import org.apache.maven.project.MavenProject;
 import org.openrewrite.*;
 import org.openrewrite.config.YamlResourceLoader;
 import org.openrewrite.java.JavaParser;
+import org.openrewrite.maven.tree.Maven;
+import org.openrewrite.maven.tree.MavenModel;
 import org.openrewrite.properties.PropertiesParser;
 import org.openrewrite.yaml.YamlParser;
 
@@ -20,10 +23,12 @@ import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.util.*;
+import java.util.stream.Collectors;
 import java.util.stream.Stream;
 
 import static java.util.Collections.emptyList;
 import static java.util.stream.Collectors.toList;
+import static java.util.stream.Collectors.toSet;
 
 public abstract class AbstractRewriteMojo extends AbstractMojo {
     @Parameter(property = "configLocation", defaultValue = "${maven.multiModuleProjectDirectory}/rewrite.yml")
@@ -69,8 +74,7 @@ public abstract class AbstractRewriteMojo extends AbstractMojo {
             }
         }
         else {
-            throw new MojoExecutionException("Unable to load rewrite configuration, because it does not exist: " +
-                    rewriteConfig.toString());
+            getLog().warn("Rewrite configuration file does not exist at: " + rewriteConfig.toString());
         }
 
         return env.build();
@@ -149,33 +153,33 @@ public abstract class AbstractRewriteMojo extends AbstractMojo {
                 parent = parent.getParent();
             }
 
-//            Maven.Pom pomAst = MavenParser.builder()
-//                    .resolveDependencies(false)
-//                    .build()
-//                    .parse(allPoms, project.getBasedir().toPath())
-//                    .iterator()
-//                    .next();
-//
-//            pomAst = pomAst.withModel(pomAst.getModel()
-//                    .withTransitiveDependenciesByScope(project.getDependencies().stream()
-//                            .collect(
-//                                    Collectors.groupingBy(
-//                                            Dependency::getScope,
-//                                            Collectors.mapping(dep -> new MavenModel.ModuleVersionId(
-//                                                            dep.getGroupId(),
-//                                                            dep.getArtifactId(),
-//                                                            dep.getClassifier(),
-//                                                            dep.getVersion(),
-//                                                            "jar"
-//                                                    ),
-//                                                    toSet()
-//                                            )
-//                                    )
-//                            )
-//                    )
-//            );
+            Maven.Pom pomAst = MavenParser.builder()
+                    .resolveDependencies(false)
+                    .build()
+                    .parse(allPoms, project.getBasedir().toPath())
+                    .iterator()
+                    .next();
 
-//            sourceFiles.add(pomAst);
+            pomAst = pomAst.withModel(pomAst.getModel()
+                    .withTransitiveDependenciesByScope(project.getDependencies().stream()
+                            .collect(
+                                    Collectors.groupingBy(
+                                            Dependency::getScope,
+                                            Collectors.mapping(dep -> new MavenModel.ModuleVersionId(
+                                                            dep.getGroupId(),
+                                                            dep.getArtifactId(),
+                                                            dep.getClassifier(),
+                                                            dep.getVersion(),
+                                                            "jar"
+                                                    ),
+                                                    toSet()
+                                            )
+                                    )
+                            )
+                    )
+            );
+
+            sourceFiles.add(pomAst);
             Collection<Change> changes = new Refactor().visit(visitors)
                     .setMeterRegistry(meterRegistry)
                     .fix(sourceFiles);
