@@ -5,6 +5,7 @@ import org.apache.maven.plugin.MojoExecutionException;
 import org.apache.maven.plugins.annotations.Component;
 import org.apache.maven.plugins.annotations.LifecyclePhase;
 import org.apache.maven.plugins.annotations.Mojo;
+import org.apache.maven.plugins.annotations.Parameter;
 import org.apache.maven.plugins.annotations.ResolutionScope;
 import org.apache.maven.project.MavenProject;
 import org.apache.maven.project.MavenProjectHelper;
@@ -43,15 +44,20 @@ public class RewritePublishMojo extends AbstractRewriteMojo {
     @Component
     private MavenProjectHelper projectHelper;
 
+    @Parameter(name="skipCycloneDxBom", property = "skipCycloneDxBom", defaultValue = "false")
+    private boolean skipCycloneDxBom;
+
     @Override
     public void execute() throws MojoExecutionException {
         Environment env = environment();
 
         File rewriteJar = buildAstJar(env);
-        File cycloneDxBom = buildCycloneDxBom();
-
         projectHelper.attachArtifact(project, rewriteJar, "ast");
-        projectHelper.attachArtifact(project, "xml", "cyclonedx", cycloneDxBom);
+
+        if (!skipCycloneDxBom) {
+        File cycloneDxBom = buildCycloneDxBom();
+            projectHelper.attachArtifact(project, "xml", "cyclonedx", cycloneDxBom);
+        }
     }
 
     private File buildAstJar(Environment env) throws MojoExecutionException {
@@ -70,7 +76,18 @@ public class RewritePublishMojo extends AbstractRewriteMojo {
                 .build()
                 .parse(javaSources, project.getBasedir().toPath());
 
-        File rewriteJar = new File(project.getBuild().getDirectory(),
+        File outputDir = new File(project.getBuild().getDirectory());
+
+        // when running the plugin in tests/maven-invoker-plugin, the output directory does not seem
+        // to exist. Create it. For normal Maven plugin executions, this should not be triggered.
+        if (!outputDir.exists()) {
+            boolean created = outputDir.mkdir();
+            if (!created) {
+                throw new MojoExecutionException("Unable to create directory to write ast.jar into: " + outputDir);
+            }
+        }
+
+        File rewriteJar = new File(outputDir,
                 project.getArtifactId() + "-" + project.getVersion() + "-ast.jar");
 
         TreeSerializer<J.CompilationUnit> serializer = new TreeSerializer<>();
