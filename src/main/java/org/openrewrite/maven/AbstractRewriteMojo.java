@@ -153,33 +153,33 @@ public abstract class AbstractRewriteMojo extends AbstractMojo {
                 parent = parent.getParent();
             }
 
-            Maven.Pom pomAst = MavenParser.builder()
-                    .resolveDependencies(false)
-                    .build()
-                    .parse(allPoms, project.getBasedir().toPath())
-                    .iterator()
-                    .next();
+//            Maven.Pom pomAst = MavenParser.builder()
+//                    .resolveDependencies(false)
+//                    .build()
+//                    .parse(allPoms, project.getBasedir().toPath())
+//                    .iterator()
+//                    .next();
 
-            pomAst = pomAst.withModel(pomAst.getModel()
-                    .withTransitiveDependenciesByScope(project.getDependencies().stream()
-                            .collect(
-                                    Collectors.groupingBy(
-                                            Dependency::getScope,
-                                            Collectors.mapping(dep -> new MavenModel.ModuleVersionId(
-                                                            dep.getGroupId(),
-                                                            dep.getArtifactId(),
-                                                            dep.getClassifier(),
-                                                            dep.getVersion(),
-                                                            "jar"
-                                                    ),
-                                                    toSet()
-                                            )
-                                    )
-                            )
-                    )
-            );
-
-            sourceFiles.add(pomAst);
+//            pomAst = pomAst.withModel(pomAst.getModel()
+//                    .withTransitiveDependenciesByScope(project.getDependencies().stream()
+//                            .collect(
+//                                    Collectors.groupingBy(
+//                                            Dependency::getScope,
+//                                            Collectors.mapping(dep -> new MavenModel.ModuleVersionId(
+//                                                            dep.getGroupId(),
+//                                                            dep.getArtifactId(),
+//                                                            dep.getClassifier(),
+//                                                            dep.getVersion(),
+//                                                            "jar"
+//                                                    ),
+//                                                    toSet()
+//                                            )
+//                                    )
+//                            )
+//                    )
+//            );
+//
+//            sourceFiles.add(pomAst);
             Collection<Change> changes = new Refactor().visit(visitors)
                     .setMeterRegistry(meterRegistry)
                     .fix(sourceFiles);
