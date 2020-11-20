@@ -225,27 +225,27 @@
                 <artifactId>maven-surefire-plugin</artifactId>
                 <version>${maven-surefire-plugin.version}</version>
             </plugin>
-            <plugin>
-                <groupId>org.apache.maven.plugins</groupId>
-                <artifactId>maven-invoker-plugin</artifactId>
-                <version>${maven-invoker-plugin.version}</version>
-                <configuration>
-                    <postBuildHookScript>verify</postBuildHookScript>
-                    <showVersion>true</showVersion>
-                    <streamLogs>true</streamLogs>
-                    <noLog>false</noLog>
-                    <showErrors>true</showErrors>
-                </configuration>
-                <executions>
-                    <execution>
-                        <id>integration-test</id>
-                        <goals>
-                            <goal>install</goal>
-                            <goal>run</goal>
-                        </goals>
-                    </execution>
-                </executions>
-            </plugin>
+<!--            <plugin>-->
+<!--                <groupId>org.apache.maven.plugins</groupId>-->
+<!--                <artifactId>maven-invoker-plugin</artifactId>-->
+<!--                <version>${maven-invoker-plugin.version}</version>-->
+<!--                <configuration>-->
+<!--                    <postBuildHookScript>verify</postBuildHookScript>-->
+<!--                    <showVersion>true</showVersion>-->
+<!--                    <streamLogs>true</streamLogs>-->
+<!--                    <noLog>false</noLog>-->
+<!--                    <showErrors>true</showErrors>-->
+<!--                </configuration>-->
+<!--                <executions>-->
+<!--                    <execution>-->
+<!--                        <id>integration-test</id>-->
+<!--                        <goals>-->
+<!--                            <goal>install</goal>-->
+<!--                            <goal>run</goal>-->
+<!--                        </goals>-->
+<!--                    </execution>-->
+<!--                </executions>-->
+<!--            </plugin>-->
         </plugins>
     </build>
 
