@@ -23,6 +23,7 @@ import java.io.BufferedWriter;
 import java.io.IOException;
 import java.nio.file.Files;
 import java.nio.file.Path;
+import java.nio.file.Paths;
 
 // https://medium.com/swlh/step-by-step-guide-to-developing-a-custom-maven-plugin-b6e3a0e09966
 // https://carlosvin.github.io/posts/creating-custom-maven-plugin/en/#_dependency_injection
@@ -66,12 +67,14 @@ public class RewriteFixMojo extends AbstractRewriteMojo {
             try {
                 for (Change change : changes.generated) {
                     try (BufferedWriter sourceFileWriter = Files.newBufferedWriter(
-                            project.getBasedir().toPath().resolve(change.getFixed().getSourcePath()))) {
+
+
+                            project.getBasedir().toPath().resolve(Paths.get(change.getFixed().getSourcePath())))) {
                         sourceFileWriter.write(change.getFixed().print());
                     }
                 }
                 for (Change change: changes.deleted) {
-                    Path originalLocation = project.getBasedir().toPath().resolve(change.getOriginal().getSourcePath());
+                    Path originalLocation = project.getBasedir().toPath().resolve(Paths.get(change.getOriginal().getSourcePath()));
                     boolean deleteSucceeded = originalLocation.toFile().delete();
                     if(!deleteSucceeded) {
                         throw new IOException("Unable to delete file " + originalLocation.toAbsolutePath());
@@ -79,19 +82,19 @@ public class RewriteFixMojo extends AbstractRewriteMojo {
                 }
                 for (Change change : changes.moved) {
                     // Should we try to use git to move the file first, and only if that fails fall back to this?
-                    Path originalLocation = project.getBasedir().toPath().resolve(change.getOriginal().getSourcePath());
+                    Path originalLocation = project.getBasedir().toPath().resolve(Paths.get(change.getOriginal().getSourcePath()));
                     boolean deleteSucceeded = originalLocation.toFile().delete();
                     if(!deleteSucceeded) {
                         throw new IOException("Unable to delete file " + originalLocation.toAbsolutePath());
                     }
                     try (BufferedWriter sourceFileWriter = Files.newBufferedWriter(
-                            project.getBasedir().toPath().resolve(change.getFixed().getSourcePath()))) {
+                            project.getBasedir().toPath().resolve(Paths.get(change.getFixed().getSourcePath())))) {
                         sourceFileWriter.write(change.getFixed().print());
                     }
                 }
                 for (Change change : changes.refactoredInPlace) {
                     try (BufferedWriter sourceFileWriter = Files.newBufferedWriter(
-                            project.getBasedir().toPath().resolve(change.getOriginal().getSourcePath()))) {
+                            project.getBasedir().toPath().resolve(Paths.get(change.getOriginal().getSourcePath())))) {
                         sourceFileWriter.write(change.getFixed().print());
                     }
                 }

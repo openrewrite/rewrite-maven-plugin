@@ -14,7 +14,6 @@ import org.openrewrite.TreeSerializer;
 import org.openrewrite.java.JavaParser;
 import org.openrewrite.java.tree.J;
 import org.openrewrite.maven.tree.Maven;
-import org.openrewrite.maven.tree.MavenModel;
 import org.openrewrite.maven.utilities.PrintMavenAsCycloneDxBom;
 
 import java.io.File;
@@ -23,6 +22,7 @@ import java.io.IOException;
 import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
 import java.nio.file.Path;
+import java.nio.file.Paths;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.stream.Collectors;
@@ -94,7 +94,7 @@ public class RewritePublishMojo extends AbstractRewriteMojo {
 
         try (ZipOutputStream zos = new ZipOutputStream(new FileOutputStream(rewriteJar))) {
             for (J.CompilationUnit cu : sourceFiles) {
-                ZipEntry entry = new ZipEntry(cu.getSourcePath());
+                ZipEntry entry = new ZipEntry(Paths.get(cu.getSourcePath()).toString());
                 zos.putNextEntry(entry);
                 zos.write(serializer.write(cu));
                 zos.closeEntry();
@@ -108,52 +108,53 @@ public class RewritePublishMojo extends AbstractRewriteMojo {
     }
 
     private File buildCycloneDxBom() throws MojoExecutionException {
-        List<Path> allPoms = new ArrayList<>();
-        allPoms.add(project.getFile().toPath());
-
-        // parents
-        MavenProject parent = project.getParent();
-        while (parent != null && parent.getFile() != null) {
-            allPoms.add(parent.getFile().toPath());
-            parent = parent.getParent();
-        }
-
-        Maven.Pom pomAst = MavenParser.builder()
-                .resolveDependencies(false)
-                .build()
-                .parse(allPoms, project.getBasedir().toPath())
-                .iterator()
-                .next();
-
-        pomAst = pomAst.withModel(pomAst.getModel()
-                .withTransitiveDependenciesByScope(project.getDependencies().stream()
-                        .collect(
-                                Collectors.groupingBy(
-                                        Dependency::getScope,
-                                        Collectors.mapping(dep -> new MavenModel.ModuleVersionId(
-                                                        dep.getGroupId(),
-                                                        dep.getArtifactId(),
-                                                        dep.getClassifier(),
-                                                        dep.getVersion(),
-                                                        "jar"
-                                                ),
-                                                toSet()
-                                        )
-                                )
-                        )
-                )
-        );
-
-        File cycloneDxBom = new File(project.getBuild().getDirectory(),
-                project.getArtifactId() + "-" + project.getVersion() + "-cyclonedx.xml");
-
-        try {
-            Files.write(cycloneDxBom.toPath(), new PrintMavenAsCycloneDxBom().visit(pomAst)
-                    .getBytes(StandardCharsets.UTF_8));
-        } catch (IOException e) {
-            throw new MojoExecutionException("Failed to write CycloneDX BOM", e);
-        }
-
-        return cycloneDxBom;
+        return null;
+//        List<Path> allPoms = new ArrayList<>();
+//        allPoms.add(project.getFile().toPath());
+//
+//        // parents
+//        MavenProject parent = project.getParent();
+//        while (parent != null && parent.getFile() != null) {
+//            allPoms.add(parent.getFile().toPath());
+//            parent = parent.getParent();
+//        }
+//
+//        Maven.Pom pomAst = MavenParser.builder()
+//                .resolveDependencies(false)
+//                .build()
+//                .parse(allPoms, project.getBasedir().toPath())
+//                .iterator()
+//                .next();
+//
+//        pomAst = pomAst.withModel(pomAst.getModel()
+//                .withTransitiveDependenciesByScope(project.getDependencies().stream()
+//                        .collect(
+//                                Collectors.groupingBy(
+//                                        Dependency::getScope,
+//                                        Collectors.mapping(dep -> new MavenModel.ModuleVersionId(
+//                                                        dep.getGroupId(),
+//                                                        dep.getArtifactId(),
+//                                                        dep.getClassifier(),
+//                                                        dep.getVersion(),
+//                                                        "jar"
+//                                                ),
+//                                                toSet()
+//                                        )
+//                                )
+//                        )
+//                )
+//        );
+//
+//        File cycloneDxBom = new File(project.getBuild().getDirectory(),
+//                project.getArtifactId() + "-" + project.getVersion() + "-cyclonedx.xml");
+//
+//        try {
+//            Files.write(cycloneDxBom.toPath(), new PrintMavenAsCycloneDxBom().visit(pomAst)
+//                    .getBytes(StandardCharsets.UTF_8));
+//        } catch (IOException e) {
+//            throw new MojoExecutionException("Failed to write CycloneDX BOM", e);
+//        }
+//
+//        return cycloneDxBom;
     }
 }
