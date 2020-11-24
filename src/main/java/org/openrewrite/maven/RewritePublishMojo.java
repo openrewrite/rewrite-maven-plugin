@@ -1,12 +1,7 @@
 package org.openrewrite.maven;
 
-import org.apache.maven.model.Dependency;
 import org.apache.maven.plugin.MojoExecutionException;
-import org.apache.maven.plugins.annotations.Component;
-import org.apache.maven.plugins.annotations.LifecyclePhase;
-import org.apache.maven.plugins.annotations.Mojo;
-import org.apache.maven.plugins.annotations.Parameter;
-import org.apache.maven.plugins.annotations.ResolutionScope;
+import org.apache.maven.plugins.annotations.*;
 import org.apache.maven.project.MavenProject;
 import org.apache.maven.project.MavenProjectHelper;
 import org.openrewrite.Environment;
@@ -25,12 +20,10 @@ import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.util.ArrayList;
 import java.util.List;
-import java.util.stream.Collectors;
 import java.util.zip.ZipEntry;
 import java.util.zip.ZipOutputStream;
 
 import static java.util.stream.Collectors.toList;
-import static java.util.stream.Collectors.toSet;
 
 /**
  * Produce an AST JAR and Cyclone DX BOM for publication to Maven repositories
@@ -44,7 +37,7 @@ public class RewritePublishMojo extends AbstractRewriteMojo {
     @Component
     private MavenProjectHelper projectHelper;
 
-    @Parameter(name="skipCycloneDxBom", property = "skipCycloneDxBom", defaultValue = "false")
+    @Parameter(name = "skipCycloneDxBom", property = "skipCycloneDxBom", defaultValue = "false")
     private boolean skipCycloneDxBom;
 
     @Override
@@ -55,7 +48,7 @@ public class RewritePublishMojo extends AbstractRewriteMojo {
         projectHelper.attachArtifact(project, rewriteJar, "ast");
 
         if (!skipCycloneDxBom) {
-        File cycloneDxBom = buildCycloneDxBom();
+            File cycloneDxBom = buildCycloneDxBom();
             projectHelper.attachArtifact(project, "xml", "cyclonedx", cycloneDxBom);
         }
     }
@@ -94,7 +87,7 @@ public class RewritePublishMojo extends AbstractRewriteMojo {
 
         try (ZipOutputStream zos = new ZipOutputStream(new FileOutputStream(rewriteJar))) {
             for (J.CompilationUnit cu : sourceFiles) {
-                ZipEntry entry = new ZipEntry(Paths.get(cu.getSourcePath()).toString());
+                ZipEntry entry = new ZipEntry(Paths.get(cu.getSourcePath().toString()).toString());
                 zos.putNextEntry(entry);
                 zos.write(serializer.write(cu));
                 zos.closeEntry();
@@ -107,54 +100,37 @@ public class RewritePublishMojo extends AbstractRewriteMojo {
         return rewriteJar;
     }
 
-    private File buildCycloneDxBom() throws MojoExecutionException {
-        return null;
-//        List<Path> allPoms = new ArrayList<>();
-//        allPoms.add(project.getFile().toPath());
-//
-//        // parents
-//        MavenProject parent = project.getParent();
-//        while (parent != null && parent.getFile() != null) {
-//            allPoms.add(parent.getFile().toPath());
-//            parent = parent.getParent();
-//        }
-//
-//        Maven.Pom pomAst = MavenParser.builder()
-//                .resolveDependencies(false)
-//                .build()
-//                .parse(allPoms, project.getBasedir().toPath())
-//                .iterator()
-//                .next();
-//
-//        pomAst = pomAst.withModel(pomAst.getModel()
-//                .withTransitiveDependenciesByScope(project.getDependencies().stream()
-//                        .collect(
-//                                Collectors.groupingBy(
-//                                        Dependency::getScope,
-//                                        Collectors.mapping(dep -> new MavenModel.ModuleVersionId(
-//                                                        dep.getGroupId(),
-//                                                        dep.getArtifactId(),
-//                                                        dep.getClassifier(),
-//                                                        dep.getVersion(),
-//                                                        "jar"
-//                                                ),
-//                                                toSet()
-//                                        )
-//                                )
-//                        )
-//                )
-//        );
-//
-//        File cycloneDxBom = new File(project.getBuild().getDirectory(),
-//                project.getArtifactId() + "-" + project.getVersion() + "-cyclonedx.xml");
-//
-//        try {
-//            Files.write(cycloneDxBom.toPath(), new PrintMavenAsCycloneDxBom().visit(pomAst)
-//                    .getBytes(StandardCharsets.UTF_8));
-//        } catch (IOException e) {
+    private File buildCycloneDxBom() {
+        List<Path> allPoms = new ArrayList<>();
+        allPoms.add(project.getFile().toPath());
+
+        // parents
+        MavenProject parent = project.getParent();
+        while (parent != null && parent.getFile() != null) {
+            allPoms.add(parent.getFile().toPath());
+            parent = parent.getParent();
+        }
+
+        try {
+            Maven pomAst = MavenParser.builder()
+                    .resolveOptional(false)
+                    .build()
+                    .parse(allPoms, project.getBasedir().toPath())
+                    .iterator()
+                    .next();
+
+            File cycloneDxBom = new File(project.getBuild().getDirectory(),
+                    project.getArtifactId() + "-" + project.getVersion() + "-cyclonedx.xml");
+
+            Files.write(cycloneDxBom.toPath(), new PrintMavenAsCycloneDxBom().visit(pomAst)
+                    .getBytes(StandardCharsets.UTF_8));
+
+            return cycloneDxBom;
+        } catch(Throwable t) {
+            // TODO we aren't yet confident enough in this to not squash exceptions
+            getLog().warn("Unable to produce CycloneDX BOM", t);
+            return null;
 //            throw new MojoExecutionException("Failed to write CycloneDX BOM", e);
-//        }
-//
-//        return cycloneDxBom;
+        }
     }
 }

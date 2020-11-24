@@ -2,7 +2,6 @@ package org.openrewrite.maven;
 
 import io.micrometer.core.instrument.MeterRegistry;
 import org.apache.maven.artifact.DependencyResolutionRequiredException;
-import org.apache.maven.model.Dependency;
 import org.apache.maven.model.Resource;
 import org.apache.maven.plugin.AbstractMojo;
 import org.apache.maven.plugin.MojoExecutionException;
@@ -69,8 +68,7 @@ public abstract class AbstractRewriteMojo extends AbstractMojo {
             } catch (IOException e) {
                 throw new MojoExecutionException("Unable to load rewrite configuration", e);
             }
-        }
-        else {
+        } else {
             getLog().warn("Rewrite configuration file does not exist at: " + rewriteConfig.toString());
         }
 
@@ -136,7 +134,7 @@ public abstract class AbstractRewriteMojo extends AbstractMojo {
             allPoms.add(project.getFile().toPath());
 
             // children
-            if(project.getCollectedProjects() != null) {
+            if (project.getCollectedProjects() != null) {
                 project.getCollectedProjects().stream()
                         .filter(collectedProject -> collectedProject != project)
                         .map(collectedProject -> collectedProject.getFile().toPath())
@@ -150,36 +148,24 @@ public abstract class AbstractRewriteMojo extends AbstractMojo {
                 parent = parent.getParent();
             }
 
-//            Maven.Pom pomAst = MavenParser.builder()
-//                    .resolveDependencies(false)
-//                    .build()
-//                    .parse(allPoms, project.getBasedir().toPath())
-//                    .iterator()
-//                    .next();
+            try {
+                Maven pomAst = MavenParser.builder()
+                        .resolveOptional(false)
+                        .build()
+                        .parse(allPoms, project.getBasedir().toPath())
+                        .iterator()
+                        .next();
 
-//            pomAst = pomAst.withModel(pomAst.getModel()
-//                    .withTransitiveDependenciesByScope(project.getDependencies().stream()
-//                            .collect(
-//                                    Collectors.groupingBy(
-//                                            Dependency::getScope,
-//                                            Collectors.mapping(dep -> new MavenModel.ModuleVersionId(
-//                                                            dep.getGroupId(),
-//                                                            dep.getArtifactId(),
-//                                                            dep.getClassifier(),
-//                                                            dep.getVersion(),
-//                                                            "jar"
-//                                                    ),
-//                                                    toSet()
-//                                            )
-//                                    )
-//                            )
-//                    )
-//            );
-//
-//            sourceFiles.add(pomAst);
+                sourceFiles.add(pomAst);
+            } catch (Throwable t) {
+                // TODO we aren't yet confident enough in this to not squash exceptions
+                getLog().warn("Unable to parse Maven AST", t);
+            }
+
             Collection<Change> changes = new Refactor().visit(visitors)
                     .setMeterRegistry(meterRegistry)
                     .fix(sourceFiles);
+
             return new ChangesContainer(changes);
         } catch (DependencyResolutionRequiredException e) {
             throw new MojoExecutionException("Dependency resolution required", e);
