@@ -92,6 +92,16 @@ public abstract class AbstractRewriteMojo extends AbstractMojo {
             javaSources.addAll(listJavaSources(project.getBuild().getSourceDirectory()));
             javaSources.addAll(listJavaSources(project.getBuild().getTestSourceDirectory()));
 
+
+            // This property is set by Maven, apparently for both multi and single module builds
+            Object maybeMultiModuleDir = System.getProperties().get("maven.multiModuleProjectDirectory");
+            Path baseDir;
+            if(maybeMultiModuleDir instanceof String) {
+                baseDir = Paths.get((String) maybeMultiModuleDir);
+            } else {
+                baseDir = project.getBasedir().toPath();
+            }
+
             sourceFiles.addAll(JavaParser.fromJavaVersion()
                     .styles(env.styles(activeStyles))
                     .classpath(
@@ -106,7 +116,7 @@ public abstract class AbstractRewriteMojo extends AbstractMojo {
                     .logCompilationWarningsAndErrors(false)
                     .meterRegistry(meterRegistry)
                     .build()
-                    .parse(javaSources, project.getBasedir().toPath()));
+                    .parse(javaSources, baseDir));
 
             sourceFiles.addAll(
                     new YamlParser().parse(
@@ -116,7 +126,7 @@ public abstract class AbstractRewriteMojo extends AbstractMojo {
                                     .filter(it -> it.endsWith(".yml") || it.endsWith(".yaml"))
                                     .map(Paths::get)
                                     .collect(toList()),
-                            project.getBasedir().toPath())
+                            baseDir)
             );
 
             sourceFiles.addAll(
@@ -127,7 +137,7 @@ public abstract class AbstractRewriteMojo extends AbstractMojo {
                                     .filter(it -> it.endsWith(".properties"))
                                     .map(Paths::get)
                                     .collect(toList()),
-                            project.getBasedir().toPath())
+                            baseDir)
             );
 
             List<Path> allPoms = new ArrayList<>();
@@ -141,7 +151,6 @@ public abstract class AbstractRewriteMojo extends AbstractMojo {
                         .forEach(allPoms::add);
             }
 
-            // parents
             MavenProject parent = project.getParent();
             while (parent != null && parent.getFile() != null) {
                 allPoms.add(parent.getFile().toPath());
@@ -152,7 +161,7 @@ public abstract class AbstractRewriteMojo extends AbstractMojo {
                 Maven pomAst = MavenParser.builder()
                         .resolveOptional(false)
                         .build()
-                        .parse(allPoms, project.getBasedir().toPath())
+                        .parse(allPoms, baseDir)
                         .iterator()
                         .next();
 
