@@ -96,7 +96,7 @@ public abstract class AbstractRewriteMojo extends AbstractMojo {
             // This property is set by Maven, apparently for both multi and single module builds
             Object maybeMultiModuleDir = System.getProperties().get("maven.multiModuleProjectDirectory");
             Path baseDir;
-            if(maybeMultiModuleDir instanceof String) {
+            if (maybeMultiModuleDir instanceof String) {
                 baseDir = Paths.get((String) maybeMultiModuleDir);
             } else {
                 baseDir = project.getBasedir().toPath();
@@ -158,8 +158,25 @@ public abstract class AbstractRewriteMojo extends AbstractMojo {
             }
 
             try {
-                Maven pomAst = MavenParser.builder()
+                Path mavenSettings = Paths.get(System.getProperty("user.home")).resolve(".m2/settings.xml");
+
+                MavenParser.Builder mavenParserBuilder = MavenParser.builder()
                         .resolveOptional(false)
+                        .mavenConfig(baseDir.resolve(".mvn/maven.config"));
+
+                if (mavenSettings.toFile().exists()) {
+                    mavenParserBuilder = mavenParserBuilder.mavenSettings(new Parser.Input(mavenSettings.toUri(),
+                            () -> {
+                                try {
+                                    return Files.newInputStream(mavenSettings);
+                                } catch (IOException e) {
+                                    getLog().warn("Unable to load Maven settings from user home directory. Skipping.", e);
+                                    return null;
+                                }
+                            }));
+                }
+
+                Maven pomAst = mavenParserBuilder
                         .build()
                         .parse(allPoms, baseDir)
                         .iterator()
@@ -176,7 +193,8 @@ public abstract class AbstractRewriteMojo extends AbstractMojo {
                     .fix(sourceFiles);
 
             return new ChangesContainer(changes);
-        } catch (DependencyResolutionRequiredException e) {
+        } catch (
+                DependencyResolutionRequiredException e) {
             throw new MojoExecutionException("Dependency resolution required", e);
         }
     }
@@ -215,6 +233,7 @@ public abstract class AbstractRewriteMojo extends AbstractMojo {
                     Stream.concat(moved.stream(), refactoredInPlace.stream())
             );
         }
+
     }
 
     protected List<Path> listJavaSources(String sourceDirectory) throws MojoExecutionException {
