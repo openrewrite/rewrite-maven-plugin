@@ -68,8 +68,6 @@ public abstract class AbstractRewriteMojo extends AbstractMojo {
             } catch (IOException e) {
                 throw new MojoExecutionException("Unable to load rewrite configuration", e);
             }
-        } else {
-            getLog().warn("Rewrite configuration file does not exist at: " + rewriteConfig.toString());
         }
 
         return env.build();
@@ -80,27 +78,33 @@ public abstract class AbstractRewriteMojo extends AbstractMojo {
                 metricsUri, metricsUsername, metricsPassword)) {
             MeterRegistry meterRegistry = meterRegistryProvider.registry();
 
-            if (activeRecipes == null || activeRecipes.isEmpty()) {
-                return new ChangesContainer(emptyList());
-            }
-
-            Environment env = environment();
-            Collection<RefactorVisitor<?>> visitors = env.visitors(activeRecipes);
-
-            List<SourceFile> sourceFiles = new ArrayList<>();
-            List<Path> javaSources = new ArrayList<>();
-            javaSources.addAll(listJavaSources(project.getBuild().getSourceDirectory()));
-            javaSources.addAll(listJavaSources(project.getBuild().getTestSourceDirectory()));
-
-
             // This property is set by Maven, apparently for both multi and single module builds
             Object maybeMultiModuleDir = System.getProperties().get("maven.multiModuleProjectDirectory");
             Path baseDir;
             if (maybeMultiModuleDir instanceof String) {
                 baseDir = Paths.get((String) maybeMultiModuleDir);
             } else {
+                // This path should only be taken by tests using AbstractMojoTestCase
                 baseDir = project.getBasedir().toPath();
             }
+
+
+            if (activeRecipes == null || activeRecipes.isEmpty()) {
+                return new ChangesContainer(baseDir, emptyList());
+            }
+
+            Environment env = environment();
+            List<RefactorVisitor<?>> visitors = new ArrayList<>(env.visitors(activeRecipes));
+            if(visitors.size() == 0) {
+                getLog().warn("Could not find any Rewrite visitors matching active recipe(s): " + String.join(", ", activeRecipes) + ". " +
+                        "Double check that you have taken a dependency on the jar containing these recipes.");
+                return new ChangesContainer(baseDir, emptyList());
+            }
+
+            List<SourceFile> sourceFiles = new ArrayList<>();
+            List<Path> javaSources = new ArrayList<>();
+            javaSources.addAll(listJavaSources(project.getBuild().getSourceDirectory()));
+            javaSources.addAll(listJavaSources(project.getBuild().getTestSourceDirectory()));
 
             sourceFiles.addAll(JavaParser.fromJavaVersion()
                     .styles(env.styles(activeStyles))
@@ -165,7 +169,7 @@ public abstract class AbstractRewriteMojo extends AbstractMojo {
                         .mavenConfig(baseDir.resolve(".mvn/maven.config"));
 
                 if (mavenSettings.toFile().exists()) {
-                    mavenParserBuilder = mavenParserBuilder.mavenSettings(new Parser.Input(mavenSettings.toUri(),
+                    mavenParserBuilder = mavenParserBuilder.mavenSettings(new Parser.Input(mavenSettings,
                             () -> {
                                 try {
                                     return Files.newInputStream(mavenSettings);
@@ -192,7 +196,7 @@ public abstract class AbstractRewriteMojo extends AbstractMojo {
                     .setMeterRegistry(meterRegistry)
                     .fix(sourceFiles);
 
-            return new ChangesContainer(changes);
+            return new ChangesContainer(baseDir, changes);
         } catch (
                 DependencyResolutionRequiredException e) {
             throw new MojoExecutionException("Dependency resolution required", e);
@@ -200,12 +204,14 @@ public abstract class AbstractRewriteMojo extends AbstractMojo {
     }
 
     public static class ChangesContainer {
+        final Path projectRoot;
         final List<Change> generated = new ArrayList<>();
         final List<Change> deleted = new ArrayList<>();
         final List<Change> moved = new ArrayList<>();
         final List<Change> refactoredInPlace = new ArrayList<>();
 
-        public ChangesContainer(Collection<Change> changes) {
+        public ChangesContainer(Path projectRoot, Collection<Change> changes) {
+            this.projectRoot = projectRoot;
             for (Change change : changes) {
                 if (change.getOriginal() == null && change.getFixed() == null) {
                     // This situation shouldn't happen / makes no sense, log and skip
@@ -221,6 +227,10 @@ public abstract class AbstractRewriteMojo extends AbstractMojo {
                     refactoredInPlace.add(change);
                 }
             }
+        }
+
+        public Path getProjectRoot() {
+            return projectRoot;
         }
 
         public boolean isNotEmpty() {

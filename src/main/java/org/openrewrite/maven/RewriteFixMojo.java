@@ -67,14 +67,12 @@ public class RewriteFixMojo extends AbstractRewriteMojo {
             try {
                 for (Change change : changes.generated) {
                     try (BufferedWriter sourceFileWriter = Files.newBufferedWriter(
-
-
-                            project.getBasedir().toPath().resolve(Paths.get(change.getFixed().getSourcePath())))) {
+                            changes.getProjectRoot().resolve(change.getFixed().getSourcePath()))) {
                         sourceFileWriter.write(change.getFixed().print());
                     }
                 }
                 for (Change change: changes.deleted) {
-                    Path originalLocation = project.getBasedir().toPath().resolve(Paths.get(change.getOriginal().getSourcePath()));
+                    Path originalLocation = changes.getProjectRoot().resolve(change.getOriginal().getSourcePath());
                     boolean deleteSucceeded = originalLocation.toFile().delete();
                     if(!deleteSucceeded) {
                         throw new IOException("Unable to delete file " + originalLocation.toAbsolutePath());
@@ -82,19 +80,19 @@ public class RewriteFixMojo extends AbstractRewriteMojo {
                 }
                 for (Change change : changes.moved) {
                     // Should we try to use git to move the file first, and only if that fails fall back to this?
-                    Path originalLocation = project.getBasedir().toPath().resolve(Paths.get(change.getOriginal().getSourcePath()));
+                    Path originalLocation = changes.getProjectRoot().resolve(change.getOriginal().getSourcePath());
                     boolean deleteSucceeded = originalLocation.toFile().delete();
                     if(!deleteSucceeded) {
                         throw new IOException("Unable to delete file " + originalLocation.toAbsolutePath());
                     }
                     try (BufferedWriter sourceFileWriter = Files.newBufferedWriter(
-                            project.getBasedir().toPath().resolve(Paths.get(change.getFixed().getSourcePath())))) {
+                            changes.getProjectRoot().resolve(change.getFixed().getSourcePath()))) {
                         sourceFileWriter.write(change.getFixed().print());
                     }
                 }
                 for (Change change : changes.refactoredInPlace) {
                     try (BufferedWriter sourceFileWriter = Files.newBufferedWriter(
-                            project.getBasedir().toPath().resolve(Paths.get(change.getOriginal().getSourcePath())))) {
+                            changes.getProjectRoot().resolve(change.getOriginal().getSourcePath()))) {
                         sourceFileWriter.write(change.getFixed().print());
                     }
                 }
