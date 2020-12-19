@@ -12,6 +12,7 @@ import org.openrewrite.config.YamlResourceLoader;
 import org.openrewrite.java.JavaParser;
 import org.openrewrite.maven.tree.Maven;
 import org.openrewrite.properties.PropertiesParser;
+import org.openrewrite.xml.XmlParser;
 import org.openrewrite.yaml.YamlParser;
 
 import java.io.File;
@@ -88,7 +89,6 @@ public abstract class AbstractRewriteMojo extends AbstractMojo {
                 baseDir = project.getBasedir().toPath();
             }
 
-
             if (activeRecipes == null || activeRecipes.isEmpty()) {
                 return new ChangesContainer(baseDir, emptyList());
             }
@@ -142,6 +142,16 @@ public abstract class AbstractRewriteMojo extends AbstractMojo {
                                     .map(Paths::get)
                                     .collect(toList()),
                             baseDir)
+            );
+
+            sourceFiles.addAll(new XmlParser().parse(
+                    Stream.concat(project.getBuild().getResources().stream(), project.getBuild().getTestResources().stream())
+                            .map(Resource::getTargetPath)
+                            .filter(Objects::nonNull)
+                            .filter(it -> it.endsWith(".xml"))
+                            .map(Paths::get)
+                            .collect(toList()),
+                    baseDir)
             );
 
             List<Path> allPoms = new ArrayList<>();
