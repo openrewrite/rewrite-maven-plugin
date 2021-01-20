@@ -33,7 +33,7 @@ jobs:
       run: mvn --no-transfer-progress -B clean verify --file pom.xml
 
   automerge:
-    runs-on: [ubuntu-latest]
+    runs-on: ubuntu-latest
     name: automerge
     needs: [build]
     if: github.base_ref == 'master' && github.actor == 'dependabot[bot]'
