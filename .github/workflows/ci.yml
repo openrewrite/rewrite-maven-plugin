@@ -30,7 +30,7 @@ jobs:
         restore-keys: |
           ${{ runner.os }}-maven-
     - name: Build
-      run: mvn --no-transfer-progress -B clean verify --file pom.xml
+      run: ./mvnw --no-transfer-progress -B clean verify --file pom.xml
 
   automerge:
     runs-on: ubuntu-latest
