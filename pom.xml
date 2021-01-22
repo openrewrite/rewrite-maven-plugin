@@ -34,12 +34,14 @@
 
     <scm>
         <connection>scm:git:https://github.com/openrewrite/rewrite-maven-plugin.git</connection>
-        <developerConnection>scm:git:https://github.com/openrewrite/rewrite-maven-plugin.git</developerConnection>
+		<developerConnection>${developerConnectionUrl}</developerConnection>
         <url>https://github.com/openrewrite/rewrite-maven-plugin/tree/master</url>
         <tag>v2.1.0</tag>
     </scm>
 
     <properties>
+        <!-- using 'ssh' url scheme by default, which assumes a human is performing git operations leveraging an ssh key -->
+        <developerConnectionUrl>scm:git:ssh://git@github.com/openrewrite/rewrite-maven-plugin.git</developerConnectionUrl>
         <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
         <java.version>1.8</java.version>
         <rewrite.version>6.1.14</rewrite.version>
@@ -253,6 +255,10 @@
     <profiles>
         <profile>
             <id>release</id>
+            <properties>
+                <!-- automation via the maven-release-plugin uses a GITHUB_TOKEN which requires 'https' urls for git pushing -->
+                <developerConnectionUrl>scm:git:https://github.com/openrewrite/rewrite-maven-plugin.git</developerConnectionUrl>
+            </properties>
             <build>
                 <plugins>
                     <plugin>
