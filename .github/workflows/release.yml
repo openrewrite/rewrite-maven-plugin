@@ -1,0 +1,48 @@
+---
+name: release
+
+on:
+  workflow_dispatch: {}
+
+jobs:
+  release:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v2
+      - name: set-up-jdk
+        uses: actions/setup-java@v1
+        with:
+          java-version: "11"
+          server-id: ossrh
+          settings-path: ${{ github.workspace }}
+          server-username: MAVEN_USERNAME
+          server-password: MAVEN_PASSWORD
+          gpg-private-key: ${{ secrets.MAVEN_GPG_PRIVATE_KEY }}
+          gpg-passphrase: MAVEN_GPG_PASSPHRASE
+
+      - uses: actions/cache@v2
+        with:
+          path: ~/.m2/repository
+          key: ${{ runner.os }}-maven-${{ hashFiles('**/pom.xml') }}
+          restore-keys: |
+            ${{ runner.os }}-maven-
+
+      - name: configure-git-user
+        run: |
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git config user.name "github-actions[bot]"
+
+      - name: release
+        timeout-minutes: 45
+        run: ./mvnw --settings=${{ github.workspace }}/settings.xml --file=pom.xml --activate-profiles=release,release-automation --batch-mode help:active-profiles release:prepare release:perform
+        env:
+          GITHUB_TOKEN: ${{ github.token }}
+          MAVEN_USERNAME: ${{ secrets.OSSRH_USERNAME }}
+          MAVEN_PASSWORD: ${{ secrets.OSSRH_TOKEN }}
+          MAVEN_GPG_PASSPHRASE: ${{ secrets.MAVEN_GPG_PASSPHRASE }}
+
+      - name: rollback
+        if: ${{ failure() }}
+        run: ./mvnw --settings=${{github.workspace}}/settings.xml --file=pom.xml --activate-profiles=release,release-automation --batch-mode help:active-profiles release:rollback
+        env:
+          GITHUB_TOKEN: ${{ github.token }}
