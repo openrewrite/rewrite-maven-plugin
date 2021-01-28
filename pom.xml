@@ -4,7 +4,7 @@
 
     <groupId>org.openrewrite.maven</groupId>
     <artifactId>rewrite-maven-plugin</artifactId>
-    <version>2.4.9-SNAPSHOT</version>
+    <version>2.4.9</version>
     <name>rewrite-maven-plugin</name>
 
     <packaging>maven-plugin</packaging>
@@ -36,7 +36,7 @@
         <connection>scm:git:https://github.com/openrewrite/rewrite-maven-plugin.git</connection>
         <developerConnection>${developerConnectionUrl}</developerConnection>
         <url>https://github.com/openrewrite/rewrite-maven-plugin/tree/master</url>
-        <tag>HEAD</tag>
+        <tag>v2.4.9</tag>
     </scm>
 
     <properties>
