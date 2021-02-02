@@ -176,6 +176,10 @@ public abstract class AbstractRewriteMojo extends AbstractMojo {
 
                 MavenParser.Builder mavenParserBuilder = MavenParser.builder()
                         .resolveOptional(false)
+                        .onError(throwable -> {
+                            getLog().warn(throwable.getMessage());
+                            getLog().debug(throwable);
+                        })
                         .mavenConfig(baseDir.resolve(".mvn/maven.config"));
 
                 if(System.getProperty("org.openrewrite.maven.continueOnError") != null) {
