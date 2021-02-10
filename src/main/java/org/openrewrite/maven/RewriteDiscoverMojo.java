@@ -3,10 +3,10 @@ package org.openrewrite.maven;
 import org.apache.maven.plugin.MojoExecutionException;
 import org.apache.maven.plugin.logging.Log;
 import org.apache.maven.plugins.annotations.Mojo;
-import org.openrewrite.Environment;
+import org.openrewrite.config.Environment;
 import org.openrewrite.Recipe;
 
-import java.util.Map;
+import java.util.Collection;
 
 @Mojo(name = "discover", threadSafe = true)
 public class RewriteDiscoverMojo extends AbstractRewriteMojo {
@@ -14,34 +14,19 @@ public class RewriteDiscoverMojo extends AbstractRewriteMojo {
 
     @Override
     public void execute() throws MojoExecutionException {
-        Environment environment = environment();
-        Map<String, Recipe> recipesByName = environment.getRecipesByName();
+        Environment env = environment();
 
+        Collection<Recipe> recipesByName = env.listRecipes();
         log.info("Found " + activeRecipes.size() + " active recipes and " + recipesByName.size() + " total recipes.\n");
 
         log.info("Active Recipe Names:");
-        activeRecipes.forEach(activeRecipe -> log.info("\t" +
-                activeRecipe + "\n"));
+        for (String activeRecipe : activeRecipes) {
+            log.info("\t" + activeRecipe);
+        }
 
-        log.info("Recipes:");
-        for (Recipe recipe : recipesByName.values()) {
+        log.info("\nRecipes:");
+        for (Recipe recipe : recipesByName) {
             log.info("\tname: " + recipe.getName());
-            log.info("\tinclude: ");
-            recipe.getInclude().forEach(rec -> log.info("\t\t" +
-                    rec.pattern()
-                            .replace("\\", "")
-                            .replace("[^.]+", "*")));
-            log.info("\texclude: ");
-            recipe.getExclude().forEach(rec -> log.info("\t\t" +
-                    rec.pattern()
-                            .replace("\\", "")
-                            .replace("[^.]+", "*")));
-            log.info("\tvisitors: ");
-            environment.visitors(recipe.getName()).forEach(rec -> {
-                log.info("\t\t" + rec.getName());
-            });
-            log.info("---");
-            log.info("");
         }
     }
 }

@@ -8,10 +8,12 @@ import org.apache.maven.plugin.MojoExecutionException;
 import org.apache.maven.plugins.annotations.Parameter;
 import org.apache.maven.project.MavenProject;
 import org.openrewrite.*;
+import org.openrewrite.config.Environment;
 import org.openrewrite.config.YamlResourceLoader;
 import org.openrewrite.java.JavaParser;
 import org.openrewrite.maven.tree.Maven;
 import org.openrewrite.properties.PropertiesParser;
+import org.openrewrite.style.NamedStyles;
 import org.openrewrite.xml.XmlParser;
 import org.openrewrite.yaml.YamlParser;
 
@@ -74,7 +76,7 @@ public abstract class AbstractRewriteMojo extends AbstractMojo {
         return env.build();
     }
 
-    protected ChangesContainer listChanges() throws MojoExecutionException {
+    protected ResultsContainer listResults() throws MojoExecutionException {
         try (MeterRegistryProvider meterRegistryProvider = new MeterRegistryProvider(getLog(),
                 metricsUri, metricsUsername, metricsPassword)) {
             MeterRegistry meterRegistry = meterRegistryProvider.registry();
@@ -90,16 +92,12 @@ public abstract class AbstractRewriteMojo extends AbstractMojo {
             }
 
             if (activeRecipes == null || activeRecipes.isEmpty()) {
-                return new ChangesContainer(baseDir, emptyList());
+                return new ResultsContainer(baseDir, emptyList());
             }
 
             Environment env = environment();
-            List<RefactorVisitor<?>> visitors = new ArrayList<>(env.visitors(activeRecipes));
-            if(visitors.size() == 0) {
-                getLog().warn("Could not find any Rewrite visitors matching active recipe(s): " + String.join(", ", activeRecipes) + ". " +
-                        "Double check that you have taken a dependency on the jar containing these recipes.");
-                return new ChangesContainer(baseDir, emptyList());
-            }
+            List<NamedStyles> styles = env.activateStyles(activeStyles);
+            Recipe recipe = env.activateRecipes(activeRecipes);
 
             List<SourceFile> sourceFiles = new ArrayList<>();
             List<Path> javaSources = new ArrayList<>();
@@ -107,7 +105,7 @@ public abstract class AbstractRewriteMojo extends AbstractMojo {
             javaSources.addAll(listJavaSources(project.getBuild().getTestSourceDirectory()));
 
             sourceFiles.addAll(JavaParser.fromJavaVersion()
-                    .styles(env.styles(activeStyles))
+                    .styles(styles)
                     .classpath(
                             Stream.concat(
                                     project.getCompileClasspathElements().stream(),
@@ -118,7 +116,6 @@ public abstract class AbstractRewriteMojo extends AbstractMojo {
                                     .collect(toList())
                     )
                     .logCompilationWarningsAndErrors(false)
-                    .meterRegistry(meterRegistry)
                     .build()
                     .parse(javaSources, baseDir));
 
@@ -176,15 +173,11 @@ public abstract class AbstractRewriteMojo extends AbstractMojo {
 
                 MavenParser.Builder mavenParserBuilder = MavenParser.builder()
                         .resolveOptional(false)
-                        .onError(throwable -> {
+                        .doOnError(throwable -> {
                             getLog().warn(throwable.getMessage());
                             getLog().debug(throwable);
                         })
                         .mavenConfig(baseDir.resolve(".mvn/maven.config"));
-
-                if(System.getProperty("org.openrewrite.maven.continueOnError") != null) {
-                    mavenParserBuilder.continueOnError(true);
-                }
 
                 if (mavenSettings.toFile().exists()) {
                     mavenParserBuilder = mavenParserBuilder.mavenSettings(new Parser.Input(mavenSettings,
@@ -210,39 +203,37 @@ public abstract class AbstractRewriteMojo extends AbstractMojo {
                 getLog().warn("Unable to parse Maven AST", t);
             }
 
-            Collection<Change> changes = new Refactor().visit(visitors)
-                    .setMeterRegistry(meterRegistry)
-                    .fix(sourceFiles);
+            List<Result> results = recipe.run(sourceFiles);
 
-            return new ChangesContainer(baseDir, changes);
+            return new ResultsContainer(baseDir, results);
         } catch (
                 DependencyResolutionRequiredException e) {
             throw new MojoExecutionException("Dependency resolution required", e);
         }
     }
 
-    public static class ChangesContainer {
+    public static class ResultsContainer {
         final Path projectRoot;
-        final List<Change> generated = new ArrayList<>();
-        final List<Change> deleted = new ArrayList<>();
-        final List<Change> moved = new ArrayList<>();
-        final List<Change> refactoredInPlace = new ArrayList<>();
+        final List<Result> generated = new ArrayList<>();
+        final List<Result> deleted = new ArrayList<>();
+        final List<Result> moved = new ArrayList<>();
+        final List<Result> refactoredInPlace = new ArrayList<>();
 
-        public ChangesContainer(Path projectRoot, Collection<Change> changes) {
+        public ResultsContainer(Path projectRoot, Collection<Result> results) {
             this.projectRoot = projectRoot;
-            for (Change change : changes) {
-                if (change.getOriginal() == null && change.getFixed() == null) {
+            for (Result result : results) {
+                if (result.getBefore() == null && result.getAfter() == null) {
                     // This situation shouldn't happen / makes no sense, log and skip
                     continue;
                 }
-                if (change.getOriginal() == null && change.getFixed() != null) {
-                    generated.add(change);
-                } else if (change.getOriginal() != null && change.getFixed() == null) {
-                    deleted.add(change);
-                } else if (change.getOriginal() != null && !change.getOriginal().getSourcePath().equals(change.getFixed().getSourcePath())) {
-                    moved.add(change);
+                if (result.getBefore() == null && result.getAfter() != null) {
+                    generated.add(result);
+                } else if (result.getBefore() != null && result.getAfter() == null) {
+                    deleted.add(result);
+                } else if (result.getBefore() != null && !result.getBefore().getSourcePath().equals(result.getAfter().getSourcePath())) {
+                    moved.add(result);
                 } else {
-                    refactoredInPlace.add(change);
+                    refactoredInPlace.add(result);
                 }
             }
         }
@@ -254,14 +245,6 @@ public abstract class AbstractRewriteMojo extends AbstractMojo {
         public boolean isNotEmpty() {
             return !generated.isEmpty() || !deleted.isEmpty() || !moved.isEmpty() || !refactoredInPlace.isEmpty();
         }
-
-        public Stream<Change> stream() {
-            return Stream.concat(
-                    Stream.concat(generated.stream(), deleted.stream()),
-                    Stream.concat(moved.stream(), refactoredInPlace.stream())
-            );
-        }
-
     }
 
     protected List<Path> listJavaSources(String sourceDirectory) throws MojoExecutionException {
@@ -280,8 +263,8 @@ public abstract class AbstractRewriteMojo extends AbstractMojo {
         }
     }
 
-    protected void logVisitorsThatMadeChanges(Change change) {
-        for (String visitor : change.getVisitorsThatMadeChanges()) {
+    protected void logVisitorsThatMadeChanges(Result result) {
+        for (String visitor : result.getRecipesThatMadeChanges()) {
             getLog().warn("  " + visitor);
         }
     }

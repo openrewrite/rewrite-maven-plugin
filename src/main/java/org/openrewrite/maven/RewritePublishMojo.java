@@ -4,7 +4,7 @@ import org.apache.maven.plugin.MojoExecutionException;
 import org.apache.maven.plugins.annotations.*;
 import org.apache.maven.project.MavenProject;
 import org.apache.maven.project.MavenProjectHelper;
-import org.openrewrite.Environment;
+import org.openrewrite.config.Environment;
 import org.openrewrite.TreeSerializer;
 import org.openrewrite.java.JavaParser;
 import org.openrewrite.java.tree.J;
@@ -63,7 +63,7 @@ public class RewritePublishMojo extends AbstractRewriteMojo {
                 .collect(toList());
 
         List<J.CompilationUnit> sourceFiles = JavaParser.fromJavaVersion()
-                .styles(env.styles(activeStyles))
+                .styles(env.activateStyles(activeStyles))
                 .classpath(dependencies)
                 .logCompilationWarningsAndErrors(false)
                 .build()
@@ -122,11 +122,11 @@ public class RewritePublishMojo extends AbstractRewriteMojo {
             File cycloneDxBom = new File(project.getBuild().getDirectory(),
                     project.getArtifactId() + "-" + project.getVersion() + "-cyclonedx.xml");
 
-            Files.write(cycloneDxBom.toPath(), new PrintMavenAsCycloneDxBom().visit(pomAst)
+            Files.write(cycloneDxBom.toPath(), PrintMavenAsCycloneDxBom.print(pomAst)
                     .getBytes(StandardCharsets.UTF_8));
 
             return cycloneDxBom;
-        } catch(Throwable t) {
+        } catch (Throwable t) {
             // TODO we aren't yet confident enough in this to not squash exceptions
             getLog().warn("Unable to produce CycloneDX BOM", t);
             return null;

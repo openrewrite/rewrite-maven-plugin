@@ -44,7 +44,7 @@
         <developerConnectionUrl>scm:git:ssh://git@github.com/openrewrite/rewrite-maven-plugin.git</developerConnectionUrl>
         <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
         <java.version>1.8</java.version>
-        <rewrite.version>6.1.21</rewrite.version>
+        <rewrite.version>7.0.0-SNAPSHOT</rewrite.version>
 
         <!-- Plugins -->
         <maven-surefire-plugin.version>3.0.0-M5</maven-surefire-plugin.version>
@@ -66,7 +66,7 @@
         <dependency>
             <groupId>org.openrewrite</groupId>
             <artifactId>rewrite-java-8</artifactId>
-            <version>${rewrite.version}</version>
+            <version>6.2.0-SNAPSHOT</version>
         </dependency>
         <dependency>
             <groupId>org.openrewrite</groupId>

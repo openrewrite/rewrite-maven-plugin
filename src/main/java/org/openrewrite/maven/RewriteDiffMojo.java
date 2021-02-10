@@ -18,7 +18,7 @@ package org.openrewrite.maven;
 import org.apache.maven.execution.MavenSession;
 import org.apache.maven.plugin.MojoExecutionException;
 import org.apache.maven.plugins.annotations.*;
-import org.openrewrite.Change;
+import org.openrewrite.Result;
 
 import java.io.BufferedWriter;
 import java.io.File;
@@ -26,6 +26,7 @@ import java.io.IOException;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
+import java.util.stream.Stream;
 
 @Mojo(name = "diff", requiresDependencyResolution = ResolutionScope.TEST, threadSafe = true)
 @Execute(phase = LifecyclePhase.PROCESS_TEST_CLASSES)
@@ -38,30 +39,30 @@ public class RewriteDiffMojo extends AbstractRewriteMojo {
 
     @Override
     public void execute() throws MojoExecutionException {
-        ChangesContainer changes = listChanges();
+        ResultsContainer changes = listResults();
 
         if (changes.isNotEmpty()) {
-            for(Change change : changes.generated) {
+            for (Result change : changes.generated) {
                 getLog().warn("Applying patch would generate new file " +
-                        change.getFixed().getSourcePath() +
+                        change.getAfter().getSourcePath() +
                         " by:");
                 logVisitorsThatMadeChanges(change);
             }
-            for(Change change : changes.deleted) {
+            for (Result change : changes.deleted) {
                 getLog().warn("Applying patch would delete file " +
-                        change.getOriginal().getSourcePath() +
+                        change.getBefore().getSourcePath() +
                         " by:");
                 logVisitorsThatMadeChanges(change);
             }
-            for(Change change : changes.moved) {
+            for (Result change : changes.moved) {
                 getLog().warn("Applying patch would move file from " +
-                        change.getOriginal().getSourcePath() + " to " +
-                        change.getFixed().getSourcePath() + " by:");
+                        change.getBefore().getSourcePath() + " to " +
+                        change.getAfter().getSourcePath() + " by:");
                 logVisitorsThatMadeChanges(change);
             }
-            for(Change change : changes.refactoredInPlace) {
+            for (Result change : changes.refactoredInPlace) {
                 getLog().warn("Applying patch would make changes to " +
-                        change.getOriginal().getSourcePath() +
+                        change.getBefore().getSourcePath() +
                         " by:");
                 logVisitorsThatMadeChanges(change);
             }
@@ -71,8 +72,11 @@ public class RewriteDiffMojo extends AbstractRewriteMojo {
 
             Path patchFile = reportOutputDirectory.toPath().resolve("rewrite.patch");
             try (BufferedWriter writer = Files.newBufferedWriter(patchFile)) {
-                changes.stream()
-                        .map(Change::diff)
+                Stream.concat(
+                        Stream.concat(changes.generated.stream(), changes.deleted.stream()),
+                        Stream.concat(changes.moved.stream(), changes.refactoredInPlace.stream())
+                )
+                        .map(Result::diff)
                         .forEach(diff -> {
                             try {
                                 writer.write(diff + "\n");

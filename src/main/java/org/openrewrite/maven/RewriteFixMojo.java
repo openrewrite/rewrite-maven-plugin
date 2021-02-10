@@ -17,13 +17,12 @@ package org.openrewrite.maven;
 
 import org.apache.maven.plugin.MojoExecutionException;
 import org.apache.maven.plugins.annotations.*;
-import org.openrewrite.Change;
+import org.openrewrite.Result;
 
 import java.io.BufferedWriter;
 import java.io.IOException;
 import java.nio.file.Files;
 import java.nio.file.Path;
-import java.nio.file.Paths;
 
 // https://medium.com/swlh/step-by-step-guide-to-developing-a-custom-maven-plugin-b6e3a0e09966
 // https://carlosvin.github.io/posts/creating-custom-maven-plugin/en/#_dependency_injection
@@ -33,71 +32,81 @@ import java.nio.file.Paths;
 public class RewriteFixMojo extends AbstractRewriteMojo {
     @Override
     public void execute() throws MojoExecutionException {
-        ChangesContainer changes = listChanges();
+        ResultsContainer results = listResults();
 
-        if (changes.isNotEmpty()) {
-            for(Change change : changes.generated) {
+        if (results.isNotEmpty()) {
+            for (Result result : results.generated) {
+                assert result.getAfter() != null;
                 getLog().warn("Generated new file " +
-                        change.getFixed().getSourcePath() +
+                        result.getAfter().getSourcePath() +
                         " by:");
-                logVisitorsThatMadeChanges(change);
+                logVisitorsThatMadeChanges(result);
             }
-            for(Change change : changes.deleted) {
+            for (Result result : results.deleted) {
+                assert result.getBefore() != null;
                 getLog().warn("Deleted file " +
-                        change.getOriginal().getSourcePath() +
+                        result.getBefore().getSourcePath() +
                         " by:");
-                logVisitorsThatMadeChanges(change);
+                logVisitorsThatMadeChanges(result);
             }
-            for(Change change : changes.moved) {
+            for (Result result : results.moved) {
+                assert result.getAfter() != null;
+                assert result.getBefore() != null;
                 getLog().warn("File has been moved from " +
-                        change.getOriginal().getSourcePath() + " to " +
-                        change.getFixed().getSourcePath() + " by:");
-                logVisitorsThatMadeChanges(change);
+                        result.getBefore().getSourcePath() + " to " +
+                        result.getAfter().getSourcePath() + " by:");
+                logVisitorsThatMadeChanges(result);
             }
-            for(Change change : changes.refactoredInPlace) {
+            for (Result result : results.refactoredInPlace) {
+                assert result.getBefore() != null;
                 getLog().warn("Changes have been made to " +
-                        change.getOriginal().getSourcePath() +
+                        result.getBefore().getSourcePath() +
                         " by:");
-                logVisitorsThatMadeChanges(change);
+                logVisitorsThatMadeChanges(result);
             }
 
-
-            getLog().warn("Please review and commit the changes.");
+            getLog().warn("Please review and commit the results.");
 
             try {
-                for (Change change : changes.generated) {
+                for (Result result : results.generated) {
+                    assert result.getAfter() != null;
                     try (BufferedWriter sourceFileWriter = Files.newBufferedWriter(
-                            changes.getProjectRoot().resolve(change.getFixed().getSourcePath()))) {
-                        sourceFileWriter.write(change.getFixed().print());
+                            results.getProjectRoot().resolve(result.getAfter().getSourcePath()))) {
+                        sourceFileWriter.write(result.getAfter().print());
                     }
                 }
-                for (Change change: changes.deleted) {
-                    Path originalLocation = changes.getProjectRoot().resolve(change.getOriginal().getSourcePath());
+                for (Result result : results.deleted) {
+                    assert result.getBefore() != null;
+                    Path originalLocation = results.getProjectRoot().resolve(result.getBefore().getSourcePath());
                     boolean deleteSucceeded = originalLocation.toFile().delete();
-                    if(!deleteSucceeded) {
+                    if (!deleteSucceeded) {
                         throw new IOException("Unable to delete file " + originalLocation.toAbsolutePath());
                     }
                 }
-                for (Change change : changes.moved) {
+                for (Result result : results.moved) {
                     // Should we try to use git to move the file first, and only if that fails fall back to this?
-                    Path originalLocation = changes.getProjectRoot().resolve(change.getOriginal().getSourcePath());
+                    assert result.getBefore() != null;
+                    Path originalLocation = results.getProjectRoot().resolve(result.getBefore().getSourcePath());
                     boolean deleteSucceeded = originalLocation.toFile().delete();
-                    if(!deleteSucceeded) {
+                    if (!deleteSucceeded) {
                         throw new IOException("Unable to delete file " + originalLocation.toAbsolutePath());
                     }
+                    assert result.getAfter() != null;
                     try (BufferedWriter sourceFileWriter = Files.newBufferedWriter(
-                            changes.getProjectRoot().resolve(change.getFixed().getSourcePath()))) {
-                        sourceFileWriter.write(change.getFixed().print());
+                            results.getProjectRoot().resolve(result.getAfter().getSourcePath()))) {
+                        sourceFileWriter.write(result.getAfter().print());
                     }
                 }
-                for (Change change : changes.refactoredInPlace) {
+                for (Result result : results.refactoredInPlace) {
+                    assert result.getBefore() != null;
                     try (BufferedWriter sourceFileWriter = Files.newBufferedWriter(
-                            changes.getProjectRoot().resolve(change.getOriginal().getSourcePath()))) {
-                        sourceFileWriter.write(change.getFixed().print());
+                            results.getProjectRoot().resolve(result.getBefore().getSourcePath()))) {
+                        assert result.getAfter() != null;
+                        sourceFileWriter.write(result.getAfter().print());
                     }
                 }
             } catch (IOException e) {
-                throw new MojoExecutionException("Unable to rewrite source files", e);
+                throw new RuntimeException("Unable to rewrite source files", e);
             }
         }
     }

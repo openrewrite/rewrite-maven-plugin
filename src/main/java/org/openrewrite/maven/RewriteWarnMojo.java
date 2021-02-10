@@ -20,42 +20,47 @@ import org.apache.maven.plugins.annotations.Execute;
 import org.apache.maven.plugins.annotations.LifecyclePhase;
 import org.apache.maven.plugins.annotations.Mojo;
 import org.apache.maven.plugins.annotations.ResolutionScope;
-import org.openrewrite.Change;
+import org.openrewrite.Result;
 
 @Mojo(name = "warn", requiresDependencyResolution = ResolutionScope.TEST, threadSafe = true,
-    defaultPhase = LifecyclePhase.PROCESS_TEST_CLASSES)
+        defaultPhase = LifecyclePhase.PROCESS_TEST_CLASSES)
 @Execute(phase = LifecyclePhase.PROCESS_TEST_CLASSES)
 public class RewriteWarnMojo extends AbstractRewriteMojo {
     @Override
     public void execute() throws MojoExecutionException {
-        ChangesContainer changes = listChanges();
+        ResultsContainer results = listResults();
 
-        if (changes.isNotEmpty()) {
-            for(Change change : changes.generated) {
+        if (results.isNotEmpty()) {
+            for (Result result : results.generated) {
+                assert result.getAfter() != null;
                 getLog().warn("Applying fixes would generate new file " +
-                        change.getFixed().getSourcePath() +
+                        result.getAfter().getSourcePath() +
                         " by:");
-                logVisitorsThatMadeChanges(change);
+                logVisitorsThatMadeChanges(result);
             }
-            for(Change change : changes.deleted) {
+            for (Result result : results.deleted) {
+                assert result.getBefore() != null;
                 getLog().warn("Applying fixes would delete file " +
-                        change.getOriginal().getSourcePath() +
+                        result.getBefore().getSourcePath() +
                         " by:");
-                logVisitorsThatMadeChanges(change);
+                logVisitorsThatMadeChanges(result);
             }
-            for(Change change : changes.moved) {
+            for (Result result : results.moved) {
+                assert result.getBefore() != null;
+                assert result.getAfter() != null;
                 getLog().warn("Applying fixes would move file from " +
-                        change.getOriginal().getSourcePath() + " to " +
-                        change.getFixed().getSourcePath() + " by:");
-                logVisitorsThatMadeChanges(change);
+                        result.getBefore().getSourcePath() + " to " +
+                        result.getAfter().getSourcePath() + " by:");
+                logVisitorsThatMadeChanges(result);
             }
-            for(Change change : changes.refactoredInPlace) {
-                getLog().warn("Applying fixes would make changes to " +
-                        change.getOriginal().getSourcePath() +
+            for (Result result : results.refactoredInPlace) {
+                assert result.getBefore() != null;
+                getLog().warn("Applying fixes would make results to " +
+                        result.getBefore().getSourcePath() +
                         " by:");
-                logVisitorsThatMadeChanges(change);
+                logVisitorsThatMadeChanges(result);
             }
-            getLog().warn("Run 'mvn rewrite:fix' to apply the fixes. Afterwards, review and commit the changes.");
+            getLog().warn("Run 'gradle rewriteFix' to apply the fixes. Afterwards, review and commit the results.");
         }
     }
 }
