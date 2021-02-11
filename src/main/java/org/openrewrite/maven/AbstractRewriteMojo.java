@@ -76,6 +76,15 @@ public abstract class AbstractRewriteMojo extends AbstractMojo {
         return env.build();
     }
 
+    protected ExecutionContext executionContext() {
+        return ExecutionContext.builder()
+                .doOnError(throwable -> {
+                    getLog().warn(throwable.getMessage());
+                    getLog().debug(throwable);
+                })
+                .build();
+    }
+
     protected ResultsContainer listResults() throws MojoExecutionException {
         try (MeterRegistryProvider meterRegistryProvider = new MeterRegistryProvider(getLog(),
                 metricsUri, metricsUsername, metricsPassword)) {
@@ -104,6 +113,8 @@ public abstract class AbstractRewriteMojo extends AbstractMojo {
             javaSources.addAll(listJavaSources(project.getBuild().getSourceDirectory()));
             javaSources.addAll(listJavaSources(project.getBuild().getTestSourceDirectory()));
 
+            ExecutionContext ctx = executionContext();
+
             sourceFiles.addAll(JavaParser.fromJavaVersion()
                     .styles(styles)
                     .classpath(
@@ -117,7 +128,7 @@ public abstract class AbstractRewriteMojo extends AbstractMojo {
                     )
                     .logCompilationWarningsAndErrors(false)
                     .build()
-                    .parse(javaSources, baseDir));
+                    .parse(javaSources, baseDir, ctx));
 
             sourceFiles.addAll(
                     new YamlParser().parse(
@@ -127,7 +138,8 @@ public abstract class AbstractRewriteMojo extends AbstractMojo {
                                     .filter(it -> it.endsWith(".yml") || it.endsWith(".yaml"))
                                     .map(Paths::get)
                                     .collect(toList()),
-                            baseDir)
+                            baseDir,
+                            ctx)
             );
 
             sourceFiles.addAll(
@@ -138,7 +150,8 @@ public abstract class AbstractRewriteMojo extends AbstractMojo {
                                     .filter(it -> it.endsWith(".properties"))
                                     .map(Paths::get)
                                     .collect(toList()),
-                            baseDir)
+                            baseDir,
+                            ctx)
             );
 
             sourceFiles.addAll(new XmlParser().parse(
@@ -148,7 +161,8 @@ public abstract class AbstractRewriteMojo extends AbstractMojo {
                             .filter(it -> it.endsWith(".xml"))
                             .map(Paths::get)
                             .collect(toList()),
-                    baseDir)
+                    baseDir,
+                    ctx)
             );
 
             List<Path> allPoms = new ArrayList<>();
@@ -173,10 +187,6 @@ public abstract class AbstractRewriteMojo extends AbstractMojo {
 
                 MavenParser.Builder mavenParserBuilder = MavenParser.builder()
                         .resolveOptional(false)
-                        .doOnError(throwable -> {
-                            getLog().warn(throwable.getMessage());
-                            getLog().debug(throwable);
-                        })
                         .mavenConfig(baseDir.resolve(".mvn/maven.config"));
 
                 if (mavenSettings.toFile().exists()) {
@@ -193,7 +203,7 @@ public abstract class AbstractRewriteMojo extends AbstractMojo {
 
                 Maven pomAst = mavenParserBuilder
                         .build()
-                        .parse(allPoms, baseDir)
+                        .parse(allPoms, baseDir, ctx)
                         .iterator()
                         .next();
 

@@ -4,6 +4,7 @@ import org.apache.maven.plugin.MojoExecutionException;
 import org.apache.maven.plugins.annotations.*;
 import org.apache.maven.project.MavenProject;
 import org.apache.maven.project.MavenProjectHelper;
+import org.openrewrite.ExecutionContext;
 import org.openrewrite.config.Environment;
 import org.openrewrite.TreeSerializer;
 import org.openrewrite.java.JavaParser;
@@ -43,17 +44,17 @@ public class RewritePublishMojo extends AbstractRewriteMojo {
     @Override
     public void execute() throws MojoExecutionException {
         Environment env = environment();
-
-        File rewriteJar = buildAstJar(env);
+        ExecutionContext ctx = executionContext();
+        File rewriteJar = buildAstJar(env, ctx);
         projectHelper.attachArtifact(project, rewriteJar, "ast");
 
         if (!skipCycloneDxBom) {
-            File cycloneDxBom = buildCycloneDxBom();
+            File cycloneDxBom = buildCycloneDxBom(ctx);
             projectHelper.attachArtifact(project, "xml", "cyclonedx", cycloneDxBom);
         }
     }
 
-    private File buildAstJar(Environment env) throws MojoExecutionException {
+    private File buildAstJar(Environment env, ExecutionContext executionContext) throws MojoExecutionException {
         List<Path> javaSources = new ArrayList<>();
         javaSources.addAll(listJavaSources(project.getBuild().getSourceDirectory()));
         javaSources.addAll(listJavaSources(project.getBuild().getTestSourceDirectory()));
@@ -67,7 +68,7 @@ public class RewritePublishMojo extends AbstractRewriteMojo {
                 .classpath(dependencies)
                 .logCompilationWarningsAndErrors(false)
                 .build()
-                .parse(javaSources, project.getBasedir().toPath());
+                .parse(javaSources, project.getBasedir().toPath(), executionContext);
 
         File outputDir = new File(project.getBuild().getDirectory());
 
@@ -100,7 +101,7 @@ public class RewritePublishMojo extends AbstractRewriteMojo {
         return rewriteJar;
     }
 
-    private File buildCycloneDxBom() {
+    private File buildCycloneDxBom(ExecutionContext executionContext) {
         List<Path> allPoms = new ArrayList<>();
         allPoms.add(project.getFile().toPath());
 
@@ -115,7 +116,7 @@ public class RewritePublishMojo extends AbstractRewriteMojo {
             Maven pomAst = MavenParser.builder()
                     .resolveOptional(false)
                     .build()
-                    .parse(allPoms, project.getBasedir().toPath())
+                    .parse(allPoms, project.getBasedir().toPath(), executionContext)
                     .iterator()
                     .next();
 

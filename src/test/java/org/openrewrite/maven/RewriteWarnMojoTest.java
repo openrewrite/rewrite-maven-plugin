@@ -19,6 +19,7 @@ import org.eclipse.aether.internal.impl.SimpleLocalRepositoryManagerFactory;
 import org.eclipse.aether.repository.LocalRepository;
 import org.eclipse.aether.repository.LocalRepositoryManager;
 import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.Disabled;
 import org.junit.jupiter.api.Test;
 
 import java.io.File;
@@ -33,6 +34,7 @@ class RewriteWarnMojoTest extends AbstractMojoTestCase {
 
     private RewriteWarnMojo testMojo;
 
+    @Disabled("rewrite-checkstyle has gone away, this test needs to be updated or discarded")
     @Test
     void checkstyle() throws Exception {
         testMojo.activeRecipes = Collections.singleton("org.openrewrite.sample.Checkstyle");
