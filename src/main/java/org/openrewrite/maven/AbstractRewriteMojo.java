@@ -13,7 +13,6 @@ import org.openrewrite.config.YamlResourceLoader;
 import org.openrewrite.internal.lang.Nullable;
 import org.openrewrite.java.JavaParser;
 import org.openrewrite.maven.tree.Maven;
-import org.openrewrite.maven.tree.Pom;
 import org.openrewrite.properties.PropertiesParser;
 import org.openrewrite.style.NamedStyles;
 import org.openrewrite.xml.XmlParser;
@@ -40,13 +39,11 @@ public abstract class AbstractRewriteMojo extends AbstractMojo {
     @Parameter(defaultValue = "${project}", readonly = true, required = true)
     protected MavenProject project;
 
-    @Nullable
     @Parameter(property = "activeRecipes")
-    protected Set<String> activeRecipes;
+    protected Set<String> activeRecipes = Collections.emptySet();
 
-    @Nullable
     @Parameter(property = "activeStyles")
-    Set<String> activeStyles;
+    protected Set<String> activeStyles = Collections.emptySet();
 
     @Nullable
     @Parameter(property = "metricsUri")
@@ -125,12 +122,11 @@ public abstract class AbstractRewriteMojo extends AbstractMojo {
             parent = parent.getParent();
         }
 
-        Path mavenSettings = Paths.get(System.getProperty("user.home")).resolve(".m2/settings.xml");
-
         MavenParser.Builder mavenParserBuilder = MavenParser.builder()
                 .resolveOptional(false)
                 .mavenConfig(baseDir.resolve(".mvn/maven.config"));
 
+        Path mavenSettings = Paths.get(System.getProperty("user.home")).resolve(".m2/settings.xml");
         if (mavenSettings.toFile().exists()) {
             MavenSettings settings = MavenSettings.parse(new Parser.Input(mavenSettings,
                             () -> {
@@ -158,11 +154,15 @@ public abstract class AbstractRewriteMojo extends AbstractMojo {
         // This property is set by Maven, apparently for both multi and single module builds
         Object maybeMultiModuleDir = System.getProperties().get("maven.multiModuleProjectDirectory");
         Path baseDir;
-        if (maybeMultiModuleDir instanceof String) {
-            return Paths.get((String) maybeMultiModuleDir);
-        } else {
-            // This path should only be taken by tests using AbstractMojoTestCase
-            return project.getBasedir().toPath();
+        try {
+            if (maybeMultiModuleDir instanceof String) {
+                return Paths.get((String) maybeMultiModuleDir).toRealPath();
+            } else {
+                // This path should only be taken by tests using AbstractMojoTestCase
+                return project.getBasedir().toPath().toRealPath();
+            }
+        } catch (IOException e) {
+            throw new RuntimeException(e);
         }
     }
 
@@ -172,18 +172,14 @@ public abstract class AbstractRewriteMojo extends AbstractMojo {
             MeterRegistry meterRegistry = meterRegistryProvider.registry();
 
             Path baseDir = getBaseDir();
-            if (activeRecipes == null || activeRecipes.isEmpty()) {
+            if (activeRecipes.isEmpty()) {
                 return new ResultsContainer(baseDir, emptyList());
             }
 
             Environment env = environment();
 
             List<NamedStyles> styles;
-            if (activeStyles == null) {
-                styles = Collections.emptyList();
-            } else {
-                styles = env.activateStyles(activeStyles);
-            }
+            styles = env.activateStyles(activeStyles);
             Recipe recipe = env.activateRecipes(activeRecipes);
 
             List<SourceFile> sourceFiles = new ArrayList<>();
@@ -256,7 +252,7 @@ public abstract class AbstractRewriteMojo extends AbstractMojo {
             Maven pomAst = parseMaven(baseDir, ctx);
             sourceFiles.add(pomAst);
 
-            List<Result> results = recipe.run(sourceFiles);
+            List<Result> results = recipe.run(sourceFiles, ctx);
 
             return new ResultsContainer(baseDir, results);
         } catch (
@@ -310,6 +306,13 @@ public abstract class AbstractRewriteMojo extends AbstractMojo {
         try {
             return Files.walk(sourceRoot)
                     .filter(f -> !Files.isDirectory(f) && f.toFile().getName().endsWith(".java"))
+                    .map( it -> {
+                        try {
+                            return it.toRealPath();
+                        } catch (IOException e) {
+                            throw new RuntimeException(e);
+                        }
+                    })
                     .collect(toList());
         } catch (IOException e) {
             throw new MojoExecutionException("Unable to list Java source files", e);
@@ -318,7 +321,7 @@ public abstract class AbstractRewriteMojo extends AbstractMojo {
 
     protected void logRecipesThatMadeChanges(Result result) {
         for (Recipe recipe : result.getRecipesThatMadeChanges()) {
-            getLog().warn("  " + recipe);
+            getLog().warn("  " + recipe.getName());
         }
     }
 }

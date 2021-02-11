@@ -16,7 +16,7 @@ import java.nio.file.Path;
 /**
  * Produce a Cyclone DX BOM for publication to Maven repositories
  */
-@Mojo(name = "publish", requiresDependencyResolution = ResolutionScope.TEST, threadSafe = true,
+@Mojo(name = "cyclonedx", requiresDependencyResolution = ResolutionScope.TEST, threadSafe = true,
         defaultPhase = LifecyclePhase.PACKAGE)
 public class CycloneDxBomMojo extends AbstractRewriteMojo {
 

@@ -38,14 +38,14 @@ public class RewriteFixMojo extends AbstractRewriteMojo {
             for (Result result : results.generated) {
                 assert result.getAfter() != null;
                 getLog().warn("Generated new file " +
-                        result.getAfter().getSourcePath() +
+                        result.getAfter().getSourcePath().normalize() +
                         " by:");
                 logRecipesThatMadeChanges(result);
             }
             for (Result result : results.deleted) {
                 assert result.getBefore() != null;
                 getLog().warn("Deleted file " +
-                        result.getBefore().getSourcePath() +
+                        result.getBefore().getSourcePath().normalize() +
                         " by:");
                 logRecipesThatMadeChanges(result);
             }
@@ -53,14 +53,14 @@ public class RewriteFixMojo extends AbstractRewriteMojo {
                 assert result.getAfter() != null;
                 assert result.getBefore() != null;
                 getLog().warn("File has been moved from " +
-                        result.getBefore().getSourcePath() + " to " +
-                        result.getAfter().getSourcePath() + " by:");
+                        result.getBefore().getSourcePath().normalize() + " to " +
+                        result.getAfter().getSourcePath().normalize() + " by:");
                 logRecipesThatMadeChanges(result);
             }
             for (Result result : results.refactoredInPlace) {
                 assert result.getBefore() != null;
                 getLog().warn("Changes have been made to " +
-                        result.getBefore().getSourcePath() +
+                        result.getBefore().getSourcePath().normalize() +
                         " by:");
                 logRecipesThatMadeChanges(result);
             }
@@ -77,7 +77,7 @@ public class RewriteFixMojo extends AbstractRewriteMojo {
                 }
                 for (Result result : results.deleted) {
                     assert result.getBefore() != null;
-                    Path originalLocation = results.getProjectRoot().resolve(result.getBefore().getSourcePath());
+                    Path originalLocation = results.getProjectRoot().resolve(result.getBefore().getSourcePath()).normalize();
                     boolean deleteSucceeded = originalLocation.toFile().delete();
                     if (!deleteSucceeded) {
                         throw new IOException("Unable to delete file " + originalLocation.toAbsolutePath());
@@ -86,10 +86,10 @@ public class RewriteFixMojo extends AbstractRewriteMojo {
                 for (Result result : results.moved) {
                     // Should we try to use git to move the file first, and only if that fails fall back to this?
                     assert result.getBefore() != null;
-                    Path originalLocation = results.getProjectRoot().resolve(result.getBefore().getSourcePath());
+                    Path originalLocation = results.getProjectRoot().resolve(result.getBefore().getSourcePath()).normalize();
                     boolean deleteSucceeded = originalLocation.toFile().delete();
                     if (!deleteSucceeded) {
-                        throw new IOException("Unable to delete file " + originalLocation.toAbsolutePath());
+                        throw new IOException("Unable to delete file " + originalLocation);
                     }
                     assert result.getAfter() != null;
                     try (BufferedWriter sourceFileWriter = Files.newBufferedWriter(
