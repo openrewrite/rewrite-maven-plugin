@@ -40,14 +40,14 @@ public class RewriteFixMojo extends AbstractRewriteMojo {
                 getLog().warn("Generated new file " +
                         result.getAfter().getSourcePath() +
                         " by:");
-                logVisitorsThatMadeChanges(result);
+                logRecipesThatMadeChanges(result);
             }
             for (Result result : results.deleted) {
                 assert result.getBefore() != null;
                 getLog().warn("Deleted file " +
                         result.getBefore().getSourcePath() +
                         " by:");
-                logVisitorsThatMadeChanges(result);
+                logRecipesThatMadeChanges(result);
             }
             for (Result result : results.moved) {
                 assert result.getAfter() != null;
@@ -55,14 +55,14 @@ public class RewriteFixMojo extends AbstractRewriteMojo {
                 getLog().warn("File has been moved from " +
                         result.getBefore().getSourcePath() + " to " +
                         result.getAfter().getSourcePath() + " by:");
-                logVisitorsThatMadeChanges(result);
+                logRecipesThatMadeChanges(result);
             }
             for (Result result : results.refactoredInPlace) {
                 assert result.getBefore() != null;
                 getLog().warn("Changes have been made to " +
                         result.getBefore().getSourcePath() +
                         " by:");
-                logVisitorsThatMadeChanges(result);
+                logRecipesThatMadeChanges(result);
             }
 
             getLog().warn("Please review and commit the results.");

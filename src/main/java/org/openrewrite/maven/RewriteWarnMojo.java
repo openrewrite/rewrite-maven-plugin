@@ -36,14 +36,14 @@ public class RewriteWarnMojo extends AbstractRewriteMojo {
                 getLog().warn("Applying fixes would generate new file " +
                         result.getAfter().getSourcePath() +
                         " by:");
-                logVisitorsThatMadeChanges(result);
+                logRecipesThatMadeChanges(result);
             }
             for (Result result : results.deleted) {
                 assert result.getBefore() != null;
                 getLog().warn("Applying fixes would delete file " +
                         result.getBefore().getSourcePath() +
                         " by:");
-                logVisitorsThatMadeChanges(result);
+                logRecipesThatMadeChanges(result);
             }
             for (Result result : results.moved) {
                 assert result.getBefore() != null;
@@ -51,14 +51,14 @@ public class RewriteWarnMojo extends AbstractRewriteMojo {
                 getLog().warn("Applying fixes would move file from " +
                         result.getBefore().getSourcePath() + " to " +
                         result.getAfter().getSourcePath() + " by:");
-                logVisitorsThatMadeChanges(result);
+                logRecipesThatMadeChanges(result);
             }
             for (Result result : results.refactoredInPlace) {
                 assert result.getBefore() != null;
                 getLog().warn("Applying fixes would make results to " +
                         result.getBefore().getSourcePath() +
                         " by:");
-                logVisitorsThatMadeChanges(result);
+                logRecipesThatMadeChanges(result);
             }
             getLog().warn("Run 'gradle rewriteFix' to apply the fixes. Afterwards, review and commit the results.");
         }

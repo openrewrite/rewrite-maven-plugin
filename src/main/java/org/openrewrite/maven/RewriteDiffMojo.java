@@ -46,25 +46,25 @@ public class RewriteDiffMojo extends AbstractRewriteMojo {
                 getLog().warn("Applying patch would generate new file " +
                         change.getAfter().getSourcePath() +
                         " by:");
-                logVisitorsThatMadeChanges(change);
+                logRecipesThatMadeChanges(change);
             }
             for (Result change : changes.deleted) {
                 getLog().warn("Applying patch would delete file " +
                         change.getBefore().getSourcePath() +
                         " by:");
-                logVisitorsThatMadeChanges(change);
+                logRecipesThatMadeChanges(change);
             }
             for (Result change : changes.moved) {
                 getLog().warn("Applying patch would move file from " +
                         change.getBefore().getSourcePath() + " to " +
                         change.getAfter().getSourcePath() + " by:");
-                logVisitorsThatMadeChanges(change);
+                logRecipesThatMadeChanges(change);
             }
             for (Result change : changes.refactoredInPlace) {
                 getLog().warn("Applying patch would make changes to " +
                         change.getBefore().getSourcePath() +
                         " by:");
-                logVisitorsThatMadeChanges(change);
+                logRecipesThatMadeChanges(change);
             }
 
             //noinspection ResultOfMethodCallIgnored

@@ -11,6 +11,7 @@ import io.rsocket.transport.ClientTransport;
 import io.rsocket.transport.netty.client.TcpClientTransport;
 import io.rsocket.transport.netty.client.WebsocketClientTransport;
 import org.apache.maven.plugin.logging.Log;
+import org.openrewrite.internal.lang.Nullable;
 import reactor.netty.http.client.HttpClient;
 import reactor.netty.tcp.TcpClient;
 import reactor.util.retry.Retry;
@@ -21,15 +22,20 @@ import java.util.Base64;
 
 public class MeterRegistryProvider implements AutoCloseable {
     private final Log log;
+    @Nullable
     private final String uriString;
+    @Nullable
     private final String username;
+    @Nullable
     private final String password;
 
+    @Nullable
     private PrometheusRSocketClient metricsClient;
 
+    @Nullable
     private MeterRegistry registry;
 
-    public MeterRegistryProvider(Log log, String uriString, String username, String password) {
+    public MeterRegistryProvider(Log log, @Nullable String uriString, @Nullable String username, @Nullable String password) {
         this.log = log;
         this.uriString = uriString;
         this.username = username;

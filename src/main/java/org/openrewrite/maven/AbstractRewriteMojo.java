@@ -10,8 +10,10 @@ import org.apache.maven.project.MavenProject;
 import org.openrewrite.*;
 import org.openrewrite.config.Environment;
 import org.openrewrite.config.YamlResourceLoader;
+import org.openrewrite.internal.lang.Nullable;
 import org.openrewrite.java.JavaParser;
 import org.openrewrite.maven.tree.Maven;
+import org.openrewrite.maven.tree.Pom;
 import org.openrewrite.properties.PropertiesParser;
 import org.openrewrite.style.NamedStyles;
 import org.openrewrite.xml.XmlParser;
@@ -30,24 +32,31 @@ import static java.util.Collections.emptyList;
 import static java.util.stream.Collectors.toList;
 
 public abstract class AbstractRewriteMojo extends AbstractMojo {
+    @SuppressWarnings("NotNullFieldNotInitialized")
     @Parameter(property = "configLocation", defaultValue = "${maven.multiModuleProjectDirectory}/rewrite.yml")
     String configLocation;
 
+    @SuppressWarnings("NotNullFieldNotInitialized")
     @Parameter(defaultValue = "${project}", readonly = true, required = true)
     protected MavenProject project;
 
+    @Nullable
     @Parameter(property = "activeRecipes")
     protected Set<String> activeRecipes;
 
+    @Nullable
     @Parameter(property = "activeStyles")
     Set<String> activeStyles;
 
+    @Nullable
     @Parameter(property = "metricsUri")
     private String metricsUri;
 
+    @Nullable
     @Parameter(property = "metricsUsername")
     private String metricsUsername;
 
+    @Nullable
     @Parameter(property = "metricsPassword")
     private String metricsPassword;
 
@@ -77,12 +86,84 @@ public abstract class AbstractRewriteMojo extends AbstractMojo {
     }
 
     protected ExecutionContext executionContext() {
-        return ExecutionContext.builder()
-                .doOnError(throwable -> {
-                    getLog().warn(throwable.getMessage());
-                    getLog().debug(throwable);
-                })
-                .build();
+        return new InMemoryExecutionContext(t -> {
+            getLog().warn(t.getMessage());
+            getLog().debug(t);
+        });
+    }
+
+    protected Parser.Listener listener() {
+        return new Parser.Listener() {
+            @Override
+            public void onError(String message) {
+                getLog().error(message);
+            }
+
+            @Override
+            public void onError(String message, Throwable t) {
+                getLog().error(message);
+                getLog().error(t);
+            }
+        };
+    }
+
+    protected Maven parseMaven(Path baseDir, ExecutionContext ctx) {
+        List<Path> allPoms = new ArrayList<>();
+        allPoms.add(project.getFile().toPath());
+
+        // children
+        if (project.getCollectedProjects() != null) {
+            project.getCollectedProjects().stream()
+                    .filter(collectedProject -> collectedProject != project)
+                    .map(collectedProject -> collectedProject.getFile().toPath())
+                    .forEach(allPoms::add);
+        }
+
+        MavenProject parent = project.getParent();
+        while (parent != null && parent.getFile() != null) {
+            allPoms.add(parent.getFile().toPath());
+            parent = parent.getParent();
+        }
+
+        Path mavenSettings = Paths.get(System.getProperty("user.home")).resolve(".m2/settings.xml");
+
+        MavenParser.Builder mavenParserBuilder = MavenParser.builder()
+                .resolveOptional(false)
+                .mavenConfig(baseDir.resolve(".mvn/maven.config"));
+
+        if (mavenSettings.toFile().exists()) {
+            MavenSettings settings = MavenSettings.parse(new Parser.Input(mavenSettings,
+                            () -> {
+                                try {
+                                    return Files.newInputStream(mavenSettings);
+                                } catch (IOException e) {
+                                    getLog().warn("Unable to load Maven settings from user home directory. Skipping.", e);
+                                    return null;
+                                }
+                            }),
+                    ctx);
+            if (settings != null && settings.getActiveProfiles() != null) {
+                mavenParserBuilder.activeProfiles(settings.getActiveProfiles().getActiveProfiles().toArray(new String[]{}));
+            }
+        }
+
+        return mavenParserBuilder
+                .build()
+                .parse(allPoms, baseDir, ctx)
+                .iterator()
+                .next();
+    }
+
+    protected Path getBaseDir() {
+        // This property is set by Maven, apparently for both multi and single module builds
+        Object maybeMultiModuleDir = System.getProperties().get("maven.multiModuleProjectDirectory");
+        Path baseDir;
+        if (maybeMultiModuleDir instanceof String) {
+            return Paths.get((String) maybeMultiModuleDir);
+        } else {
+            // This path should only be taken by tests using AbstractMojoTestCase
+            return project.getBasedir().toPath();
+        }
     }
 
     protected ResultsContainer listResults() throws MojoExecutionException {
@@ -90,22 +171,19 @@ public abstract class AbstractRewriteMojo extends AbstractMojo {
                 metricsUri, metricsUsername, metricsPassword)) {
             MeterRegistry meterRegistry = meterRegistryProvider.registry();
 
-            // This property is set by Maven, apparently for both multi and single module builds
-            Object maybeMultiModuleDir = System.getProperties().get("maven.multiModuleProjectDirectory");
-            Path baseDir;
-            if (maybeMultiModuleDir instanceof String) {
-                baseDir = Paths.get((String) maybeMultiModuleDir);
-            } else {
-                // This path should only be taken by tests using AbstractMojoTestCase
-                baseDir = project.getBasedir().toPath();
-            }
-
+            Path baseDir = getBaseDir();
             if (activeRecipes == null || activeRecipes.isEmpty()) {
                 return new ResultsContainer(baseDir, emptyList());
             }
 
             Environment env = environment();
-            List<NamedStyles> styles = env.activateStyles(activeStyles);
+
+            List<NamedStyles> styles;
+            if (activeStyles == null) {
+                styles = Collections.emptyList();
+            } else {
+                styles = env.activateStyles(activeStyles);
+            }
             Recipe recipe = env.activateRecipes(activeRecipes);
 
             List<SourceFile> sourceFiles = new ArrayList<>();
@@ -114,6 +192,7 @@ public abstract class AbstractRewriteMojo extends AbstractMojo {
             javaSources.addAll(listJavaSources(project.getBuild().getTestSourceDirectory()));
 
             ExecutionContext ctx = executionContext();
+            Parser.Listener listener = listener();
 
             sourceFiles.addAll(JavaParser.fromJavaVersion()
                     .styles(styles)
@@ -131,87 +210,51 @@ public abstract class AbstractRewriteMojo extends AbstractMojo {
                     .parse(javaSources, baseDir, ctx));
 
             sourceFiles.addAll(
-                    new YamlParser().parse(
-                            Stream.concat(project.getBuild().getResources().stream(), project.getBuild().getTestResources().stream())
-                                    .map(Resource::getTargetPath)
-                                    .filter(Objects::nonNull)
-                                    .filter(it -> it.endsWith(".yml") || it.endsWith(".yaml"))
-                                    .map(Paths::get)
-                                    .collect(toList()),
-                            baseDir,
-                            ctx)
+                    YamlParser.builder()
+                            .doOnParse(listener)
+                            .build()
+                            .parse(
+                                    Stream.concat(project.getBuild().getResources().stream(), project.getBuild().getTestResources().stream())
+                                            .map(Resource::getTargetPath)
+                                            .filter(Objects::nonNull)
+                                            .filter(it -> it.endsWith(".yml") || it.endsWith(".yaml"))
+                                            .map(Paths::get)
+                                            .collect(toList()),
+                                    baseDir,
+                                    ctx)
             );
 
             sourceFiles.addAll(
-                    new PropertiesParser().parse(
+                    PropertiesParser.builder()
+                            .doOnParse(listener)
+                            .build()
+                            .parse(
+                                    Stream.concat(project.getBuild().getResources().stream(), project.getBuild().getTestResources().stream())
+                                            .map(Resource::getTargetPath)
+                                            .filter(Objects::nonNull)
+                                            .filter(it -> it.endsWith(".properties"))
+                                            .map(Paths::get)
+                                            .collect(toList()),
+                                    baseDir,
+                                    ctx)
+            );
+
+            sourceFiles.addAll(
+                    XmlParser.builder()
+                            .doOnParse(listener)
+                            .build().parse(
                             Stream.concat(project.getBuild().getResources().stream(), project.getBuild().getTestResources().stream())
                                     .map(Resource::getTargetPath)
                                     .filter(Objects::nonNull)
-                                    .filter(it -> it.endsWith(".properties"))
+                                    .filter(it -> it.endsWith(".xml"))
                                     .map(Paths::get)
                                     .collect(toList()),
                             baseDir,
                             ctx)
             );
 
-            sourceFiles.addAll(new XmlParser().parse(
-                    Stream.concat(project.getBuild().getResources().stream(), project.getBuild().getTestResources().stream())
-                            .map(Resource::getTargetPath)
-                            .filter(Objects::nonNull)
-                            .filter(it -> it.endsWith(".xml"))
-                            .map(Paths::get)
-                            .collect(toList()),
-                    baseDir,
-                    ctx)
-            );
-
-            List<Path> allPoms = new ArrayList<>();
-            allPoms.add(project.getFile().toPath());
-
-            // children
-            if (project.getCollectedProjects() != null) {
-                project.getCollectedProjects().stream()
-                        .filter(collectedProject -> collectedProject != project)
-                        .map(collectedProject -> collectedProject.getFile().toPath())
-                        .forEach(allPoms::add);
-            }
-
-            MavenProject parent = project.getParent();
-            while (parent != null && parent.getFile() != null) {
-                allPoms.add(parent.getFile().toPath());
-                parent = parent.getParent();
-            }
-
-            try {
-                Path mavenSettings = Paths.get(System.getProperty("user.home")).resolve(".m2/settings.xml");
-
-                MavenParser.Builder mavenParserBuilder = MavenParser.builder()
-                        .resolveOptional(false)
-                        .mavenConfig(baseDir.resolve(".mvn/maven.config"));
-
-                if (mavenSettings.toFile().exists()) {
-                    mavenParserBuilder = mavenParserBuilder.mavenSettings(new Parser.Input(mavenSettings,
-                            () -> {
-                                try {
-                                    return Files.newInputStream(mavenSettings);
-                                } catch (IOException e) {
-                                    getLog().warn("Unable to load Maven settings from user home directory. Skipping.", e);
-                                    return null;
-                                }
-                            }));
-                }
-
-                Maven pomAst = mavenParserBuilder
-                        .build()
-                        .parse(allPoms, baseDir, ctx)
-                        .iterator()
-                        .next();
-
-                sourceFiles.add(pomAst);
-            } catch (Throwable t) {
-                // TODO we aren't yet confident enough in this to not squash exceptions
-                getLog().warn("Unable to parse Maven AST", t);
-            }
+            Maven pomAst = parseMaven(baseDir, ctx);
+            sourceFiles.add(pomAst);
 
             List<Result> results = recipe.run(sourceFiles);
 
@@ -273,9 +316,9 @@ public abstract class AbstractRewriteMojo extends AbstractMojo {
         }
     }
 
-    protected void logVisitorsThatMadeChanges(Result result) {
-        for (String visitor : result.getRecipesThatMadeChanges()) {
-            getLog().warn("  " + visitor);
+    protected void logRecipesThatMadeChanges(Result result) {
+        for (Recipe recipe : result.getRecipesThatMadeChanges()) {
+            getLog().warn("  " + recipe);
         }
     }
 }
