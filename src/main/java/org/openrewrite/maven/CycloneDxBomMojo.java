@@ -16,11 +16,12 @@ import java.nio.file.Path;
 /**
  * Produce a Cyclone DX BOM for publication to Maven repositories
  */
-@Mojo(name = "publish", requiresDependencyResolution = ResolutionScope.TEST, threadSafe = true,
+@Mojo(name = "cyclonedx", requiresDependencyResolution = ResolutionScope.TEST, threadSafe = true,
         defaultPhase = LifecyclePhase.PACKAGE)
 public class CycloneDxBomMojo extends AbstractRewriteMojo {
 
     @SuppressWarnings("NotNullFieldNotInitialized")
+    @Component
     private MavenProjectHelper projectHelper;
 
     @Parameter(name = "skipCycloneDxBom", property = "skipCycloneDxBom", defaultValue = "false")
@@ -37,7 +38,8 @@ public class CycloneDxBomMojo extends AbstractRewriteMojo {
         }
     }
 
-    @Nullable private File buildCycloneDxBom(Maven pomAst) {
+    @Nullable
+    private File buildCycloneDxBom(Maven pomAst) {
         try {
             File cycloneDxBom = new File(project.getBuild().getDirectory(),
                     project.getArtifactId() + "-" + project.getVersion() + "-cyclonedx.xml");

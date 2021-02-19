@@ -20,6 +20,7 @@ import org.apache.maven.plugins.annotations.*;
 import org.openrewrite.Result;
 
 import java.io.BufferedWriter;
+import java.io.File;
 import java.io.IOException;
 import java.nio.file.Files;
 import java.nio.file.Path;
@@ -38,14 +39,14 @@ public class RewriteFixMojo extends AbstractRewriteMojo {
             for (Result result : results.generated) {
                 assert result.getAfter() != null;
                 getLog().warn("Generated new file " +
-                        result.getAfter().getSourcePath() +
+                        result.getAfter().getSourcePath().normalize() +
                         " by:");
                 logRecipesThatMadeChanges(result);
             }
             for (Result result : results.deleted) {
                 assert result.getBefore() != null;
                 getLog().warn("Deleted file " +
-                        result.getBefore().getSourcePath() +
+                        result.getBefore().getSourcePath().normalize() +
                         " by:");
                 logRecipesThatMadeChanges(result);
             }
@@ -53,14 +54,14 @@ public class RewriteFixMojo extends AbstractRewriteMojo {
                 assert result.getAfter() != null;
                 assert result.getBefore() != null;
                 getLog().warn("File has been moved from " +
-                        result.getBefore().getSourcePath() + " to " +
-                        result.getAfter().getSourcePath() + " by:");
+                        result.getBefore().getSourcePath().normalize() + " to " +
+                        result.getAfter().getSourcePath().normalize() + " by:");
                 logRecipesThatMadeChanges(result);
             }
             for (Result result : results.refactoredInPlace) {
                 assert result.getBefore() != null;
                 getLog().warn("Changes have been made to " +
-                        result.getBefore().getSourcePath() +
+                        result.getBefore().getSourcePath().normalize() +
                         " by:");
                 logRecipesThatMadeChanges(result);
             }
@@ -77,7 +78,7 @@ public class RewriteFixMojo extends AbstractRewriteMojo {
                 }
                 for (Result result : results.deleted) {
                     assert result.getBefore() != null;
-                    Path originalLocation = results.getProjectRoot().resolve(result.getBefore().getSourcePath());
+                    Path originalLocation = results.getProjectRoot().resolve(result.getBefore().getSourcePath()).normalize();
                     boolean deleteSucceeded = originalLocation.toFile().delete();
                     if (!deleteSucceeded) {
                         throw new IOException("Unable to delete file " + originalLocation.toAbsolutePath());
@@ -88,12 +89,16 @@ public class RewriteFixMojo extends AbstractRewriteMojo {
                     assert result.getBefore() != null;
                     Path originalLocation = results.getProjectRoot().resolve(result.getBefore().getSourcePath());
                     boolean deleteSucceeded = originalLocation.toFile().delete();
-                    if (!deleteSucceeded) {
+                    if(!deleteSucceeded) {
                         throw new IOException("Unable to delete file " + originalLocation.toAbsolutePath());
                     }
                     assert result.getAfter() != null;
-                    try (BufferedWriter sourceFileWriter = Files.newBufferedWriter(
-                            results.getProjectRoot().resolve(result.getAfter().getSourcePath()))) {
+                    // Ensure directories exist in case something was moved into a hitherto non-existent package
+                    Path afterLocation = results.getProjectRoot().resolve(result.getAfter().getSourcePath());
+                    File parentDir = afterLocation.toFile().getParentFile();
+                    //noinspection ResultOfMethodCallIgnored
+                    parentDir.mkdirs();
+                    try (BufferedWriter sourceFileWriter = Files.newBufferedWriter(afterLocation)) {
                         sourceFileWriter.write(result.getAfter().print());
                     }
                 }

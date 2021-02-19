@@ -19,12 +19,12 @@ public class RewriteDiscoverMojo extends AbstractRewriteMojo {
         Collection<Recipe> recipesByName = env.listRecipes();
         log.info("Found " + activeRecipes.size() + " active recipes and " + recipesByName.size() + " total recipes.\n");
 
-        log.info("Active Recipe Names:");
+        log.info("Active Recipes:");
         for (String activeRecipe : activeRecipes) {
             log.info("\t" + activeRecipe);
         }
-
-        log.info("\nRecipes:");
+        log.info("");
+        log.info("All Recipes:");
         for (Recipe recipe : recipesByName) {
             log.info("\tname: " + recipe.getName());
         }
