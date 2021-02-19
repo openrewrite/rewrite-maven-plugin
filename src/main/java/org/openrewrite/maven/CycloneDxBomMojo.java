@@ -21,6 +21,7 @@ import java.nio.file.Path;
 public class CycloneDxBomMojo extends AbstractRewriteMojo {
 
     @SuppressWarnings("NotNullFieldNotInitialized")
+    @Component
     private MavenProjectHelper projectHelper;
 
     @Parameter(name = "skipCycloneDxBom", property = "skipCycloneDxBom", defaultValue = "false")
