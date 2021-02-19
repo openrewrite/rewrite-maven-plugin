@@ -38,7 +38,8 @@ public class CycloneDxBomMojo extends AbstractRewriteMojo {
         }
     }
 
-    @Nullable private File buildCycloneDxBom(Maven pomAst) {
+    @Nullable
+    private File buildCycloneDxBom(Maven pomAst) {
         try {
             File cycloneDxBom = new File(project.getBuild().getDirectory(),
                     project.getArtifactId() + "-" + project.getVersion() + "-cyclonedx.xml");

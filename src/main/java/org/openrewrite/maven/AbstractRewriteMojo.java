@@ -306,7 +306,7 @@ public abstract class AbstractRewriteMojo extends AbstractMojo {
         try {
             return Files.walk(sourceRoot)
                     .filter(f -> !Files.isDirectory(f) && f.toFile().getName().endsWith(".java"))
-                    .map( it -> {
+                    .map(it -> {
                         try {
                             return it.toRealPath();
                         } catch (IOException e) {
