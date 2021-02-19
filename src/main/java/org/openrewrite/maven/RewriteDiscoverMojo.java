@@ -3,8 +3,9 @@ package org.openrewrite.maven;
 import org.apache.maven.plugin.MojoExecutionException;
 import org.apache.maven.plugin.logging.Log;
 import org.apache.maven.plugins.annotations.Mojo;
-import org.openrewrite.config.Environment;
 import org.openrewrite.Recipe;
+import org.openrewrite.config.Environment;
+import org.openrewrite.config.RecipeDescriptor;
 
 import java.util.Collection;
 
@@ -27,6 +28,14 @@ public class RewriteDiscoverMojo extends AbstractRewriteMojo {
         log.info("All Recipes:");
         for (Recipe recipe : recipesByName) {
             log.info("\tname: " + recipe.getName());
+        }
+
+        log.info("\nRecipe Descriptors:");
+        for (RecipeDescriptor recipeDescriptor : env.listRecipeDescriptors()) {
+            log.info("\tname: " + recipeDescriptor.getName());
+            for (String parameter : recipeDescriptor.getParameters()) {
+                log.info("\t\tparameter: " + parameter);
+            }
         }
     }
 }
