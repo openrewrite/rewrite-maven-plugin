@@ -19,6 +19,7 @@ import org.apache.maven.execution.MavenSession;
 import org.apache.maven.plugin.MojoExecutionException;
 import org.apache.maven.plugins.annotations.*;
 import org.openrewrite.Result;
+import org.openrewrite.marker.SearchResult;
 
 import java.io.BufferedWriter;
 import java.io.File;
@@ -37,6 +38,7 @@ public class RewriteDiffMojo extends AbstractRewriteMojo {
     @Parameter(defaultValue = "${session}", readonly = true)
     private MavenSession mavenSession;
 
+    @SuppressWarnings("ConstantConditions")
     @Override
     public void execute() throws MojoExecutionException {
         ResultsContainer changes = listResults();
@@ -76,7 +78,7 @@ public class RewriteDiffMojo extends AbstractRewriteMojo {
                         Stream.concat(changes.generated.stream(), changes.deleted.stream()),
                         Stream.concat(changes.moved.stream(), changes.refactoredInPlace.stream())
                 )
-                        .map(Result::diff)
+                        .map(result -> result.diff(SearchResult.PRINTER))
                         .forEach(diff -> {
                             try {
                                 writer.write(diff + "\n");
