@@ -98,8 +98,17 @@ public abstract class AbstractRewriteMojo extends AbstractMojo {
 
             @Override
             public void onError(String message, Throwable t) {
-                getLog().error(message);
-                getLog().error(t);
+                getLog().error(message, t);
+            }
+
+            @Override
+            public void onWarn(String message) {
+                getLog().debug(message);
+            }
+
+            @Override
+            public void onWarn(String message, Throwable t) {
+                getLog().debug(message, t);
             }
         };
     }
