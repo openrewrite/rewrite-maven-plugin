@@ -16,8 +16,23 @@ public class RewriteDiscoverMojo extends AbstractRewriteMojo {
     public void execute() throws MojoExecutionException {
         Environment env = environment();
 
+        String recipeFilter = System.getProperty("rewrite.discover.recipe");
+        String verboseProperty = System.getProperty("rewrite.discover.verbose");
+        boolean verbose = Boolean.parseBoolean(verboseProperty);
+        String recursiveProperty = System.getProperty("rewrite.discover.recursive");
+        boolean recursive = Boolean.parseBoolean(recursiveProperty);
+
+        if (recipeFilter != null) {
+            RecipeDescriptor recipeDescriptor = env.listRecipeDescriptors().stream().filter(r -> r.getName().equals(recipeFilter)).findAny().orElse(null);
+            if (recipeDescriptor == null) {
+                log.info("Recipe " + recipeFilter + " not found.");
+            } else {
+                logRecipeDescriptor(recipeDescriptor, verbose, recursive);
+            }
+            return;
+        }
         Collection<Recipe> recipesByName = env.listRecipes();
-        log.info("Found " + activeRecipes.size() + " active recipes and " + recipesByName.size() + " total recipes.");
+        log.info("Found " + activeRecipes.size() + " active recipes and " + recipesByName.size() + " activatable recipes.");
         log.info("");
 
         log.info("Active Recipes:");
@@ -25,66 +40,96 @@ public class RewriteDiscoverMojo extends AbstractRewriteMojo {
             log.info("    " + activeRecipe);
         }
         log.info("");
-        log.info("All Recipes:");
+        log.info("Activatable Recipes:");
         for (Recipe recipe : recipesByName) {
-            log.info("    name: " + recipe.getName());
+            log.info("    " + recipe.getName());
         }
         log.info("");
-        log.info("Recipe Descriptors:");
+        log.info("Descriptors:");
         for (RecipeDescriptor recipeDescriptor : env.listRecipeDescriptors()) {
-            log.info("    Recipe name: " + recipeDescriptor.getName());
-            log.info("    Recipe display name: " + recipeDescriptor.getDisplayName());
-            log.info("    Recipe description: " + recipeDescriptor.getDescription());
-            if (!recipeDescriptor.getTags().isEmpty()) {
-                StringBuilder tags = new StringBuilder();
-                recipeDescriptor.getTags().forEach(t -> tags.append(t).append(", "));
-                tags.delete(tags.length() - 1, tags.length());
-                log.info("    Recipe tags: " + tags.toString());
-            }
-            if (!recipeDescriptor.getOptions().isEmpty()) {
-                log.info("    Options:");
-                for (OptionDescriptor optionDescriptor : recipeDescriptor.getOptions()) {
-                    log.info("        Option name: " + optionDescriptor.getName());
-                    log.info("        Option type: " + optionDescriptor.getType());
-                    log.info("        Option display name: " + optionDescriptor.getDisplayName());
-                    log.info("        Option description: " + optionDescriptor.getDescription());
-                    log.info("");
-                }
-            }
-            if (!recipeDescriptor.getRecipeList().isEmpty()) {
-                log.info("    Recipe list:");
-                for (ConfiguredRecipeDescriptor r : recipeDescriptor.getRecipeList()) {
-                    printConfiguredRecipeDescriptor(r, "        ");
-                }
-            }
-            if (recipeDescriptor.getOptions().isEmpty() && recipeDescriptor.getRecipeList().isEmpty()) {
-                log.info("");
-            }
+            logRecipeDescriptor(recipeDescriptor, verbose, recursive);
         }
     }
 
-    private void printConfiguredRecipeDescriptor(ConfiguredRecipeDescriptor recipeDescriptor, String indent) {
-        log.info(indent + "Recipe name: " + recipeDescriptor.getName());
-        log.info(indent + "Recipe display name: " + recipeDescriptor.getDisplayName());
+    private void logRecipeDescriptor(RecipeDescriptor recipeDescriptor, boolean verbose, boolean recursive) {
+        if (verbose) {
+            log.info("    Name: " + recipeDescriptor.getName());
+            log.info("    Display name: " + recipeDescriptor.getDisplayName());
+            log.info("    Description: " + recipeDescriptor.getDescription());
+            if (!recipeDescriptor.getTags().isEmpty()) {
+                log.info("    Tags: " + String.join(",", recipeDescriptor.getTags()));
+            }
+        } else {
+            log.info("    " + recipeDescriptor.getName());
+        }
         if (!recipeDescriptor.getOptions().isEmpty()) {
-            log.info(indent + "Options:");
-            for (ConfiguredOptionDescriptor optionDescriptor : recipeDescriptor.getOptions()) {
-                log.info(indent + "    Option name: " + optionDescriptor.getName());
-                log.info(indent + "    Option type: " + optionDescriptor.getType());
-                if (optionDescriptor.getValue() != null) {
-                    log.info(indent + "    Option value: " + optionDescriptor.getValue());
+            if (verbose) {
+                log.info("    Options:");
+            }
+            for (OptionDescriptor optionDescriptor : recipeDescriptor.getOptions()) {
+                StringBuilder optionBuilder = new StringBuilder(optionDescriptor.getName())
+                        .append(": ").append(optionDescriptor.getType());
+                if (optionDescriptor.isRequired()) {
+                    optionBuilder.append("!");
                 }
-                log.info("");
+                log.info("        " + optionBuilder.toString());
+                if (verbose) {
+                    log.info("        Display name: " + optionDescriptor.getDisplayName());
+                    log.info("        Description: " + optionDescriptor.getDescription());
+                    log.info("");
+                }
             }
         }
         if (!recipeDescriptor.getRecipeList().isEmpty()) {
-            log.info(indent + "Recipe list:");
-            for (ConfiguredRecipeDescriptor r : recipeDescriptor.getRecipeList()) {
-                printConfiguredRecipeDescriptor(r, indent + "\t");
+            if (verbose) {
+                log.info("    Recipe list:");
+            }
+            for (RecipeDescriptor r : recipeDescriptor.getRecipeList()) {
+                logNestedRecipeDescriptor(r, verbose, recursive, "        ");
+            }
+            if (verbose) {
                 log.info("");
             }
         }
-        if (recipeDescriptor.getOptions().isEmpty() && recipeDescriptor.getRecipeList().isEmpty()) {
+        if (!verbose || (recipeDescriptor.getOptions().isEmpty() && recipeDescriptor.getRecipeList().isEmpty())) {
+            log.info("");
+        }
+    }
+
+    private void logNestedRecipeDescriptor(RecipeDescriptor recipeDescriptor, boolean verbose, boolean recursive, String indent) {
+        if (verbose) {
+            log.info(indent + "Name: " + recipeDescriptor.getName());
+            log.info(indent + "Display name: " + recipeDescriptor.getDisplayName());
+            log.info(indent + "Description: " + recipeDescriptor.getDescription());
+            if (!recipeDescriptor.getTags().isEmpty()) {
+                log.info(indent + "Tags: " + String.join(",", recipeDescriptor.getTags()));
+            }
+        } else {
+            log.info(indent + recipeDescriptor.getName());
+        }
+        if (!recipeDescriptor.getOptions().isEmpty()) {
+            if (verbose) {
+                log.info(indent + "Options:");
+            }
+            for (OptionDescriptor optionDescriptor : recipeDescriptor.getOptions()) {
+                log.info(indent + "    " + optionDescriptor.getName() + ": " + optionDescriptor.getValue());
+            }
+            if (verbose) {
+                log.info("");
+            }
+        }
+        if (recursive && !recipeDescriptor.getRecipeList().isEmpty()) {
+            if (verbose) {
+                log.info(indent + "Recipe list:");
+            }
+            for (RecipeDescriptor nestedRecipeDescriptor : recipeDescriptor.getRecipeList()) {
+                logNestedRecipeDescriptor(nestedRecipeDescriptor, verbose, true, indent + "    ");
+            }
+            if (verbose) {
+                log.info("");
+            }
+        }
+        if (!verbose || (recipeDescriptor.getOptions().isEmpty() && recipeDescriptor.getRecipeList().isEmpty())) {
             log.info("");
         }
     }
