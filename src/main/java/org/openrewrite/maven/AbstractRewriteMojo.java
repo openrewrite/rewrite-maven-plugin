@@ -82,9 +82,17 @@ public abstract class AbstractRewriteMojo extends AbstractMojo {
         return env.build();
     }
 
+
+    /**
+     * Maven dependency resolution has a few bugs that lead to the log filling up with (recoverable) errors.
+     * While we work on fixing those issues, set this to 'true' during maven parsing to avoid log spam
+     */
+    protected boolean suppressWarnings = false;
     protected ExecutionContext executionContext() {
         return new InMemoryExecutionContext(t -> {
-            getLog().warn(t.getMessage());
+            if(!suppressWarnings) {
+                getLog().warn(t.getMessage());
+            }
             getLog().debug(t);
         });
     }
@@ -99,16 +107,6 @@ public abstract class AbstractRewriteMojo extends AbstractMojo {
             @Override
             public void onError(String message, Throwable t) {
                 getLog().error(message, t);
-            }
-
-            @Override
-            public void onWarn(String message) {
-                getLog().debug(message);
-            }
-
-            @Override
-            public void onWarn(String message, Throwable t) {
-                getLog().debug(message, t);
             }
         };
     }
@@ -152,11 +150,17 @@ public abstract class AbstractRewriteMojo extends AbstractMojo {
             }
         }
 
-        return mavenParserBuilder
-                .build()
-                .parse(allPoms, baseDir, ctx)
-                .iterator()
-                .next();
+        try {
+            // suppressing warnings down to debug log level is temporary while we work out the kinks in maven dependency resolution
+            suppressWarnings = true;
+            return mavenParserBuilder
+                    .build()
+                    .parse(allPoms, baseDir, ctx)
+                    .iterator()
+                    .next();
+        } finally {
+            suppressWarnings = false;
+        }
     }
 
     protected Path getBaseDir() {
