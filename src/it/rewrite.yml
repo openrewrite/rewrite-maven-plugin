@@ -1,9 +1,10 @@
 ---
 type: specs.openrewrite.org/v1beta/recipe
-name: org.openrewrite.sample.Checkstyle
-include:
-  - 'org.openrewrite.checkstyle.*'
-configure:
-  org.openrewrite.checkstyle.*:
-    configFile: checkstyle.xml
-
+name: com.yourorg.CodeCleanup
+recipeList:
+  - org.openrewrite.java.cleanup.CovariantEquals
+  - org.openrewrite.java.cleanup.FinalizeLocalVariables
+  - org.openrewrite.java.cleanup.HideUtilityClassConstructor
+  - org.openrewrite.java.cleanup.SimplifyBooleanExpression
+  - org.openrewrite.java.cleanup.SimplifyBooleanReturn
+  - org.openrewrite.java.cleanup.UnnecessaryParentheses

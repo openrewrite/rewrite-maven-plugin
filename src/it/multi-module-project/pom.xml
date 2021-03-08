@@ -14,11 +14,6 @@
     </modules>
 
     <dependencies>
-        <dependency>
-            <groupId>org.openrewrite.recipe</groupId>
-            <artifactId>rewrite-checkstyle</artifactId>
-            <version>2.0.2</version>
-        </dependency>
     </dependencies>
 
     <repositories>
@@ -44,7 +39,7 @@
                     <configuration>
                         <metricsUri>LOG</metricsUri>
                         <activeRecipes>
-                            <recipe>org.openrewrite.sample.Checkstyle</recipe>
+                            <recipe>com.yourorg.CodeCleanup</recipe>
                         </activeRecipes>
                         <configLocation>${maven.multiModuleProjectDirectory}/src/it/rewrite.yml</configLocation>
                     </configuration>
