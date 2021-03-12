@@ -1,5 +1,5 @@
 ---
-name: release
+name: publish
 
 on:
   workflow_dispatch: {}
@@ -10,6 +10,8 @@ jobs:
     if: github.repository_owner == 'openrewrite'
     steps:
       - uses: actions/checkout@v2
+        with:
+          fetch-depth: 0
       - name: set-up-jdk
         uses: actions/setup-java@v1
         with:
@@ -32,8 +34,8 @@ jobs:
           git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
           git config user.name "github-actions[bot]"
 
-      - name: release
-        timeout-minutes: 45
+      - name: publish-release
+        timeout-minutes: 30
         run: ./mvnw --settings=${{ github.workspace }}/settings.xml --file=pom.xml --activate-profiles=release,release-automation --batch-mode help:active-profiles release:prepare release:perform
         env:
           GITHUB_TOKEN: ${{ github.token }}
