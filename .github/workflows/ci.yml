@@ -14,24 +14,28 @@ on:
 jobs:
   build:
     strategy:
+      fail-fast: false
       matrix:
         java: ["8", "11", "13", "14"]
-    runs-on: ubuntu-latest
+        os: ["ubuntu-latest"]
+    runs-on: ${{ matrix.os }}
+    if: github.repository_owner == 'openrewrite'
     steps:
       - uses: actions/checkout@v2
-      - name: Set up JDK
+        with:
+          fetch-depth: 0
+      - name: set-up-jdk
         uses: actions/setup-java@v1
         with:
           java-version: ${{ matrix.java }}
-      - name: print Java version
-        run: java -version
-      - uses: actions/cache@v2.1.4
+      - name: setup-cache
+        uses: actions/cache@v2.1.4
         with:
           path: ~/.m2/repository
           key: ${{ runner.os }}-maven-${{ hashFiles('**/pom.xml') }}
           restore-keys: |
             ${{ runner.os }}-maven-
-      - name: Build
+      - name: build
         run: ./mvnw --no-transfer-progress -B clean verify --file pom.xml
 
   automerge:

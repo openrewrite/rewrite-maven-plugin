@@ -7,6 +7,7 @@ on:
 jobs:
   release:
     runs-on: ubuntu-latest
+    if: github.repository_owner == 'openrewrite'
     steps:
       - uses: actions/checkout@v2
       - name: set-up-jdk
@@ -19,14 +20,13 @@ jobs:
           server-password: MAVEN_PASSWORD
           gpg-private-key: ${{ secrets.OSSRH_SIGNING_KEY }}
           gpg-passphrase: MAVEN_GPG_PASSPHRASE
-
-      - uses: actions/cache@v2.1.4
+      - name: setup-cache
+        uses: actions/cache@v2.1.4
         with:
           path: ~/.m2/repository
           key: ${{ runner.os }}-maven-${{ hashFiles('**/pom.xml') }}
           restore-keys: |
             ${{ runner.os }}-maven-
-
       - name: configure-git-user
         run: |
           git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
