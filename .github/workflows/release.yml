@@ -17,7 +17,7 @@ jobs:
           settings-path: ${{ github.workspace }}
           server-username: MAVEN_USERNAME
           server-password: MAVEN_PASSWORD
-          gpg-private-key: ${{ secrets.MAVEN_GPG_PRIVATE_KEY }}
+          gpg-private-key: ${{ secrets.OSSRH_SIGNING_KEY }}
           gpg-passphrase: MAVEN_GPG_PASSPHRASE
 
       - uses: actions/cache@v2.1.4
@@ -39,7 +39,7 @@ jobs:
           GITHUB_TOKEN: ${{ github.token }}
           MAVEN_USERNAME: ${{ secrets.OSSRH_USERNAME }}
           MAVEN_PASSWORD: ${{ secrets.OSSRH_TOKEN }}
-          MAVEN_GPG_PASSPHRASE: ${{ secrets.MAVEN_GPG_PASSPHRASE }}
+          MAVEN_GPG_PASSPHRASE: ${{ secrets.OSSRH_SIGNING_PASSWORD }}
 
       - name: rollback
         if: ${{ failure() }}
