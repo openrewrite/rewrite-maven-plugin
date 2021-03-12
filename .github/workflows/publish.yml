@@ -1,5 +1,5 @@
 ---
-name: release
+name: publish
 
 on:
   workflow_dispatch: {}
@@ -7,39 +7,41 @@ on:
 jobs:
   release:
     runs-on: ubuntu-latest
+    if: github.repository_owner == 'openrewrite'
     steps:
       - uses: actions/checkout@v2
+        with:
+          fetch-depth: 0
       - name: set-up-jdk
         uses: actions/setup-java@v1
         with:
           java-version: "11"
           server-id: ossrh
           settings-path: ${{ github.workspace }}
-          server-username: MAVEN_USERNAME
-          server-password: MAVEN_PASSWORD
-          gpg-private-key: ${{ secrets.MAVEN_GPG_PRIVATE_KEY }}
-          gpg-passphrase: MAVEN_GPG_PASSPHRASE
-
-      - uses: actions/cache@v2.1.4
+          server-username: SONATYPE_USERNAME
+          server-password: SONATYPE_PASSWORD
+          gpg-private-key: ${{ secrets.OSSRH_SIGNING_KEY }}
+          gpg-passphrase: SONATYPE_SIGNING_PASSWORD
+      - name: setup-cache
+        uses: actions/cache@v2.1.4
         with:
           path: ~/.m2/repository
           key: ${{ runner.os }}-maven-${{ hashFiles('**/pom.xml') }}
           restore-keys: |
             ${{ runner.os }}-maven-
-
       - name: configure-git-user
         run: |
           git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
           git config user.name "github-actions[bot]"
 
-      - name: release
-        timeout-minutes: 45
+      - name: publish-release
+        timeout-minutes: 30
         run: ./mvnw --settings=${{ github.workspace }}/settings.xml --file=pom.xml --activate-profiles=release,release-automation --batch-mode help:active-profiles release:prepare release:perform
         env:
           GITHUB_TOKEN: ${{ github.token }}
-          MAVEN_USERNAME: ${{ secrets.OSSRH_USERNAME }}
-          MAVEN_PASSWORD: ${{ secrets.OSSRH_TOKEN }}
-          MAVEN_GPG_PASSPHRASE: ${{ secrets.MAVEN_GPG_PASSPHRASE }}
+          SONATYPE_USERNAME: ${{ secrets.OSSRH_USERNAME }}
+          SONATYPE_PASSWORD: ${{ secrets.OSSRH_TOKEN }}
+          SONATYPE_SIGNING_PASSWORD: ${{ secrets.OSSRH_SIGNING_PASSWORD }}
 
       - name: rollback
         if: ${{ failure() }}
