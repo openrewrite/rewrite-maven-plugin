@@ -88,27 +88,14 @@ public abstract class AbstractRewriteMojo extends AbstractMojo {
      * While we work on fixing those issues, set this to 'true' during maven parsing to avoid log spam
      */
     protected boolean suppressWarnings = false;
+
     protected ExecutionContext executionContext() {
         return new InMemoryExecutionContext(t -> {
-            if(!suppressWarnings) {
+            if (!suppressWarnings) {
                 getLog().warn(t.getMessage());
             }
             getLog().debug(t);
         });
-    }
-
-    protected Parser.Listener listener() {
-        return new Parser.Listener() {
-            @Override
-            public void onError(String message) {
-                getLog().error(message);
-            }
-
-            @Override
-            public void onError(String message, Throwable t) {
-                getLog().error(message, t);
-            }
-        };
     }
 
     protected Maven parseMaven(Path baseDir, ExecutionContext ctx) {
@@ -201,7 +188,6 @@ public abstract class AbstractRewriteMojo extends AbstractMojo {
             javaSources.addAll(listJavaSources(project.getBuild().getTestSourceDirectory()));
 
             ExecutionContext ctx = executionContext();
-            Parser.Listener listener = listener();
 
             sourceFiles.addAll(JavaParser.fromJavaVersion()
                     .styles(styles)
@@ -219,9 +205,7 @@ public abstract class AbstractRewriteMojo extends AbstractMojo {
                     .parse(javaSources, baseDir, ctx));
 
             sourceFiles.addAll(
-                    YamlParser.builder()
-                            .doOnParse(listener)
-                            .build()
+                    new YamlParser()
                             .parse(
                                     Stream.concat(project.getBuild().getResources().stream(), project.getBuild().getTestResources().stream())
                                             .map(Resource::getTargetPath)
@@ -234,9 +218,7 @@ public abstract class AbstractRewriteMojo extends AbstractMojo {
             );
 
             sourceFiles.addAll(
-                    PropertiesParser.builder()
-                            .doOnParse(listener)
-                            .build()
+                    new PropertiesParser()
                             .parse(
                                     Stream.concat(project.getBuild().getResources().stream(), project.getBuild().getTestResources().stream())
                                             .map(Resource::getTargetPath)
@@ -249,17 +231,16 @@ public abstract class AbstractRewriteMojo extends AbstractMojo {
             );
 
             sourceFiles.addAll(
-                    XmlParser.builder()
-                            .doOnParse(listener)
-                            .build().parse(
-                            Stream.concat(project.getBuild().getResources().stream(), project.getBuild().getTestResources().stream())
-                                    .map(Resource::getTargetPath)
-                                    .filter(Objects::nonNull)
-                                    .filter(it -> it.endsWith(".xml"))
-                                    .map(Paths::get)
-                                    .collect(toList()),
-                            baseDir,
-                            ctx)
+                    new XmlParser()
+                            .parse(
+                                    Stream.concat(project.getBuild().getResources().stream(), project.getBuild().getTestResources().stream())
+                                            .map(Resource::getTargetPath)
+                                            .filter(Objects::nonNull)
+                                            .filter(it -> it.endsWith(".xml"))
+                                            .map(Paths::get)
+                                            .collect(toList()),
+                                    baseDir,
+                                    ctx)
             );
 
             Maven pomAst = parseMaven(baseDir, ctx);
