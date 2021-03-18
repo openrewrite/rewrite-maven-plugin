@@ -7,9 +7,13 @@
 
 ## What is this?
 
-This project provides a Maven plugin that applies [Rewrite](https://github.com/openrewrite/rewrite) plans to automatically apply fixes to your code.
+This project provides a Maven plugin that applies [Rewrite](https://github.com/openrewrite/rewrite) checking and fixing tasks as build tasks, one of several possible workflows for propagating change across an organization's source code.
 
 ## Getting started
+
+This `README` may not have the most up-to-date documentation. For the most up-to-date documentation and reference guides, see:
+
+- [OpenRewrite Quickstart Guide](https://docs.openrewrite.org/getting-started/getting-started)
 
 To configure, add the plugin to your POM:
 
