@@ -1,11 +1,15 @@
 ---
 version: 2
 updates:
-  - package-ecosystem: "maven"
-    directory: "/"
+  - package-ecosystem: github-actions
+    directory: /
     schedule:
-      interval: "daily"
-  - package-ecosystem: "github-actions"
-    directory: "/"
+      interval: weekly
+    commit-message:
+      prefix: "chore(ci)"
+  - package-ecosystem: maven
+    directory: /
     schedule:
-      interval: "daily"
+      interval: weekly
+    commit-message:
+      prefix: "chore(ci)"
