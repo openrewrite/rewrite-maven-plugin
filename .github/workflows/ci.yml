@@ -38,6 +38,52 @@ jobs:
       - name: build
         run: ./mvnw --no-transfer-progress -B clean verify --file pom.xml
 
+  # # keeping this commented out until the implications can be thought through;
+  # # don't want to accidentally perform "deploy" on non-snapshot versions,
+  # # which might happen accidentally as part of the release process due to
+  # # the maven-release-plugin pushing an updated pom.xml <version> as part of release:prepare...
+  # #
+  # # the "deploy" goal will automatically deploy -SNAPSHOT versions if the pom.xml's <version> is (as you might have guessed)
+  # # ends in a -SNAPSHOT, but, again, because the maven-release-plugin does stuff to commit updated <version>s back to source,
+  # # just don't want to mess with it quite yet.
+  # #
+  # # it's a bit annoying, but it can be worked out sometime in the future. here's the scaffolding to do it, though.
+  # # until then, commenting out.
+  # publish-snapshots:
+  #   needs: [build]
+  #   runs-on: ubuntu-latest
+  #   if: github.event_name == 'push' && github.repository_owner == 'openrewrite'
+  #   steps:
+  #     - uses: actions/checkout@v2
+  #       with:
+  #         fetch-depth: 0
+  #     - name: set-up-jdk
+  #       uses: actions/setup-java@v1
+  #       with:
+  #         java-version: "11"
+  #         server-id: ossrh
+  #         settings-path: ${{ github.workspace }}
+  #         server-username: SONATYPE_USERNAME
+  #         server-password: SONATYPE_PASSWORD
+  #         gpg-private-key: ${{ secrets.OSSRH_SIGNING_KEY }}
+  #         gpg-passphrase: SONATYPE_SIGNING_PASSWORD
+  #     - name: setup-cache
+  #       uses: actions/cache@v2.1.4
+  #       with:
+  #         path: ~/.m2/repository
+  #         key: ${{ runner.os }}-maven-${{ hashFiles('**/pom.xml') }}
+  #         restore-keys: |
+  #           ${{ runner.os }}-maven-
+  #     - name: publish-snapshots
+  #       if: github.event_name == 'push'
+  #       timeout-minutes: 30
+  #       run: ./mvnw --settings=${{ github.workspace }}/settings.xml --file=pom.xml --activate-profiles=release,release-automation --batch-mode help:active-profiles deploy
+  #       env:
+  #         GITHUB_TOKEN: ${{ github.token }}
+  #         SONATYPE_USERNAME: ${{ secrets.OSSRH_USERNAME }}
+  #         SONATYPE_PASSWORD: ${{ secrets.OSSRH_TOKEN }}
+  #         SONATYPE_SIGNING_PASSWORD: ${{ secrets.OSSRH_SIGNING_PASSWORD }}
+
   automerge:
     runs-on: ubuntu-latest
     name: automerge
