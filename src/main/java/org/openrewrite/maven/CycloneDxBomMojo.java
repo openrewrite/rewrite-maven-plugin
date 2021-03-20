@@ -24,18 +24,13 @@ public class CycloneDxBomMojo extends AbstractRewriteMojo {
     @Component
     private MavenProjectHelper projectHelper;
 
-    @Parameter(name = "skipCycloneDxBom", property = "skipCycloneDxBom", defaultValue = "false")
-    private boolean skipCycloneDxBom;
-
     @Override
     public void execute() throws MojoExecutionException {
-        if (!skipCycloneDxBom) {
-            ExecutionContext ctx = executionContext();
-            Path baseDir = getBaseDir();
-            Maven maven = parseMaven(baseDir, ctx);
-            File cycloneDxBom = buildCycloneDxBom(maven);
-            projectHelper.attachArtifact(project, "xml", "cyclonedx", cycloneDxBom);
-        }
+        ExecutionContext ctx = executionContext();
+        Path baseDir = getBaseDir();
+        Maven maven = parseMaven(baseDir, ctx);
+        File cycloneDxBom = buildCycloneDxBom(maven);
+        projectHelper.attachArtifact(project, "xml", "cyclonedx", cycloneDxBom);
     }
 
     @Nullable

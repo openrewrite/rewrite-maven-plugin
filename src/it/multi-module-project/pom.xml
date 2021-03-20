@@ -13,22 +13,6 @@
         <module>b</module>
     </modules>
 
-    <dependencies>
-    </dependencies>
-
-    <repositories>
-        <repository>
-            <id>jcenter</id>
-            <name>JCenter</name>
-            <url>https://jcenter.bintray.com/</url>
-        </repository>
-        <repository>
-            <id>bintray</id>
-            <name>Bintray</name>
-            <url>https://dl.bintray.com/openrewrite/maven</url>
-        </repository>
-    </repositories>
-
     <build>
         <pluginManagement>
             <plugins>
