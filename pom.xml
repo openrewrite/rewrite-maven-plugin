@@ -44,7 +44,7 @@
         <developerConnectionUrl>scm:git:ssh://git@github.com/openrewrite/rewrite-maven-plugin.git</developerConnectionUrl>
         <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
         <java.version>1.8</java.version>
-        <rewrite.version>7.0.0</rewrite.version>
+        <rewrite.version>7.0.1</rewrite.version>
 
         <!-- Plugins -->
         <maven-surefire-plugin.version>3.0.0-M5</maven-surefire-plugin.version>
@@ -262,27 +262,27 @@
                 <artifactId>maven-surefire-plugin</artifactId>
                 <version>${maven-surefire-plugin.version}</version>
             </plugin>
-<!--            <plugin>-->
-<!--                <groupId>org.apache.maven.plugins</groupId>-->
-<!--                <artifactId>maven-invoker-plugin</artifactId>-->
-<!--                <version>${maven-invoker-plugin.version}</version>-->
-<!--                <configuration>-->
-<!--                    <postBuildHookScript>verify</postBuildHookScript>-->
-<!--                    <showVersion>true</showVersion>-->
-<!--                    <streamLogs>true</streamLogs>-->
-<!--                    <noLog>false</noLog>-->
-<!--                    <showErrors>true</showErrors>-->
-<!--                </configuration>-->
-<!--                <executions>-->
-<!--                    <execution>-->
-<!--                        <id>integration-test</id>-->
-<!--                        <goals>-->
-<!--                            <goal>install</goal>-->
-<!--                            <goal>run</goal>-->
-<!--                        </goals>-->
-<!--                    </execution>-->
-<!--                </executions>-->
-<!--            </plugin>-->
+            <plugin>
+                <groupId>org.apache.maven.plugins</groupId>
+                <artifactId>maven-invoker-plugin</artifactId>
+                <version>${maven-invoker-plugin.version}</version>
+                <configuration>
+                    <postBuildHookScript>verify</postBuildHookScript>
+                    <showVersion>true</showVersion>
+                    <streamLogs>true</streamLogs>
+                    <noLog>false</noLog>
+                    <showErrors>true</showErrors>
+                </configuration>
+                <executions>
+                    <execution>
+                        <id>integration-test</id>
+                        <goals>
+                            <goal>install</goal>
+                            <goal>run</goal>
+                        </goals>
+                    </execution>
+                </executions>
+            </plugin>
         </plugins>
     </build>
 
