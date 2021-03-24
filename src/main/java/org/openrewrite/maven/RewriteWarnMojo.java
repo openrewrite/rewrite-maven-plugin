@@ -60,7 +60,7 @@ public class RewriteWarnMojo extends AbstractRewriteMojo {
                         " by:");
                 logRecipesThatMadeChanges(result);
             }
-            getLog().warn("Run 'gradle rewriteFix' to apply the fixes. Afterwards, review and commit the results.");
+            getLog().warn("Run 'mvn rewrite:fix' to apply the fixes. Afterwards, review and commit the results.");
         }
     }
 }
