@@ -39,6 +39,9 @@ public class CycloneDxBomMojo extends AbstractRewriteMojo {
             File cycloneDxBom = new File(project.getBuild().getDirectory(),
                     project.getArtifactId() + "-" + project.getVersion() + "-cyclonedx.xml");
 
+            //noinspection ResultOfMethodCallIgnored
+            cycloneDxBom.getParentFile().mkdirs();
+
             Files.write(cycloneDxBom.toPath(), PrintMavenAsCycloneDxBom.print(pomAst)
                     .getBytes(StandardCharsets.UTF_8));
 
