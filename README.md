@@ -26,7 +26,7 @@ To configure, add the plugin to your POM:
             <plugin>
                 <groupId>org.openrewrite.maven</groupId>
                 <artifactId>rewrite-maven-plugin</artifactId>
-                <version>2.0.0</version>
+                <version>3.0.0</version>
                 <configuration>
                     <activeRecipes>org.openrewrite.spring</activeRecipes>
                 </configuration>
@@ -55,7 +55,7 @@ Recipes can be defined directly in the POM, making it easy to share recipe confi
             <plugin>
                 <groupId>org.openrewrite.maven</groupId>
                 <artifactId>rewrite-maven-plugin</artifactId>
-                <version>2.0.0</version>
+                <version>3.0.0</version>
                 <configuration>
                     <activeRecipes>org.openrewrite.checkstyle</activeRecipes>
                     <recipes>
@@ -90,7 +90,7 @@ Use the `<configLocation>` property to load a Rewrite YML configuration containi
             <plugin>
                 <groupId>org.openrewrite.maven</groupId>
                 <artifactId>rewrite-maven-plugin</artifactId>
-                <version>2.0.0</version>
+                <version>3.0.0</version>
                 <configuration>
                     <configLocation>rewrite.yml</configLocation>
                 </configuration>
