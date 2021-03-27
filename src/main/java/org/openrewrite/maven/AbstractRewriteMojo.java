@@ -123,7 +123,7 @@ public abstract class AbstractRewriteMojo extends AbstractMojo {
                 .mavenConfig(baseDir.resolve(".mvn/maven.config"));
 
         if (pomCacheEnabled) {
-            mavenParserBuilder.cache(new RocksdbMavenPomCache(Paths.get(System.getProperty("user.home"), ".rewrite-cache", "rockdb").toFile()));
+            mavenParserBuilder.cache(new RocksdbMavenPomCache(Paths.get(System.getProperty("user.home"), ".rewrite-cache", "pom").toFile()));
         }
 
         Path mavenSettings = Paths.get(System.getProperty("user.home")).resolve(".m2/settings.xml");
