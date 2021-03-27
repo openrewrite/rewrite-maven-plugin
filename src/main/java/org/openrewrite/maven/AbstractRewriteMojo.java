@@ -12,6 +12,7 @@ import org.openrewrite.config.Environment;
 import org.openrewrite.config.YamlResourceLoader;
 import org.openrewrite.internal.lang.Nullable;
 import org.openrewrite.java.JavaParser;
+import org.openrewrite.maven.cache.RocksdbMavenPomCache;
 import org.openrewrite.maven.tree.Maven;
 import org.openrewrite.properties.PropertiesParser;
 import org.openrewrite.style.NamedStyles;
@@ -56,6 +57,9 @@ public abstract class AbstractRewriteMojo extends AbstractMojo {
     @Nullable
     @Parameter(property = "metricsPassword")
     private String metricsPassword;
+
+    @Parameter(property = "pomCacheEnabled", defaultValue = "true")
+    private boolean pomCacheEnabled;
 
     protected Environment environment() throws MojoExecutionException {
         Environment.Builder env = Environment
@@ -115,10 +119,12 @@ public abstract class AbstractRewriteMojo extends AbstractMojo {
             allPoms.add(parent.getFile().toPath());
             parent = parent.getParent();
         }
-
         MavenParser.Builder mavenParserBuilder = MavenParser.builder()
-                .resolveOptional(false)
                 .mavenConfig(baseDir.resolve(".mvn/maven.config"));
+
+        if (pomCacheEnabled) {
+            mavenParserBuilder.cache(new RocksdbMavenPomCache(Paths.get(System.getProperty("user.home"), ".rewrite-cache", "rockdb").toFile()));
+        }
 
         Path mavenSettings = Paths.get(System.getProperty("user.home")).resolve(".m2/settings.xml");
         if (mavenSettings.toFile().exists()) {

@@ -4,7 +4,7 @@
 
     <groupId>org.openrewrite.maven</groupId>
     <artifactId>rewrite-maven-plugin</artifactId>
-    <version>3.0.1-SNAPSHOT</version>
+    <version>3.1.0-SNAPSHOT</version>
     <name>rewrite-maven-plugin</name>
 
     <packaging>maven-plugin</packaging>
@@ -44,7 +44,8 @@
         <developerConnectionUrl>scm:git:ssh://git@github.com/openrewrite/rewrite-maven-plugin.git</developerConnectionUrl>
         <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
         <java.version>1.8</java.version>
-        <rewrite.version>7.0.1</rewrite.version>
+        <rewrite.version>7.1.0-SNAPSHOT</rewrite.version>
+        <rocksdbjni.version>6.15.5</rocksdbjni.version>
 
         <!-- Plugins -->
         <maven-surefire-plugin.version>3.0.0-M5</maven-surefire-plugin.version>
@@ -119,6 +120,11 @@
             <groupId>org.apache.maven</groupId>
             <artifactId>maven-plugin-api</artifactId>
             <version>3.6.3</version>
+        </dependency>
+        <dependency>
+            <groupId>org.rocksdb</groupId>
+            <artifactId>rocksdbjni</artifactId>
+            <version>${rocksdbjni.version}</version>
         </dependency>
         <dependency>
             <!-- needed when injecting the Maven Project into a plugin  -->
