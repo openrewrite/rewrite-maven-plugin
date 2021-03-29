@@ -26,6 +26,7 @@
                             <recipe>com.yourorg.CodeCleanup</recipe>
                         </activeRecipes>
                         <configLocation>${maven.multiModuleProjectDirectory}/src/it/rewrite.yml</configLocation>
+                        <pomCacheDirectory>${project.build.directory}/pomCache</pomCacheDirectory>
                     </configuration>
                 </plugin>
             </plugins>
