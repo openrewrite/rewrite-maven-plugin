@@ -61,6 +61,10 @@ public abstract class AbstractRewriteMojo extends AbstractMojo {
     @Parameter(property = "pomCacheEnabled", defaultValue = "true")
     private boolean pomCacheEnabled;
 
+    @Nullable
+    @Parameter(property = "pomCacheDirectory")
+    private String pomCacheDirectory;
+
     protected Environment environment() throws MojoExecutionException {
         Environment.Builder env = Environment
                 .builder(project.getProperties())
@@ -123,7 +127,12 @@ public abstract class AbstractRewriteMojo extends AbstractMojo {
                 .mavenConfig(baseDir.resolve(".mvn/maven.config"));
 
         if (pomCacheEnabled) {
-            mavenParserBuilder.cache(new RocksdbMavenPomCache(Paths.get(System.getProperty("user.home"), ".rewrite-cache", "pom").toFile()));
+            if (pomCacheDirectory != null) {
+                mavenParserBuilder.cache(new RocksdbMavenPomCache(Paths.get(pomCacheDirectory).toFile()));
+            } else {
+                //Default directory is "~/.rewrite/cache/pom"
+                mavenParserBuilder.cache(new RocksdbMavenPomCache(Paths.get(System.getProperty("user.home"), ".rewrite", "cache", "pom").toFile()));
+            }
         }
 
         Path mavenSettings = Paths.get(System.getProperty("user.home")).resolve(".m2/settings.xml");
