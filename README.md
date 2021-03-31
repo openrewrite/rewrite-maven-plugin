@@ -26,7 +26,7 @@ To configure, add the plugin to your POM:
             <plugin>
                 <groupId>org.openrewrite.maven</groupId>
                 <artifactId>rewrite-maven-plugin</artifactId>
-                <version>3.0.0</version>
+                <version>3.1.0</version>
                 <configuration>
                     <activeRecipes>org.openrewrite.spring</activeRecipes>
                 </configuration>
