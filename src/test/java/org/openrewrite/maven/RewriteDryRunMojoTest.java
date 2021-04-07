@@ -29,10 +29,10 @@ import java.util.Collections;
 
 import static java.util.Collections.singletonList;
 
-class RewriteWarnMojoTest extends AbstractMojoTestCase {
+class RewriteDryRunMojoTest extends AbstractMojoTestCase {
     private static final String TEST_POM = "/unit/single-project/pom.xml";
 
-    private RewriteWarnMojo testMojo;
+    private RewriteDryRunMojo testMojo;
 
     @Disabled("rewrite-checkstyle has gone away, this test needs to be updated or discarded")
     @Test
@@ -92,7 +92,7 @@ class RewriteWarnMojoTest extends AbstractMojoTestCase {
         session.setProjects(singletonList(project));
         request.setSystemProperties(System.getProperties());
 
-        testMojo = (RewriteWarnMojo) lookupConfiguredMojo(session, newMojoExecution("warn"));
+        testMojo = (RewriteDryRunMojo) lookupConfiguredMojo(session, newMojoExecution("warn"));
         testMojo.getLog().debug(String.format("localRepo = %s", request.getLocalRepository()));
     }
 

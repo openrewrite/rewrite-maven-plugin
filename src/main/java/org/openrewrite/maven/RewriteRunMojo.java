@@ -16,7 +16,10 @@
 package org.openrewrite.maven;
 
 import org.apache.maven.plugin.MojoExecutionException;
-import org.apache.maven.plugins.annotations.*;
+import org.apache.maven.plugins.annotations.Execute;
+import org.apache.maven.plugins.annotations.LifecyclePhase;
+import org.apache.maven.plugins.annotations.Mojo;
+import org.apache.maven.plugins.annotations.ResolutionScope;
 import org.openrewrite.Result;
 
 import java.io.BufferedWriter;
@@ -28,9 +31,9 @@ import java.nio.file.Path;
 // https://medium.com/swlh/step-by-step-guide-to-developing-a-custom-maven-plugin-b6e3a0e09966
 // https://carlosvin.github.io/posts/creating-custom-maven-plugin/en/#_dependency_injection
 // https://developer.okta.com/blog/2019/09/23/tutorial-build-a-maven-plugin
-@Mojo(name = "fix", requiresDependencyResolution = ResolutionScope.TEST, threadSafe = true)
+@Mojo(name = "run", requiresDependencyResolution = ResolutionScope.TEST, threadSafe = true)
 @Execute(phase = LifecyclePhase.PROCESS_TEST_CLASSES)
-public class RewriteFixMojo extends AbstractRewriteMojo {
+public class RewriteRunMojo extends AbstractRewriteMojo {
     @Override
     public void execute() throws MojoExecutionException {
         ResultsContainer results = listResults();
@@ -89,7 +92,7 @@ public class RewriteFixMojo extends AbstractRewriteMojo {
                     assert result.getBefore() != null;
                     Path originalLocation = results.getProjectRoot().resolve(result.getBefore().getSourcePath());
                     boolean deleteSucceeded = originalLocation.toFile().delete();
-                    if(!deleteSucceeded) {
+                    if (!deleteSucceeded) {
                         throw new IOException("Unable to delete file " + originalLocation.toAbsolutePath());
                     }
                     assert result.getAfter() != null;
