@@ -22,10 +22,10 @@ import org.apache.maven.plugins.annotations.Mojo;
 import org.apache.maven.plugins.annotations.ResolutionScope;
 import org.openrewrite.Result;
 
-@Mojo(name = "warn", requiresDependencyResolution = ResolutionScope.TEST, threadSafe = true,
+@Mojo(name = "dryRun", requiresDependencyResolution = ResolutionScope.TEST, threadSafe = true,
         defaultPhase = LifecyclePhase.PROCESS_TEST_CLASSES)
 @Execute(phase = LifecyclePhase.PROCESS_TEST_CLASSES)
-public class RewriteWarnMojo extends AbstractRewriteMojo {
+public class RewriteDryRunMojo extends AbstractRewriteMojo {
     @Override
     public void execute() throws MojoExecutionException {
         ResultsContainer results = listResults();
@@ -60,7 +60,7 @@ public class RewriteWarnMojo extends AbstractRewriteMojo {
                         " by:");
                 logRecipesThatMadeChanges(result);
             }
-            getLog().warn("Run 'mvn rewrite:fix' to apply the fixes. Afterwards, review and commit the results.");
+            getLog().warn("Run 'mvn rewrite:run' to apply the fixes. Afterwards, review and commit the results.");
         }
     }
 }
