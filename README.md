@@ -13,6 +13,7 @@ This project provides a Maven plugin that applies [Rewrite](https://github.com/o
 
 This `README` may not have the most up-to-date documentation. For the most up-to-date documentation and reference guides, see:
 
+- [Maven Plugin Configuration](https://docs.openrewrite.org/reference/rewrite-maven-plugin)
 - [OpenRewrite Quickstart Guide](https://docs.openrewrite.org/getting-started/getting-started)
 
 To configure, add the plugin to your POM:
@@ -26,9 +27,11 @@ To configure, add the plugin to your POM:
             <plugin>
                 <groupId>org.openrewrite.maven</groupId>
                 <artifactId>rewrite-maven-plugin</artifactId>
-                <version>3.1.0</version>
+                <version>4.0.0</version>
                 <configuration>
-                    <activeRecipes>org.openrewrite.spring</activeRecipes>
+                    <activeRecipes>
+                        <recipe>org.openrewrite.java.format.AutoFormat</recipe>
+                    </activeRecipes>
                 </configuration>
             </plugin>
         </plugins>
@@ -36,91 +39,6 @@ To configure, add the plugin to your POM:
 </project>
 ```
 
-The plugin scans all dependencies on the classpath for `META-INF/rewrite/*.yml` files and loads their configuration as well as anything in `~/rewrite.yml`.
+To get started, try `mvn rewrite:discover`, `mvn rewrite:dryRun`, `mvn rewrite:run`, among other plugin goals.
 
-This plugin automatically adds `org.openrewrite.plan:rewrite-spring` to the plugin classpath and loads the `org.openrewrite.spring` recipe.
-
-To apply Spring best practices, you must activate the `org.openrewrite.spring` recipe. It is then fully configured.
-
-## Defining or configuring recipes in the POM
-
-Recipes can be defined directly in the POM, making it easy to share recipe configuration across many different repositories via parent POM configuration of the Rewrite plugin.
-
-```xml
-<?xml version="1.0" encoding="UTF-8"?>
-<project>
-    ...
-    <build>
-        <plugins>
-            <plugin>
-                <groupId>org.openrewrite.maven</groupId>
-                <artifactId>rewrite-maven-plugin</artifactId>
-                <version>3.0.0</version>
-                <configuration>
-                    <activeRecipes>org.openrewrite.checkstyle</activeRecipes>
-                    <recipes>
-                        <recipe>
-                            <name>org.openrewrite.checkstyle</name>
-                            <configure>
-                                <property>
-                                    <visitor>org.openrewrite.checkstyle.*</visitor>
-                                    <key>configFile</key>
-                                    <value>${project.basedir}/../checkstyle.xml</value>
-                                </property>
-                            </configure>
-                        </recipe>
-                    </recipes>
-                </configuration>
-            </plugin>
-        </plugins>
-    </build>
-</project>
-```
-
-## Applying Rewrite YML configuration
-
-Use the `<configLocation>` property to load a Rewrite YML configuration containing recipe and visitor definitions.
-
-```xml
-<?xml version="1.0" encoding="UTF-8"?>
-<project>
-    ...
-    <build>
-        <plugins>
-            <plugin>
-                <groupId>org.openrewrite.maven</groupId>
-                <artifactId>rewrite-maven-plugin</artifactId>
-                <version>3.0.0</version>
-                <configuration>
-                    <configLocation>rewrite.yml</configLocation>
-                </configuration>
-            </plugin>
-        </plugins>
-    </build>
-</project>
-```
-
-`rewrite.yml` is a file in the project that can define Rewrite recipe configuration.
-
-```yaml
----
-type: specs.openrewrite.org/v1beta/recipe
-name: default
-
-configure:
-  # Spring Cloud's preferred import ordering scheme
-  org.openrewrite.java.OrderImports:
-    layout:
-      classCountToUseStarImport: 999
-      nameCountToUseStarImport: 999
-      blocks:
-        - import java.*
-        - <blank line>
-        - import javax.*
-        - <blank line>
-        - import all other imports
-        - <blank line>
-        - import org.springframework.*
-        - <blank line>
-        - import static all other imports
-```
+See the [Maven Plugin Configuration](https://docs.openrewrite.org/reference/rewrite-maven-plugin) documentation for full configuration and usage options.
