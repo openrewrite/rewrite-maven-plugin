@@ -22,7 +22,7 @@ import org.apache.maven.plugins.annotations.Mojo;
 import org.apache.maven.plugins.annotations.ResolutionScope;
 import org.openrewrite.Result;
 
-@Mojo(name = "dry-run", requiresDependencyResolution = ResolutionScope.TEST, threadSafe = true,
+@Mojo(name = "dryRun", requiresDependencyResolution = ResolutionScope.TEST, threadSafe = true,
         defaultPhase = LifecyclePhase.PROCESS_TEST_CLASSES)
 @Execute(phase = LifecyclePhase.PROCESS_TEST_CLASSES)
 public class RewriteDryRunMojo extends AbstractRewriteMojo {
