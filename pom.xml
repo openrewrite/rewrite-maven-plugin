@@ -46,6 +46,7 @@
         <java.version>1.8</java.version>
         <rewrite.version>7.1.0</rewrite.version>
         <rocksdbjni.version>6.15.5</rocksdbjni.version>
+        <maven.version>3.6.3</maven.version>
 
         <!-- Plugins -->
         <maven-surefire-plugin.version>3.0.0-M5</maven-surefire-plugin.version>
@@ -119,7 +120,7 @@
         <dependency>
             <groupId>org.apache.maven</groupId>
             <artifactId>maven-plugin-api</artifactId>
-            <version>3.6.3</version>
+            <version>${maven.version}</version>
         </dependency>
         <dependency>
             <groupId>org.rocksdb</groupId>
@@ -130,7 +131,7 @@
             <!-- needed when injecting the Maven Project into a plugin  -->
             <groupId>org.apache.maven</groupId>
             <artifactId>maven-core</artifactId>
-            <version>3.6.3</version>
+            <version>${maven.version}</version>
             <scope>provided</scope>
         </dependency>
         <dependency>
@@ -167,7 +168,7 @@
         <dependency>
             <groupId>org.apache.maven</groupId>
             <artifactId>maven-compat</artifactId>
-            <version>3.6.3</version>
+            <version>${maven.version}</version>
             <scope>test</scope>
         </dependency>
         <dependency>
