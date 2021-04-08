@@ -83,21 +83,3 @@ jobs:
   #         SONATYPE_USERNAME: ${{ secrets.OSSRH_USERNAME }}
   #         SONATYPE_PASSWORD: ${{ secrets.OSSRH_TOKEN }}
   #         SONATYPE_SIGNING_PASSWORD: ${{ secrets.OSSRH_SIGNING_PASSWORD }}
-
-  automerge:
-    runs-on: ubuntu-latest
-    name: automerge
-    needs: [build]
-    if: github.base_ref == 'master' && github.actor == 'dependabot[bot]' && github.repository_owner == 'openrewrite'
-    steps:
-      - name: merge
-        uses: actions/github-script@v3
-        with:
-          script: |
-            github.pulls.merge({
-              owner: context.payload.repository.owner.login,
-              repo: context.payload.repository.name,
-              pull_number: context.payload.pull_request.number,
-              merge_method: 'squash'
-            })
-          github-token: ${{secrets.GITHUB_TOKEN}}
