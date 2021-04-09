@@ -1,5 +1,6 @@
 <?xml version="1.0" encoding="UTF-8"?>
-<project xmlns="http://maven.apache.org/POM/4.0.0" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/xsd/maven-4.0.0.xsd">
+<project xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xmlns="http://maven.apache.org/POM/4.0.0"
+         xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/xsd/maven-4.0.0.xsd">
     <modelVersion>4.0.0</modelVersion>
 
     <groupId>org.openrewrite.maven</groupId>
@@ -41,12 +42,14 @@
 
     <properties>
         <!-- using 'ssh' url scheme by default, which assumes a human is performing git operations leveraging an ssh key -->
-        <developerConnectionUrl>scm:git:ssh://git@github.com/openrewrite/rewrite-maven-plugin.git</developerConnectionUrl>
+        <developerConnectionUrl>scm:git:ssh://git@github.com/openrewrite/rewrite-maven-plugin.git
+        </developerConnectionUrl>
         <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
         <java.version>1.8</java.version>
         <rewrite.version>7.2.0-SNAPSHOT</rewrite.version>
         <rocksdbjni.version>6.15.5</rocksdbjni.version>
         <maven-dependencies.version>3.6.3</maven-dependencies.version>
+        <itf-maven.version>0.9.0</itf-maven.version>
 
         <!-- Plugins -->
         <maven-surefire-plugin.version>3.0.0-M5</maven-surefire-plugin.version>
@@ -59,6 +62,7 @@
         <nexus-staging-maven-plugin.version>1.6.8</nexus-staging-maven-plugin.version>
         <maven-gpg-plugin.version>1.6</maven-gpg-plugin.version>
         <maven-release-plugin.version>3.0.0-M1</maven-release-plugin.version>
+        <maven-failsafe-plugin.version>2.22.2</maven-failsafe-plugin.version>
     </properties>
 
     <dependencies>
@@ -141,6 +145,7 @@
             <scope>provided</scope>
         </dependency>
 
+
         <dependency>
             <groupId>org.junit.jupiter</groupId>
             <artifactId>junit-jupiter-api</artifactId>
@@ -148,11 +153,25 @@
             <scope>test</scope>
         </dependency>
         <dependency>
-            <groupId>org.junit.vintage</groupId>
-            <artifactId>junit-vintage-engine</artifactId>
+            <groupId>org.junit.jupiter</groupId>
+            <artifactId>junit-jupiter-engine</artifactId>
             <version>5.7.1</version>
             <scope>test</scope>
         </dependency>
+        <dependency>
+            <groupId>com.soebes.itf.jupiter.extension</groupId>
+            <artifactId>itf-jupiter-extension</artifactId>
+            <version>${itf-maven.version}</version>
+            <scope>test</scope>
+        </dependency>
+        <dependency>
+            <groupId>com.soebes.itf.jupiter.extension</groupId>
+            <artifactId>itf-assertj</artifactId>
+            <version>${itf-maven.version}</version>
+            <scope>test</scope>
+        </dependency>
+
+
         <dependency>
             <groupId>org.apache.maven.plugin-testing</groupId>
             <artifactId>maven-plugin-testing-harness</artifactId>
@@ -210,15 +229,7 @@
 
     <build>
         <plugins>
-            <plugin>
-                <groupId>org.apache.maven.plugins</groupId>
-                <artifactId>maven-release-plugin</artifactId>
-                <version>${maven-release-plugin.version}</version>
-                <configuration>
-                    <releaseProfiles>release</releaseProfiles>
-                    <tagNameFormat>v@{project.version}</tagNameFormat>
-                </configuration>
-            </plugin>
+            <!-- essential "core" plugins -->
             <plugin>
                 <groupId>org.apache.maven.plugins</groupId>
                 <artifactId>maven-plugin-plugin</artifactId>
@@ -264,6 +275,19 @@
                     </execution>
                 </executions>
             </plugin>
+
+            <!-- release-related plugins -->
+            <plugin>
+                <groupId>org.apache.maven.plugins</groupId>
+                <artifactId>maven-release-plugin</artifactId>
+                <version>${maven-release-plugin.version}</version>
+                <configuration>
+                    <releaseProfiles>release</releaseProfiles>
+                    <tagNameFormat>v@{project.version}</tagNameFormat>
+                </configuration>
+            </plugin>
+
+            <!-- testing-related plugins -->
             <plugin>
                 <groupId>org.apache.maven.plugins</groupId>
                 <artifactId>maven-surefire-plugin</artifactId>
@@ -290,7 +314,62 @@
                     </execution>
                 </executions>
             </plugin>
+            <plugin>
+                <!-- specifically for integration tests -->
+                <groupId>com.soebes.itf.jupiter.extension</groupId>
+                <artifactId>itf-maven-plugin</artifactId>
+                <version>${itf-maven.version}</version>
+                <executions>
+                    <execution>
+                        <id>installing</id>
+                        <phase>pre-integration-test</phase>
+                        <goals>
+                            <goal>install</goal>
+                        </goals>
+                    </execution>
+                </executions>
+            </plugin>
+            <plugin>
+                <!-- specifically for integration tests -->
+                <groupId>org.apache.maven.plugins</groupId>
+                <artifactId>maven-failsafe-plugin</artifactId>
+                <version>${maven-failsafe-plugin.version}</version>
+                <configuration>
+                    <!-- https://github.com/khmarbaise/maven-it-extension/blob/6c6c2311c4eab43aa037b4a86327f62f35bb4b11/itf-maven-plugin/pom.xml#L144 -->
+                    <forkCount>5</forkCount>
+                    <reuseForks>true</reuseForks>
+                    <includes>
+                        <include>**/*IT.java</include>
+                    </includes>
+                    <systemProperties>
+                        <maven.version>${maven.version}</maven.version>
+                        <maven.home>${maven.home}</maven.home>
+                    </systemProperties>
+                    <properties>
+                        <configurationParameters>
+                            junit.jupiter.execution.parallel.enabled = true
+                            junit.jupiter.execution.parallel.mode.default = concurrent
+                        </configurationParameters>
+                    </properties>
+                </configuration>
+                <executions>
+                    <execution>
+                        <goals>
+                            <goal>integration-test</goal>
+                            <goal>verify</goal>
+                        </goals>
+                    </execution>
+                </executions>
+            </plugin>
         </plugins>
+
+        <testResources>
+            <!-- specifically for integration tests -->
+            <testResource>
+                <directory>src/test/resources-its</directory>
+                <filtering>true</filtering>
+            </testResource>
+        </testResources>
     </build>
 
     <profiles>
@@ -338,7 +417,8 @@
             <id>release-automation</id>
             <properties>
                 <!-- automation via the maven-release-plugin uses a GITHUB_TOKEN which requires 'https' urls for git pushing -->
-                <developerConnectionUrl>scm:git:https://github.com/openrewrite/rewrite-maven-plugin.git</developerConnectionUrl>
+                <developerConnectionUrl>scm:git:https://github.com/openrewrite/rewrite-maven-plugin.git
+                </developerConnectionUrl>
             </properties>
         </profile>
     </profiles>
