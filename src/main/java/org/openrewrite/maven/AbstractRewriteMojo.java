@@ -68,6 +68,7 @@ public abstract class AbstractRewriteMojo extends AbstractMojo {
     protected Environment environment() throws MojoExecutionException {
         Environment.Builder env = Environment
                 .builder(project.getProperties())
+                .scanRuntimeClasspath()
                 .scanClasspath(project.getArtifacts().stream()
                         .map(d -> d.getFile().toPath())
                         .collect(toList()))
