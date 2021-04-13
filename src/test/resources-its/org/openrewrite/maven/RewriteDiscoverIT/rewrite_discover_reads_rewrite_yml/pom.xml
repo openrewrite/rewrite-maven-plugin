@@ -16,8 +16,12 @@
                 <artifactId>@project.artifactId@</artifactId>
                 <version>@project.version@</version>
                 <configuration>
-<!--                    "[info]     com.yourorg.CodeCleanup",-->
-                    <configLocation>${maven.multiModuleProjectDirectory}/src/it/rewrite.yml</configLocation>
+                    <activeRecipe>
+                        <recipe>com.example.RewriteDiscoverIT.CodeCleanup</recipe>
+                    </activeRecipe>
+                    <configLocation>
+                        ${maven.multiModuleProjectDirectory}/src/test/resources-its/org/openrewrite/maven/RewriteDiscoverIT/rewrite_discover_reads_rewrite_yml/rewrite.yml
+                    </configLocation>
                 </configuration>
             </plugin>
         </plugins>

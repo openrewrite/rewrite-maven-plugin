@@ -22,12 +22,11 @@
                     <version>@project.version@</version>
                     <configuration>
                         <activeRecipes>
-                            <!--                            todo-->
-                            <!--                            <recipe>com.example.CodeCleanup</recipe>-->
-                            <recipe>org.openrewrite.java.format.AutoFormat</recipe>
+                            <recipe>com.example.RewriteDryRunIT.CodeCleanup</recipe>
                         </activeRecipes>
-                        <!--                        <configLocation>${maven.multiModuleProjectDirectory}/src/it/rewrite.yml</configLocation>-->
-                        <!--                        <pomCacheDirectory>${project.build.directory}/pomCache</pomCacheDirectory>-->
+                        <configLocation>
+                            ${maven.multiModuleProjectDirectory}/src/test/resources-its/org/openrewrite/maven/RewriteDryRunIT/multi_module_project/rewrite.yml
+                        </configLocation>
                     </configuration>
                 </plugin>
             </plugins>

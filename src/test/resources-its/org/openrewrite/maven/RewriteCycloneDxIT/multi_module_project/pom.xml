@@ -7,7 +7,7 @@
     <artifactId>multi_module_project</artifactId>
     <version>1.0</version>
     <packaging>pom</packaging>
-<!--    <name>RewriteCycloneDxIT#multi_module_project</name>-->
+    <name>RewriteCycloneDxIT#multi_module_project</name>
 
     <modules>
         <module>a</module>

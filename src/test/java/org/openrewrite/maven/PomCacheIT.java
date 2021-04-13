@@ -7,9 +7,10 @@ import com.soebes.itf.jupiter.maven.MavenExecutionResult;
 
 import static com.soebes.itf.extension.assertj.MavenITAssertions.assertThat;
 
+// @Disabled("needs more specific pom cache configuration tests") // FIXME
 @MavenJupiterExtension
-@MavenGoal("${project.groupId}:${project.artifactId}:${project.version}:run")
-public class RewriteRunIT {
+@MavenGoal("${project.groupId}:${project.artifactId}:${project.version}:dryRun")
+public class PomCacheIT {
 
     @MavenTest
     void single_project(MavenExecutionResult result) {
@@ -22,6 +23,5 @@ public class RewriteRunIT {
         assertThat(result)
                 .isSuccessful();
     }
-
 
 }
