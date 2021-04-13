@@ -7,12 +7,7 @@
     <artifactId>single_project</artifactId>
     <version>1.0</version>
     <packaging>jar</packaging>
-    <name>RewriteDryRunIT#single_project</name>
-
-    <properties>
-        <maven.compiler.source>1.8</maven.compiler.source>
-        <maven.compiler.target>1.8</maven.compiler.target>
-    </properties>
+    <name>PomCacheIT#single_project</name>
 
     <build>
         <plugins>
@@ -24,6 +19,7 @@
                     <activeRecipes>
                         <recipe>org.openrewrite.java.format.AutoFormat</recipe>
                     </activeRecipes>
+                    <pomCacheDirectory>${project.build.directory}/pomCache</pomCacheDirectory>
                 </configuration>
             </plugin>
         </plugins>

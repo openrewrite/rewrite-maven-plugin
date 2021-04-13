@@ -1,6 +1,6 @@
 ---
 type: specs.openrewrite.org/v1beta/recipe
-name: com.example.CodeCleanup
+name: com.example.RewriteDiscoverIT.CodeCleanup
 recipeList:
   - org.openrewrite.java.format.AutoFormat
 

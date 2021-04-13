@@ -4,7 +4,6 @@ import com.soebes.itf.jupiter.extension.MavenGoal;
 import com.soebes.itf.jupiter.extension.MavenJupiterExtension;
 import com.soebes.itf.jupiter.extension.MavenTest;
 import com.soebes.itf.jupiter.maven.MavenExecutionResult;
-import org.junit.jupiter.api.Disabled;
 
 import static com.soebes.itf.extension.assertj.MavenITAssertions.assertThat;
 
@@ -27,13 +26,12 @@ public class RewriteDiscoverIT {
     }
 
     @MavenTest
-    @Disabled
     void rewrite_discover_reads_rewrite_yml(MavenExecutionResult result) {
         assertThat(result)
                 .isSuccessful()
                 .out()
                 .plain()
-                .contains("[info]     com.example.CodeCleanup");
+                .contains("[info]     com.example.RewriteDiscoverIT.CodeCleanup");
     }
 
 
