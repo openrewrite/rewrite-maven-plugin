@@ -14,22 +14,20 @@
     </modules>
 
     <build>
-        <pluginManagement>
-            <plugins>
-                <plugin>
-                    <groupId>@project.groupId@</groupId>
-                    <artifactId>@project.artifactId@</artifactId>
-                    <version>@project.version@</version>
-                    <configuration>
-                        <activeRecipes>
-                            <recipe>com.example.RewriteRunIT.CodeCleanup</recipe>
-                        </activeRecipes>
-                        <configLocation>
-                            ${maven.multiModuleProjectDirectory}/src/test/resources-its/org/openrewrite/maven/RewriteRunIT/multi_module_project/rewrite.yml
-                        </configLocation>
-                    </configuration>
-                </plugin>
-            </plugins>
-        </pluginManagement>
+        <plugins>
+            <plugin>
+                <groupId>@project.groupId@</groupId>
+                <artifactId>@project.artifactId@</artifactId>
+                <version>@project.version@</version>
+                <configuration>
+                    <activeRecipes>
+                        <recipe>com.example.RewriteRunIT.CodeCleanup</recipe>
+                    </activeRecipes>
+                    <configLocation>
+                        ${maven.multiModuleProjectDirectory}/src/test/resources-its/org/openrewrite/maven/RewriteRunIT/multi_module_project/rewrite.yml
+                    </configLocation>
+                </configuration>
+            </plugin>
+        </plugins>
     </build>
 </project>
