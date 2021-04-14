@@ -12,6 +12,7 @@ import org.openrewrite.config.Environment;
 import org.openrewrite.config.YamlResourceLoader;
 import org.openrewrite.internal.lang.Nullable;
 import org.openrewrite.java.JavaParser;
+import org.openrewrite.maven.cache.InMemoryMavenPomCache;
 import org.openrewrite.maven.cache.RocksdbMavenPomCache;
 import org.openrewrite.maven.tree.Maven;
 import org.openrewrite.properties.PropertiesParser;
@@ -128,11 +129,18 @@ public abstract class AbstractRewriteMojo extends AbstractMojo {
                 .mavenConfig(baseDir.resolve(".mvn/maven.config"));
 
         if (pomCacheEnabled) {
-            if (pomCacheDirectory != null) {
-                mavenParserBuilder.cache(new RocksdbMavenPomCache(Paths.get(pomCacheDirectory).toFile()));
-            } else {
-                //Default directory is "~/.rewrite/cache/pom"
-                mavenParserBuilder.cache(new RocksdbMavenPomCache(Paths.get(System.getProperty("user.home"), ".rewrite", "cache", "pom").toFile()));
+            try {
+                if (pomCacheDirectory == null) {
+                    //Default directory is "~/.rewrite/cache/pom"
+                    mavenParserBuilder.cache(new RocksdbMavenPomCache(Paths.get(System.getProperty("user.home"), ".rewrite", "cache", "pom").toFile()));
+                } else {
+
+                    mavenParserBuilder.cache(new RocksdbMavenPomCache(Paths.get(pomCacheDirectory).toFile()));
+                }
+            } catch (Exception e) {
+                getLog().warn("Unable to initialize RocksdbMavenPomCache, falling back to InMemoryMavenPomCache");
+                getLog().debug(e);
+                mavenParserBuilder.cache(new InMemoryMavenPomCache());
             }
         }
 
