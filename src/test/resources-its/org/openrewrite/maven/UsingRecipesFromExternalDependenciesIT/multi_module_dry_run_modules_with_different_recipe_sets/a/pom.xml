@@ -1,0 +1,43 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<project xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xmlns="http://maven.apache.org/POM/4.0.0"
+         xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/xsd/maven-4.0.0.xsd">
+    <modelVersion>4.0.0</modelVersion>
+
+    <parent>
+        <groupId>org.openrewrite.maven</groupId>
+        <artifactId>multi_module_dry_run_modules_with_different_recipe_sets</artifactId>
+        <version>1.0</version>
+    </parent>
+
+    <artifactId>a</artifactId>
+
+    <dependencies>
+        <!-- only for testing third-party recipe consumption by using rewrite-testing-frameworks. -->
+        <!-- we shouldn't care too much about the specific recipe used, just that it runs at all. -->
+        <!-- in fact, we should try to avoid testing the recipe itself too much. -->
+        <dependency>
+            <groupId>junit</groupId>
+            <artifactId>junit</artifactId>
+            <version>4.13.2</version>
+        </dependency>
+    </dependencies>
+
+    <build>
+        <plugins>
+            <plugin>
+                <groupId>@project.groupId@</groupId>
+                <artifactId>@project.artifactId@</artifactId>
+                <version>@project.version@</version>
+                <configuration>
+                    <!-- we'll have module "a" have AutoFormat active, and module "b" not. -->
+                    <!-- module "b" should still inherit activeRecipes from the parent pom. -->
+                    <!-- the configuration of the plugin here, however, will overwrite the parent pom configured activeRecipes -->
+                    <activeRecipes>
+                        <recipe>org.openrewrite.java.format.AutoFormat</recipe>
+                    </activeRecipes>
+                </configuration>
+            </plugin>
+        </plugins>
+    </build>
+
+</project>

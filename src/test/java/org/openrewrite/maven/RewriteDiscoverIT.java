@@ -38,5 +38,4 @@ public class RewriteDiscoverIT {
         assertThat(result).out().warn().isEmpty();
     }
 
-
 }

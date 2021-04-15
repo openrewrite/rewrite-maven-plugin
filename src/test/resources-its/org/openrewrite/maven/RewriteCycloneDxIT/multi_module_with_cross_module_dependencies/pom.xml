@@ -13,19 +13,18 @@
         <module>a</module>
         <module>b</module>
     </modules>
-
-    <!--        <properties>-->
-    <!--            <maven.compiler.source>1.8</maven.compiler.source>-->
-    <!--            <maven.compiler.target>1.8</maven.compiler.target>-->
-    <!--            <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>-->
-    <!--        </properties>-->
-
+    
     <build>
         <plugins>
             <plugin>
                 <groupId>@project.groupId@</groupId>
                 <artifactId>@project.artifactId@</artifactId>
                 <version>@project.version@</version>
+                <configuration>
+                    <pomCacheDirectory>
+                        ${project.build.directory}/maven-it/org/openrewrite/maven/RewriteCycloneDxIT/multi_module_with_cross_module_dependencies/project/target/pomCache
+                    </pomCacheDirectory>
+                </configuration>
             </plugin>
         </plugins>
     </build>
