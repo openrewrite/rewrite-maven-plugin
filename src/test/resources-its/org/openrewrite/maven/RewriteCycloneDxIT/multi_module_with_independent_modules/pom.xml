@@ -4,20 +4,21 @@
     <modelVersion>4.0.0</modelVersion>
 
     <groupId>org.openrewrite.maven</groupId>
-    <artifactId>multi_module_project</artifactId>
+    <artifactId>multi_module_with_independent_modules</artifactId>
     <version>1.0</version>
     <packaging>pom</packaging>
+    <name>RewriteCycloneDxIT#multi_module_with_independent_modules</name>
 
     <modules>
         <module>a</module>
         <module>b</module>
     </modules>
 
-    <properties>
-        <maven.compiler.source>1.8</maven.compiler.source>
-        <maven.compiler.target>1.8</maven.compiler.target>
-        <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
-    </properties>
+    <!--        <properties>-->
+    <!--            <maven.compiler.source>1.8</maven.compiler.source>-->
+    <!--            <maven.compiler.target>1.8</maven.compiler.target>-->
+    <!--            <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>-->
+    <!--        </properties>-->
 
     <build>
         <plugins>
@@ -25,14 +26,6 @@
                 <groupId>@project.groupId@</groupId>
                 <artifactId>@project.artifactId@</artifactId>
                 <version>@project.version@</version>
-                <configuration>
-                    <activeRecipes>
-                        <recipe>com.example.RewriteRunIT.CodeCleanup</recipe>
-                    </activeRecipes>
-                    <configLocation>
-                        ${maven.multiModuleProjectDirectory}/src/test/resources-its/org/openrewrite/maven/RewriteRunIT/multi_module_project/rewrite.yml
-                    </configLocation>
-                </configuration>
             </plugin>
         </plugins>
     </build>

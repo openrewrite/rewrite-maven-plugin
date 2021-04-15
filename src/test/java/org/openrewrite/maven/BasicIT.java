@@ -15,7 +15,10 @@ public class BasicIT {
     @MavenOption(MavenCLIOptions.NO_TRANSFER_PROGRESS)
     void groupid_artifactid_should_be_ok(MavenExecutionResult result) {
         assertThat(result)
-                .isSuccessful();
+                .isSuccessful()
+                .out()
+                .warn()
+                .containsOnly("JAR will be empty - no content was marked for inclusion!");
     }
 
 }
