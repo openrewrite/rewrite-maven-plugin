@@ -4,16 +4,21 @@
     <modelVersion>4.0.0</modelVersion>
 
     <groupId>org.openrewrite.maven</groupId>
-    <artifactId>multi_module_with_independent_modules</artifactId>
+    <artifactId>multi_module_dry_run</artifactId>
     <version>1.0</version>
     <packaging>pom</packaging>
-    <name>RewriteCycloneDxIT#multi_module_with_independent_modules</name>
 
     <modules>
         <module>a</module>
         <module>b</module>
     </modules>
-    
+
+    <properties>
+        <maven.compiler.source>1.8</maven.compiler.source>
+        <maven.compiler.target>1.8</maven.compiler.target>
+        <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
+    </properties>
+
     <build>
         <plugins>
             <plugin>
@@ -21,10 +26,17 @@
                 <artifactId>@project.artifactId@</artifactId>
                 <version>@project.version@</version>
                 <configuration>
-                    <pomCacheDirectory>
-                        ${project.build.directory}/maven-it/org/openrewrite/maven/RewriteCycloneDxIT/multi_module_with_independent_modules/project/target/pomCache
-                    </pomCacheDirectory>
+                    <activeRecipes>
+                        <recipe>org.openrewrite.java.testing.junit5.JUnit5BestPractices</recipe>
+                    </activeRecipes>
                 </configuration>
+                <dependencies>
+                    <dependency>
+                        <groupId>org.openrewrite.recipe</groupId>
+                        <artifactId>rewrite-testing-frameworks</artifactId>
+                        <version>1.1.0</version>
+                    </dependency>
+                </dependencies>
             </plugin>
         </plugins>
     </build>

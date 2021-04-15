@@ -4,10 +4,10 @@
     <modelVersion>4.0.0</modelVersion>
 
     <groupId>org.openrewrite.maven</groupId>
-    <artifactId>single_project</artifactId>
+    <artifactId>single_project_discover</artifactId>
     <version>1.0</version>
     <packaging>jar</packaging>
-    <name>RewriteCycloneDxIT#single_project</name>
+    <name>UsingRecipesFromExternalDependenciesIT#single_project_discover</name>
 
     <build>
         <plugins>
@@ -16,10 +16,17 @@
                 <artifactId>@project.artifactId@</artifactId>
                 <version>@project.version@</version>
                 <configuration>
-                    <pomCacheDirectory>
-                        ${project.build.directory}/maven-it/org/openrewrite/maven/RewriteCycloneDxIT/single_project/project/target/pomCache
-                    </pomCacheDirectory>
+                    <activeRecipes>
+                        <recipe>org.openrewrite.java.testing.junit5.JUnit5BestPractices</recipe>
+                    </activeRecipes>
                 </configuration>
+                <dependencies>
+                    <dependency>
+                        <groupId>org.openrewrite.recipe</groupId>
+                        <artifactId>rewrite-testing-frameworks</artifactId>
+                        <version>1.1.0</version>
+                    </dependency>
+                </dependencies>
             </plugin>
         </plugins>
     </build>
