@@ -9,6 +9,10 @@
     <packaging>jar</packaging>
     <name>BasicIT#groupid_artifactid_should_be_ok</name>
 
+    <properties>
+        <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
+    </properties>
+    
     <build>
         <plugins>
             <plugin>

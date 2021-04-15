@@ -5,16 +5,11 @@
 
     <parent>
         <groupId>org.openrewrite.maven</groupId>
-        <artifactId>multi_module_project</artifactId>
+        <artifactId>multi_module_with_cross_module_dependencies</artifactId>
         <version>1.0</version>
     </parent>
 
     <artifactId>b</artifactId>
-
-    <properties>
-        <maven.compiler.source>1.8</maven.compiler.source>
-        <maven.compiler.target>1.8</maven.compiler.target>
-    </properties>
 
     <dependencies>
         <dependency>

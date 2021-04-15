@@ -14,6 +14,12 @@
         <module>b</module>
     </modules>
 
+    <properties>
+        <maven.compiler.source>1.8</maven.compiler.source>
+        <maven.compiler.target>1.8</maven.compiler.target>
+        <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
+    </properties>
+
     <build>
         <plugins>
             <plugin>
@@ -24,7 +30,9 @@
                     <activeRecipes>
                         <recipe>org.openrewrite.java.format.AutoFormat</recipe>
                     </activeRecipes>
-                    <pomCacheDirectory>${project.build.directory}/pomCache</pomCacheDirectory>
+                    <pomCacheDirectory>
+                        ${project.build.directory}/maven-it/org/openrewrite/maven/PomCacheIT/multi_module_project/project/target/pomCache
+                    </pomCacheDirectory>
                 </configuration>
             </plugin>
         </plugins>

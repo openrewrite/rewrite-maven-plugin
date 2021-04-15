@@ -23,6 +23,8 @@ public class RewriteDiscoverIT {
                         "[info] Descriptors:",
                         "[info]     org.openrewrite.java.format.AutoFormat"
                 );
+
+        assertThat(result).out().warn().isEmpty();
     }
 
     @MavenTest
@@ -32,6 +34,8 @@ public class RewriteDiscoverIT {
                 .out()
                 .plain()
                 .contains("[info]     com.example.RewriteDiscoverIT.CodeCleanup");
+
+        assertThat(result).out().warn().isEmpty();
     }
 
 
