@@ -4,6 +4,8 @@ import com.soebes.itf.jupiter.extension.MavenGoal;
 import com.soebes.itf.jupiter.extension.MavenJupiterExtension;
 import com.soebes.itf.jupiter.extension.MavenTest;
 import com.soebes.itf.jupiter.maven.MavenExecutionResult;
+import org.junit.jupiter.api.condition.DisabledOnOs;
+import org.junit.jupiter.api.condition.OS;
 
 import static com.soebes.itf.extension.assertj.MavenITAssertions.assertThat;
 
@@ -11,6 +13,7 @@ import static com.soebes.itf.extension.assertj.MavenITAssertions.assertThat;
 public class UsingRecipesFromExternalDependenciesIT {
 
     @MavenTest
+    @DisabledOnOs(OS.WINDOWS)
     @MavenGoal("${project.groupId}:${project.artifactId}:${project.version}:dryRun")
     void multi_module_dry_run(MavenExecutionResult result) {
         assertThat(result)
@@ -28,6 +31,7 @@ public class UsingRecipesFromExternalDependenciesIT {
     }
 
     @MavenTest
+    @DisabledOnOs(OS.WINDOWS)
     @MavenGoal("${project.groupId}:${project.artifactId}:${project.version}:dryRun")
     void multi_module_dry_run_modules_with_different_recipe_sets(MavenExecutionResult result) {
         assertThat(result)
@@ -85,6 +89,7 @@ public class UsingRecipesFromExternalDependenciesIT {
     }
 
     @MavenTest
+    @DisabledOnOs(OS.WINDOWS)
     @MavenGoal("${project.groupId}:${project.artifactId}:${project.version}:run")
     void single_project_run(MavenExecutionResult result) {
         assertThat(result)
