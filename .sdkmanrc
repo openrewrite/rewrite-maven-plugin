@@ -1,0 +1,4 @@
+# Enable auto-env through the sdkman_auto_env config
+# Add key=value pairs of SDKs to use below
+# sdk env install to download if not already installed locally
+java=11.0.10.hs-adpt
