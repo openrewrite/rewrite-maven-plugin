@@ -4,7 +4,9 @@ import org.apache.maven.plugin.MojoExecutionException;
 import org.apache.maven.plugin.logging.Log;
 import org.apache.maven.plugins.annotations.Mojo;
 import org.openrewrite.Recipe;
-import org.openrewrite.config.*;
+import org.openrewrite.config.Environment;
+import org.openrewrite.config.OptionDescriptor;
+import org.openrewrite.config.RecipeDescriptor;
 
 import java.util.Collection;
 
@@ -45,9 +47,11 @@ public class RewriteDiscoverMojo extends AbstractRewriteMojo {
             log.info("    " + recipe.getName());
         }
         log.info("");
-        log.info("Descriptors:");
-        for (RecipeDescriptor recipeDescriptor : env.listRecipeDescriptors()) {
-            logRecipeDescriptor(recipeDescriptor, verbose, recursive);
+        if (verbose) {
+            log.info("Descriptors:");
+            for (RecipeDescriptor recipeDescriptor : env.listRecipeDescriptors()) {
+                logRecipeDescriptor(recipeDescriptor, verbose, recursive);
+            }
         }
     }
 
@@ -72,7 +76,7 @@ public class RewriteDiscoverMojo extends AbstractRewriteMojo {
                 if (optionDescriptor.isRequired()) {
                     optionBuilder.append("!");
                 }
-                log.info("        " + optionBuilder.toString());
+                log.info("        " + optionBuilder);
                 if (verbose) {
                     log.info("        Display name: " + optionDescriptor.getDisplayName());
                     log.info("        Description: " + optionDescriptor.getDescription());
