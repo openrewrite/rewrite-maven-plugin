@@ -4,13 +4,21 @@ import com.soebes.itf.jupiter.extension.MavenGoal;
 import com.soebes.itf.jupiter.extension.MavenJupiterExtension;
 import com.soebes.itf.jupiter.extension.MavenTest;
 import com.soebes.itf.jupiter.maven.MavenExecutionResult;
+import org.junit.jupiter.api.AfterEach;
+import org.junit.jupiter.api.Disabled;
 import org.junit.jupiter.api.condition.DisabledOnOs;
 import org.junit.jupiter.api.condition.OS;
 
 import static com.soebes.itf.extension.assertj.MavenITAssertions.assertThat;
 
 @MavenJupiterExtension
+@Disabled("https://github.com/openrewrite/rewrite-maven-plugin/issues/135")
 public class UsingRecipesFromExternalDependenciesIT {
+
+    @AfterEach
+    void afterEach(MavenExecutionResult result) {
+        assertThat(result).err().plain().isEmpty();
+    }
 
     @MavenTest
     @MavenGoal("${project.groupId}:${project.artifactId}:${project.version}:dryRun")
@@ -22,6 +30,8 @@ public class UsingRecipesFromExternalDependenciesIT {
                 .matches(logLines -> logLines.stream().anyMatch(logLine -> logLine.contains("Applying fixes would make changes")),
                         "Output should indicate that \"Applying fixes would make changes\""
                 );
+
+        assertThat(result).out().error().isEmpty();
     }
 
     @MavenTest
@@ -33,7 +43,7 @@ public class UsingRecipesFromExternalDependenciesIT {
                 .out()
                 .warn()
                 .matches(logLines ->
-                        logLines.stream().anyMatch(logLine -> logLine.contains("Applying fixes would make changes")),
+                                logLines.stream().anyMatch(logLine -> logLine.contains("Applying fixes would make changes")),
                         "Output should indicate that \"Applying fixes would make changes\""
                 );
     }
@@ -46,7 +56,7 @@ public class UsingRecipesFromExternalDependenciesIT {
                 .out()
                 .plain()
                 .matches(logLines ->
-                        logLines.stream().anyMatch(logLine -> logLine.contains("org.openrewrite.java.testing.junit5.JUnit5BestPractices")),
+                                logLines.stream().anyMatch(logLine -> logLine.contains("org.openrewrite.java.testing.junit5.JUnit5BestPractices")),
                         "Output should indicate that the recipe \"org.openrewrite.java.testing.junit5.JUnit5BestPractices\" made changes"
                 );
 
@@ -61,7 +71,7 @@ public class UsingRecipesFromExternalDependenciesIT {
                 .out()
                 .plain()
                 .matches(logLines ->
-                        logLines.stream().anyMatch(logLine -> logLine.contains("org.openrewrite.java.spring.boot2.SpringBoot2JUnit4to5Migration")),
+                                logLines.stream().anyMatch(logLine -> logLine.contains("org.openrewrite.java.spring.boot2.SpringBoot2JUnit4to5Migration")),
                         "Output should indicate that the recipe \"org.openrewrite.java.spring.boot2.SpringBoot2JUnit4to5Migration\" made changes"
                 );
 
