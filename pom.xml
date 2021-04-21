@@ -62,6 +62,7 @@
         <maven-gpg-plugin.version>1.6</maven-gpg-plugin.version>
         <maven-release-plugin.version>3.0.0-M1</maven-release-plugin.version>
         <maven-failsafe-plugin.version>2.22.2</maven-failsafe-plugin.version>
+        <rewrite-maven-plugin.version>4.1.0</rewrite-maven-plugin.version>
     </properties>
 
     <dependencies>
@@ -361,6 +362,17 @@
                         </goals>
                     </execution>
                 </executions>
+            </plugin>
+            <plugin>
+                <!-- bootstrapping this plugin with itself -->
+                <groupId>org.openrewrite.maven</groupId>
+                <artifactId>rewrite-maven-plugin</artifactId>
+                <version>${rewrite-maven-plugin.version}</version>
+                <configuration>
+                    <activeRecipes>
+                        <recipe>org.openrewrite.java.format.AutoFormat</recipe>
+                    </activeRecipes>
+                </configuration>
             </plugin>
         </plugins>
 
