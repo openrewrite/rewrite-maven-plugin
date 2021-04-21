@@ -17,11 +17,8 @@ public class RewriteDiscoverIT {
                 .isSuccessful()
                 .out()
                 .plain()
-                .containsSubsequence(
-                        "[info] Active Recipes:",
-                        "[info] Activatable Recipes:",
-                        "[info] Descriptors:",
-                        "[info]     org.openrewrite.java.format.AutoFormat"
+                .matches(logLines ->
+                        logLines.stream().anyMatch(logLine -> logLine.contains("org.openrewrite.java.format.AutoFormat"))
                 );
 
         assertThat(result).out().warn().isEmpty();

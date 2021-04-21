@@ -55,7 +55,7 @@ public class RewriteDryRunMojo extends AbstractRewriteMojo {
             }
             for (Result result : results.refactoredInPlace) {
                 assert result.getBefore() != null;
-                getLog().warn("Applying fixes would make results to " +
+                getLog().warn("Applying fixes would make changes to " +
                         result.getBefore().getSourcePath() +
                         " by:");
                 logRecipesThatMadeChanges(result);

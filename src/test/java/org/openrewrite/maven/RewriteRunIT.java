@@ -20,16 +20,8 @@ public class RewriteRunIT {
                 .isSuccessful()
                 .out()
                 .warn()
-                .containsOnly(
-                        "",
-                        "Changes have been made to target/maven-it/org/openrewrite/maven/RewriteRunIT/multi_module_project/project/a/src/main/java/sample/SimplifyBooleanSample.java by:",
-                        "  org.openrewrite.java.cleanup.FinalizeLocalVariables",
-                        "Please review and commit the results.",
-                        "",
-                        "",
-                        "Changes have been made to target/maven-it/org/openrewrite/maven/RewriteRunIT/multi_module_project/project/b/src/main/java/sample/EmptyBlockSample.java by:",
-                        "  org.openrewrite.java.cleanup.FinalizeLocalVariables",
-                        "Please review and commit the results."
+                .matches(logLines ->
+                        logLines.stream().anyMatch(logLine -> logLine.contains("org.openrewrite.java.cleanup.FinalizeLocalVariables"))
                 );
     }
 
@@ -39,12 +31,8 @@ public class RewriteRunIT {
                 .isSuccessful()
                 .out()
                 .warn()
-                .containsOnly(
-                        "Changes have been made to target/maven-it/org/openrewrite/maven/RewriteRunIT/single_project/project/src/main/java/sample/SimplifyBooleanSample.java by:",
-                        "  org.openrewrite.java.format.AutoFormat",
-                        "Changes have been made to target/maven-it/org/openrewrite/maven/RewriteRunIT/single_project/project/src/main/java/sample/EmptyBlockSample.java by:",
-                        "  org.openrewrite.java.format.AutoFormat",
-                        "Please review and commit the results."
+                .matches(logLines ->
+                        logLines.stream().anyMatch(logLine -> logLine.contains("org.openrewrite.java.format.AutoFormat"))
                 );
     }
 

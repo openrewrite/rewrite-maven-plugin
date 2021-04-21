@@ -7,10 +7,12 @@ import com.soebes.itf.jupiter.maven.MavenExecutionResult;
 import org.junit.jupiter.api.condition.DisabledOnOs;
 import org.junit.jupiter.api.condition.OS;
 
+import java.util.List;
+import java.util.Objects;
+
 import static com.soebes.itf.extension.assertj.MavenITAssertions.assertThat;
 
 @MavenJupiterExtension
-@DisabledOnOs(OS.WINDOWS)
 @MavenGoal("${project.groupId}:${project.artifactId}:${project.version}:dryRun")
 public class RewriteDryRunIT {
 
@@ -20,16 +22,8 @@ public class RewriteDryRunIT {
                 .isSuccessful()
                 .out()
                 .warn()
-                .containsOnly(
-                        "",
-                        "Applying fixes would make results to target/maven-it/org/openrewrite/maven/RewriteDryRunIT/multi_module_project/project/a/src/main/java/sample/SimplifyBooleanSample.java by:",
-                        "  org.openrewrite.java.cleanup.FinalizeLocalVariables",
-                        "Run 'mvn rewrite:run' to apply the fixes. Afterwards, review and commit the results.",
-                        "",
-                        "",
-                        "Applying fixes would make results to target/maven-it/org/openrewrite/maven/RewriteDryRunIT/multi_module_project/project/b/src/main/java/sample/EmptyBlockSample.java by:",
-                        "  org.openrewrite.java.cleanup.FinalizeLocalVariables",
-                        "Run 'mvn rewrite:run' to apply the fixes. Afterwards, review and commit the results."
+                .matches(logLines ->
+                        logLines.stream().anyMatch(logLine -> logLine.contains("Applying fixes would make changes"))
                 );
     }
 
@@ -39,12 +33,8 @@ public class RewriteDryRunIT {
                 .isSuccessful()
                 .out()
                 .warn()
-                .containsOnly(
-                        "Applying fixes would make results to target/maven-it/org/openrewrite/maven/RewriteDryRunIT/single_project/project/src/main/java/sample/SimplifyBooleanSample.java by:",
-                        "  org.openrewrite.java.format.AutoFormat",
-                        "Applying fixes would make results to target/maven-it/org/openrewrite/maven/RewriteDryRunIT/single_project/project/src/main/java/sample/EmptyBlockSample.java by:",
-                        "  org.openrewrite.java.format.AutoFormat",
-                        "Run 'mvn rewrite:run' to apply the fixes. Afterwards, review and commit the results."
+                .matches(logLines ->
+                        logLines.stream().anyMatch(logLine -> logLine.contains("Applying fixes would make changes"))
                 );
     }
 

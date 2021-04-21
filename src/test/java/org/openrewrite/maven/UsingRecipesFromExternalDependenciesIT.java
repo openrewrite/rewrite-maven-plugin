@@ -13,20 +13,14 @@ import static com.soebes.itf.extension.assertj.MavenITAssertions.assertThat;
 public class UsingRecipesFromExternalDependenciesIT {
 
     @MavenTest
-    @DisabledOnOs(OS.WINDOWS)
     @MavenGoal("${project.groupId}:${project.artifactId}:${project.version}:dryRun")
     void multi_module_dry_run(MavenExecutionResult result) {
         assertThat(result)
                 .isSuccessful()
                 .out()
                 .warn()
-                .containsOnly(
-                        "Applying fixes would make results to target/maven-it/org/openrewrite/maven/UsingRecipesFromExternalDependenciesIT/multi_module_dry_run/project/a/pom.xml by:",
-                        "  org.openrewrite.maven.RemoveDependency",
-                        "Run 'mvn rewrite:run' to apply the fixes. Afterwards, review and commit the results.",
-                        "Applying fixes would make results to target/maven-it/org/openrewrite/maven/UsingRecipesFromExternalDependenciesIT/multi_module_dry_run/project/b/pom.xml by:",
-                        "  org.openrewrite.maven.RemoveDependency",
-                        "Run 'mvn rewrite:run' to apply the fixes. Afterwards, review and commit the results."
+                .matches(logLines -> logLines.stream().anyMatch(logLine -> logLine.contains("Applying fixes would make changes")),
+                        "Output should indicate that \"Applying fixes would make changes\""
                 );
     }
 
@@ -38,13 +32,9 @@ public class UsingRecipesFromExternalDependenciesIT {
                 .isSuccessful()
                 .out()
                 .warn()
-                .containsOnly(
-                        "Applying fixes would make results to target/maven-it/org/openrewrite/maven/UsingRecipesFromExternalDependenciesIT/multi_module_dry_run_modules_with_different_recipe_sets/project/a/src/main/java/sample/SampleA.java by:",
-                        "  org.openrewrite.java.format.AutoFormat",
-                        "Run 'mvn rewrite:run' to apply the fixes. Afterwards, review and commit the results.",
-                        "Applying fixes would make results to target/maven-it/org/openrewrite/maven/UsingRecipesFromExternalDependenciesIT/multi_module_dry_run_modules_with_different_recipe_sets/project/b/pom.xml by:",
-                        "  org.openrewrite.maven.RemoveDependency",
-                        "Run 'mvn rewrite:run' to apply the fixes. Afterwards, review and commit the results."
+                .matches(logLines ->
+                        logLines.stream().anyMatch(logLine -> logLine.contains("Applying fixes would make changes")),
+                        "Output should indicate that \"Applying fixes would make changes\""
                 );
     }
 
@@ -55,13 +45,9 @@ public class UsingRecipesFromExternalDependenciesIT {
                 .isSuccessful()
                 .out()
                 .plain()
-                .containsSubsequence(
-                        "[info] Active Recipes:",
-                        "[info]     org.openrewrite.java.testing.junit5.JUnit5BestPractices",
-                        "[info] ",
-                        "[info] Activatable Recipes:",
-                        "[info] Descriptors:",
-                        "[info]     org.openrewrite.java.testing.junit5.JUnit5BestPractices"
+                .matches(logLines ->
+                        logLines.stream().anyMatch(logLine -> logLine.contains("org.openrewrite.java.testing.junit5.JUnit5BestPractices")),
+                        "Output should indicate that the recipe \"org.openrewrite.java.testing.junit5.JUnit5BestPractices\" made changes"
                 );
 
         assertThat(result).out().warn().isEmpty();
@@ -74,32 +60,23 @@ public class UsingRecipesFromExternalDependenciesIT {
                 .isSuccessful()
                 .out()
                 .plain()
-                .containsSubsequence(
-                        "[info] Active Recipes:",
-                        "[info]     org.openrewrite.java.spring.boot2.SpringBoot2JUnit4to5Migration",
-                        "[info]     org.openrewrite.java.testing.junit5.JUnit5BestPractices",
-                        "[info] ",
-                        "[info] Activatable Recipes:",
-                        "[info] Descriptors:",
-                        "[info]     org.openrewrite.java.testing.junit5.JUnit5BestPractices",
-                        "[info]     org.openrewrite.spring.boot.config.SpringBootConfigurationProperties_2_0"
+                .matches(logLines ->
+                        logLines.stream().anyMatch(logLine -> logLine.contains("org.openrewrite.java.spring.boot2.SpringBoot2JUnit4to5Migration")),
+                        "Output should indicate that the recipe \"org.openrewrite.java.spring.boot2.SpringBoot2JUnit4to5Migration\" made changes"
                 );
 
         assertThat(result).out().warn().isEmpty();
     }
 
     @MavenTest
-    @DisabledOnOs(OS.WINDOWS)
     @MavenGoal("${project.groupId}:${project.artifactId}:${project.version}:run")
     void single_project_run(MavenExecutionResult result) {
         assertThat(result)
                 .isSuccessful()
                 .out()
                 .warn()
-                .containsOnly(
-                        "Changes have been made to target/maven-it/org/openrewrite/maven/UsingRecipesFromExternalDependenciesIT/single_project_run/project/pom.xml by:",
-                        "  org.openrewrite.maven.RemoveDependency",
-                        "Please review and commit the results."
+                .matches(logLines ->
+                        logLines.stream().anyMatch(logLine -> logLine.contains("org.openrewrite.maven.RemoveDependency"))
                 );
 
         assertThat(
@@ -109,6 +86,5 @@ public class UsingRecipesFromExternalDependenciesIT {
         ).isEmpty();
 
     }
-
 
 }
