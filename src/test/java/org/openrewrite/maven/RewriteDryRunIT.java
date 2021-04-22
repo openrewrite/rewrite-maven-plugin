@@ -4,11 +4,6 @@ import com.soebes.itf.jupiter.extension.MavenGoal;
 import com.soebes.itf.jupiter.extension.MavenJupiterExtension;
 import com.soebes.itf.jupiter.extension.MavenTest;
 import com.soebes.itf.jupiter.maven.MavenExecutionResult;
-import org.junit.jupiter.api.condition.DisabledOnOs;
-import org.junit.jupiter.api.condition.OS;
-
-import java.util.List;
-import java.util.Objects;
 
 import static com.soebes.itf.extension.assertj.MavenITAssertions.assertThat;
 
