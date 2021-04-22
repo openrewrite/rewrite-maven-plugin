@@ -48,58 +48,58 @@ public class MavenLoggingMeterRegistry extends MeterRegistry {
     }
 
     public void close() {
-            getMeters().stream()
-                    .sorted((m1, m2) -> {
-                        int typeComp = m1.getId().getType().compareTo(m2.getId().getType());
-                        if (typeComp == 0) {
-                            return m1.getId().getName().compareTo(m2.getId().getName());
-                        }
-                        return typeComp;
-                    })
-                    .forEach(m -> {
-                        Printer print = new Printer(m);
-                        m.use(
-                                gauge -> log.info(print.id() + " value=" + print.value(gauge.value())),
-                                counter -> {
-                                    double count = counter.count();
-                                    log.info(print.id() + " count=" + print.count(count));
-                                },
-                                timer -> {
-                                    HistogramSnapshot snapshot = timer.takeSnapshot();
-                                    long count = snapshot.count();
-                                    log.info(print.id() + " count=" + print.unitlessCount(count) +
-                                            " mean=" + print.time(snapshot.mean(getBaseTimeUnit())) +
-                                            " max=" + print.time(snapshot.max(getBaseTimeUnit())));
-                                },
-                                summary -> {
-                                    HistogramSnapshot snapshot = summary.takeSnapshot();
-                                    long count = snapshot.count();
-                                    log.info(print.id() + " count=" + print.unitlessCount(count) +
-                                            " mean=" + print.value(snapshot.mean()) +
-                                            " max=" + print.value(snapshot.max()));
-                                },
-                                longTaskTimer -> {
-                                    int activeTasks = longTaskTimer.activeTasks();
-                                    log.info(print.id() +
-                                            " active=" + print.value(activeTasks) +
-                                            " duration=" + print.time(longTaskTimer.duration(getBaseTimeUnit())));
-                                },
-                                timeGauge -> {
-                                    double value = timeGauge.value(getBaseTimeUnit());
-                                    log.info(print.id() + " value=" + print.time(value));
-                                },
-                                counter -> {
-                                    double count = counter.count();
-                                    log.info(print.id() + " count=" + print.count(count));
-                                },
-                                timer -> {
-                                    double count = timer.count();
-                                    log.info(print.id() + " count=" + print.count(count) +
-                                            " mean=" + print.time(timer.mean(getBaseTimeUnit())));
-                                },
-                                meter -> log.info(writeMeter(meter, print))
-                        );
-                    });
+        getMeters().stream()
+                .sorted((m1, m2) -> {
+                    int typeComp = m1.getId().getType().compareTo(m2.getId().getType());
+                    if (typeComp == 0) {
+                        return m1.getId().getName().compareTo(m2.getId().getName());
+                    }
+                    return typeComp;
+                })
+                .forEach(m -> {
+                    Printer print = new Printer(m);
+                    m.use(
+                            gauge -> log.info(print.id() + " value=" + print.value(gauge.value())),
+                            counter -> {
+                                double count = counter.count();
+                                log.info(print.id() + " count=" + print.count(count));
+                            },
+                            timer -> {
+                                HistogramSnapshot snapshot = timer.takeSnapshot();
+                                long count = snapshot.count();
+                                log.info(print.id() + " count=" + print.unitlessCount(count) +
+                                        " mean=" + print.time(snapshot.mean(getBaseTimeUnit())) +
+                                        " max=" + print.time(snapshot.max(getBaseTimeUnit())));
+                            },
+                            summary -> {
+                                HistogramSnapshot snapshot = summary.takeSnapshot();
+                                long count = snapshot.count();
+                                log.info(print.id() + " count=" + print.unitlessCount(count) +
+                                        " mean=" + print.value(snapshot.mean()) +
+                                        " max=" + print.value(snapshot.max()));
+                            },
+                            longTaskTimer -> {
+                                int activeTasks = longTaskTimer.activeTasks();
+                                log.info(print.id() +
+                                        " active=" + print.value(activeTasks) +
+                                        " duration=" + print.time(longTaskTimer.duration(getBaseTimeUnit())));
+                            },
+                            timeGauge -> {
+                                double value = timeGauge.value(getBaseTimeUnit());
+                                log.info(print.id() + " value=" + print.time(value));
+                            },
+                            counter -> {
+                                double count = counter.count();
+                                log.info(print.id() + " count=" + print.count(count));
+                            },
+                            timer -> {
+                                double count = timer.count();
+                                log.info(print.id() + " count=" + print.count(count) +
+                                        " mean=" + print.time(timer.mean(getBaseTimeUnit())));
+                            },
+                            meter -> log.info(writeMeter(meter, print))
+                    );
+                });
     }
 
     String writeMeter(Meter meter, Printer print) {

@@ -114,7 +114,7 @@ public class MeterRegistryProvider implements AutoCloseable {
             }
         }
 
-        if(registry != null) {
+        if (registry != null) {
             registry.close();
         }
     }
