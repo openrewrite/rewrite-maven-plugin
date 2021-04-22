@@ -314,7 +314,7 @@ public abstract class AbstractRewriteMojo extends AbstractMojo {
         }
     }
 
-    protected List<Path> listJavaSources(String sourceDirectory) throws MojoExecutionException {
+    protected static List<Path> listJavaSources(String sourceDirectory) throws MojoExecutionException {
         File sourceDirectoryFile = new File(sourceDirectory);
         if (!sourceDirectoryFile.exists()) {
             return emptyList();
