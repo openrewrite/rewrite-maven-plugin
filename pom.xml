@@ -1,5 +1,6 @@
 <?xml version="1.0" encoding="UTF-8"?>
-<project xmlns="http://maven.apache.org/POM/4.0.0" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/xsd/maven-4.0.0.xsd">
+<project xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xmlns="http://maven.apache.org/POM/4.0.0"
+         xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/xsd/maven-4.0.0.xsd">
     <modelVersion>4.0.0</modelVersion>
 
     <groupId>org.openrewrite.maven</groupId>
@@ -419,9 +420,12 @@
                         <version>${nexus-staging-maven-plugin.version}</version>
                         <extensions>true</extensions>
                         <configuration>
+                            <!-- https://help.sonatype.com/repomanager2/staging-releases/configuring-your-project-for-deployment -->
                             <serverId>ossrh</serverId>
                             <nexusUrl>https://oss.sonatype.org/</nexusUrl>
                             <autoReleaseAfterClose>true</autoReleaseAfterClose>
+                            <stagingProgressTimeoutMinutes>20</stagingProgressTimeoutMinutes>
+                            <keepStagingRepositoryOnCloseRuleFailure>true</keepStagingRepositoryOnCloseRuleFailure>
                         </configuration>
                     </plugin>
                 </plugins>
@@ -434,6 +438,8 @@
                 <!-- automation via the maven-release-plugin uses a GITHUB_TOKEN which requires 'https' urls for git pushing -->
                 <developerConnectionUrl>scm:git:https://github.com/openrewrite/rewrite-maven-plugin.git
                 </developerConnectionUrl>
+                <!-- save time by skipping the tests during deploy -->
+                <maven.test.skip>true</maven.test.skip>
             </properties>
         </profile>
     </profiles>
