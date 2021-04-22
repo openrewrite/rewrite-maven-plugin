@@ -28,9 +28,9 @@ import java.io.IOException;
 import java.nio.file.Files;
 import java.nio.file.Path;
 
-// https://medium.com/swlh/step-by-step-guide-to-developing-a-custom-maven-plugin-b6e3a0e09966
-// https://carlosvin.github.io/posts/creating-custom-maven-plugin/en/#_dependency_injection
-// https://developer.okta.com/blog/2019/09/23/tutorial-build-a-maven-plugin
+/**
+ * Runs the configured recipes and applies the changes locally.
+ */
 @Mojo(name = "run", requiresDependencyResolution = ResolutionScope.TEST, threadSafe = true)
 @Execute(phase = LifecyclePhase.PROCESS_TEST_CLASSES)
 public class RewriteRunMojo extends AbstractRewriteMojo {

@@ -10,6 +10,9 @@ import org.openrewrite.config.RecipeDescriptor;
 
 import java.util.Collection;
 
+/**
+ * Generate a list showing the available and applied recipes based on what Rewrite finds on your classpath.
+ */
 @Mojo(name = "discover", threadSafe = true)
 public class RewriteDiscoverMojo extends AbstractRewriteMojo {
     private final Log log = getLog();
