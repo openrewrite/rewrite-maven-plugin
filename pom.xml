@@ -430,6 +430,10 @@
                     </plugin>
                 </plugins>
             </build>
+            <properties>
+                <!-- save time by skipping the tests during deploy -->
+                <maven.test.skip>true</maven.test.skip>
+            </properties>
         </profile>
         <profile>
             <!-- generally should be stacked after the 'release' profile, but in some cases we may want to discern between a ci-cd system performing the release; and if the situation requires it, a human performing the release -->
@@ -438,8 +442,6 @@
                 <!-- automation via the maven-release-plugin uses a GITHUB_TOKEN which requires 'https' urls for git pushing -->
                 <developerConnectionUrl>scm:git:https://github.com/openrewrite/rewrite-maven-plugin.git
                 </developerConnectionUrl>
-                <!-- save time by skipping the tests during deploy -->
-                <maven.test.skip>true</maven.test.skip>
             </properties>
         </profile>
     </profiles>
