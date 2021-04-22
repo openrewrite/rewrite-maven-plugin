@@ -238,11 +238,13 @@
                 <version>${maven-plugin-plugin.version}</version>
                 <executions>
                     <execution>
-                        <id>default-descriptor</id>
-                        <phase>process-classes</phase>
+                        <id>generate-descriptor</id>
+                        <goals>
+                            <goal>descriptor</goal>
+                        </goals>
                     </execution>
                     <execution>
-                        <id>generated-helpmojo</id>
+                        <id>generate-helpmojo</id>
                         <goals>
                             <goal>helpmojo</goal>
                         </goals>
