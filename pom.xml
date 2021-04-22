@@ -444,6 +444,26 @@
                 </developerConnectionUrl>
             </properties>
         </profile>
+        <profile>
+            <!-- for applying versions of the rewrite-maven-plugin against itself. -->
+            <!-- if you wanted to try using the plugin with changes made locally, you could run ./mvnw install, then set the plugin version below to the current version of the plugin being developed. -->
+            <!-- ./mvnw -Pbootstrap rewrite:help -->
+            <id>bootstrap</id>
+            <build>
+                <plugins>
+                    <plugin>
+                        <groupId>org.openrewrite.maven</groupId>
+                        <artifactId>rewrite-maven-plugin</artifactId>
+                        <version>4.1.1</version>
+                        <configuration>
+                            <activeRecipes>
+                                <recipe>org.openrewrite.java.format.AutoFormat</recipe>
+                            </activeRecipes>
+                        </configuration>
+                    </plugin>
+                </plugins>
+            </build>
+        </profile>
     </profiles>
 
     <repositories>
