@@ -58,3 +58,9 @@ If you're looking for more information on the output from a test, try checking t
 ### Using this plugin against itself
 
 The `pom.xml` has the most recent officially-released version of the `rewrite-maven-plugin` applied to itself (it's a helpful plugin, why not use it to help develop itself?) Try `./mvnw rewrite:dryRun`.
+
+### Resource guides
+
+- https://carlosvin.github.io/posts/creating-custom-maven-plugin/en/#_dependency_injection
+- https://developer.okta.com/blog/2019/09/23/tutorial-build-a-maven-plugin
+- https://medium.com/swlh/step-by-step-guide-to-developing-a-custom-maven-plugin-b6e3a0e09966
