@@ -17,7 +17,7 @@ public class RewriteDiscoverIT {
         assertThat(result)
                 .isSuccessful()
                 .out()
-                .plain()
+                .info()
                 .matches(logLines ->
                         logLines.stream().anyMatch(logLine -> logLine.contains("org.openrewrite.java.format.AutoFormat"))
                 )
@@ -35,7 +35,7 @@ public class RewriteDiscoverIT {
         assertThat(result)
                 .isSuccessful()
                 .out()
-                .plain()
+                .info()
                 .matches(logLines ->
                         logLines.stream().anyMatch(logLine -> logLine.contains("Descriptors"))
                 );
@@ -48,8 +48,10 @@ public class RewriteDiscoverIT {
         assertThat(result)
                 .isSuccessful()
                 .out()
-                .plain()
-                .contains("[info]     com.example.RewriteDiscoverIT.CodeCleanup");
+                .info()
+                .matches(logLines ->
+                        logLines.stream().anyMatch(logLine -> logLine.contains("com.example.RewriteDiscoverIT.CodeCleanup"))
+                );
 
         assertThat(result).out().warn().isEmpty();
     }
