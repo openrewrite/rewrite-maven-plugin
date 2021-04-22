@@ -27,7 +27,7 @@ To configure, add the plugin to your POM:
             <plugin>
                 <groupId>org.openrewrite.maven</groupId>
                 <artifactId>rewrite-maven-plugin</artifactId>
-                <version>4.1.0</version>
+                <version><!-- latest version here --></version>
                 <configuration>
                     <activeRecipes>
                         <recipe>org.openrewrite.java.format.AutoFormat</recipe>
@@ -39,7 +39,7 @@ To configure, add the plugin to your POM:
 </project>
 ```
 
-To get started, try `mvn rewrite:discover`, `mvn rewrite:dryRun`, `mvn rewrite:run`, among other plugin goals.
+To get started, try `mvn rewrite:help`, `mvn rewrite:discover`, `mvn rewrite:dryRun`, `mvn rewrite:run`, among other plugin goals.
 
 See the [Maven Plugin Configuration](https://docs.openrewrite.org/reference/rewrite-maven-plugin) documentation for full configuration and usage options.
 
