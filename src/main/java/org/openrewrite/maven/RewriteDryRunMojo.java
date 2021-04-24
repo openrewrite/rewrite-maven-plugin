@@ -23,7 +23,7 @@ import org.apache.maven.plugins.annotations.ResolutionScope;
 import org.openrewrite.Result;
 
 /**
- * Generates warnings in the console for any recipes that would suggest changes, but does not make any changes.
+ * Display warnings for any recipes that would suggest changes, but does not make any changes.
  */
 @Mojo(name = "dryRun", requiresDependencyResolution = ResolutionScope.TEST, threadSafe = true,
         defaultPhase = LifecyclePhase.PROCESS_TEST_CLASSES)
