@@ -29,18 +29,6 @@ public class RewriteDiscoverIT {
     }
 
     @MavenTest
-    @SystemProperty(value = "recipe", content = "org.openrewrite.JAVA.format.AutoFormAT")
-    void rewrite_discover_recipe_lookup_case_insensitive(MavenExecutionResult result) {
-        assertThat(result)
-                .isSuccessful()
-                .out()
-                .info()
-                .matches(logLines ->
-                        logLines.stream().anyMatch(logLine -> logLine.contains("org.openrewrite.java.format.AutoFormat"))
-                );
-    }
-
-    @MavenTest
     void rewrite_discover_reads_rewrite_yml(MavenExecutionResult result) {
         assertThat(result)
                 .isSuccessful()
@@ -51,6 +39,18 @@ public class RewriteDiscoverIT {
                 );
 
         assertThat(result).out().warn().isEmpty();
+    }
+
+    @MavenTest
+    @SystemProperty(value = "recipe", content = "org.openrewrite.JAVA.format.AutoFormAT")
+    void rewrite_discover_recipe_lookup_case_insensitive(MavenExecutionResult result) {
+        assertThat(result)
+                .isSuccessful()
+                .out()
+                .info()
+                .matches(logLines ->
+                        logLines.stream().anyMatch(logLine -> logLine.contains("org.openrewrite.java.format.AutoFormat"))
+                );
     }
 
     @MavenTest
