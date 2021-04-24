@@ -29,7 +29,7 @@ import java.nio.file.Files;
 import java.nio.file.Path;
 
 /**
- * Runs the configured recipes and applies the changes locally.
+ * Run the configured recipes and applies the changes locally.
  */
 @Mojo(name = "run", requiresDependencyResolution = ResolutionScope.TEST, threadSafe = true)
 @Execute(phase = LifecyclePhase.PROCESS_TEST_CLASSES)

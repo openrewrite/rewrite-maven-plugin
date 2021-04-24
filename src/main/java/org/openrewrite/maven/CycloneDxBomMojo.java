@@ -17,7 +17,7 @@ import java.nio.file.Files;
 import java.nio.file.Path;
 
 /**
- * Generates a CycloneDx bill of materials outlining all of the project's dependencies, including transitive dependencies.
+ * Generate a CycloneDx bill of materials outlining the project's dependencies, including transitive dependencies.
  */
 @Mojo(name = "cyclonedx", requiresDependencyResolution = ResolutionScope.TEST, threadSafe = true,
         defaultPhase = LifecyclePhase.PACKAGE)

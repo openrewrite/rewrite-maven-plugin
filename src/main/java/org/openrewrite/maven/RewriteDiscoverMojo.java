@@ -2,31 +2,49 @@ package org.openrewrite.maven;
 
 import org.apache.maven.plugin.MojoExecutionException;
 import org.apache.maven.plugins.annotations.Mojo;
+import org.apache.maven.plugins.annotations.Parameter;
 import org.openrewrite.Recipe;
 import org.openrewrite.config.Environment;
 import org.openrewrite.config.OptionDescriptor;
 import org.openrewrite.config.RecipeDescriptor;
+import org.openrewrite.internal.lang.Nullable;
 
 import java.util.Collection;
 
 /**
- * Generate a list showing the available and applied recipes based on what Rewrite finds on your classpath.
+ * Display available recipes found on the classpath.<br>
+ * {@code ./mvnw rewrite:discover -Drecipe=<recipe-name>} to display recipe configuration details. For example:<br>
+ * {@code ./mvnw rewrite:discover -Drecipe=org.openrewrite.java.format.AutoFormat}
  */
 @Mojo(name = "discover", threadSafe = true)
 public class RewriteDiscoverMojo extends AbstractRewriteMojo {
+
+    /**
+     * The name of a specific recipe to show details for. For example:<br>
+     * {@code ./mvnw rewrite:discover -Drecipe=org.openrewrite.java.format.AutoFormat}
+     */
+    @Nullable
+    @Parameter(property = "recipe")
+    String recipeFilter;
+
+    /**
+     * Whether to show verbose details of recipes and options.
+     */
+    @Parameter(property = "rewrite.discover.verbose", defaultValue = "false")
+    boolean verbose;
+
+    /**
+     * Whether to show recipe details for recipes which use other recipes.
+     */
+    @Parameter(property = "rewrite.discover.recursive", defaultValue = "false")
+    boolean recursive;
 
     @Override
     public void execute() throws MojoExecutionException {
         Environment env = environment();
 
-        String recipeFilter = System.getProperty("rewrite.discover.recipe");
-        String verboseProperty = System.getProperty("rewrite.discover.verbose");
-        boolean verbose = Boolean.parseBoolean(verboseProperty);
-        String recursiveProperty = System.getProperty("rewrite.discover.recursive");
-        boolean recursive = Boolean.parseBoolean(recursiveProperty);
-
         if (recipeFilter != null) {
-            RecipeDescriptor recipeDescriptor = env.listRecipeDescriptors().stream().filter(r -> r.getName().equals(recipeFilter)).findAny().orElse(null);
+            RecipeDescriptor recipeDescriptor = env.listRecipeDescriptors().stream().filter(r -> r.getName().equalsIgnoreCase(recipeFilter)).findAny().orElse(null);
             if (recipeDescriptor == null) {
                 getLog().info("Recipe " + recipeFilter + " not found.");
             } else {

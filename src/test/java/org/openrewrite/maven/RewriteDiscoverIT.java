@@ -23,24 +23,21 @@ public class RewriteDiscoverIT {
                 )
                 .matches(logLines ->
                         logLines.stream().noneMatch(logLine -> logLine.contains("Descriptors"))
-                )
-        ;
+                );
 
         assertThat(result).out().warn().isEmpty();
     }
 
     @MavenTest
-    @SystemProperty(value = "rewrite.discover.verbose", content = "true")
-    void rewrite_discover_verbose_output(MavenExecutionResult result) {
+    @SystemProperty(value = "recipe", content = "org.openrewrite.JAVA.format.AutoFormAT")
+    void rewrite_discover_recipe_lookup_case_insensitive(MavenExecutionResult result) {
         assertThat(result)
                 .isSuccessful()
                 .out()
                 .info()
                 .matches(logLines ->
-                        logLines.stream().anyMatch(logLine -> logLine.contains("Descriptors"))
+                        logLines.stream().anyMatch(logLine -> logLine.contains("org.openrewrite.java.format.AutoFormat"))
                 );
-
-        assertThat(result).out().warn().isEmpty();
     }
 
     @MavenTest
@@ -51,6 +48,19 @@ public class RewriteDiscoverIT {
                 .info()
                 .matches(logLines ->
                         logLines.stream().anyMatch(logLine -> logLine.contains("com.example.RewriteDiscoverIT.CodeCleanup"))
+                );
+
+        assertThat(result).out().warn().isEmpty();
+    }
+
+    @MavenTest
+    void rewrite_discover_verbose_output(MavenExecutionResult result) {
+        assertThat(result)
+                .isSuccessful()
+                .out()
+                .info()
+                .matches(logLines ->
+                        logLines.stream().anyMatch(logLine -> logLine.contains("Descriptors"))
                 );
 
         assertThat(result).out().warn().isEmpty();
