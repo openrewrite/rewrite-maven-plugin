@@ -4,10 +4,10 @@
     <modelVersion>4.0.0</modelVersion>
 
     <groupId>org.openrewrite.maven</groupId>
-    <artifactId>rewrite_discover_reads_rewrite_yml</artifactId>
+    <artifactId>rewrite_discover_rewrite_yml</artifactId>
     <version>1.0</version>
     <packaging>jar</packaging>
-    <name>RewriteDiscoverIT#rewrite_discover_reads_rewrite_yml</name>
+    <name>RewriteDiscoverIT#rewrite_discover_rewrite_yml</name>
 
     <build>
         <plugins>
@@ -20,7 +20,7 @@
                         <recipe>com.example.RewriteDiscoverIT.CodeCleanup</recipe>
                     </activeRecipes>
                     <configLocation>
-                        ${maven.multiModuleProjectDirectory}/src/test/resources-its/org/openrewrite/maven/RewriteDiscoverIT/rewrite_discover_reads_rewrite_yml/rewrite.yml
+                        ${maven.multiModuleProjectDirectory}/src/test/resources-its/org/openrewrite/maven/RewriteDiscoverIT/rewrite_discover_rewrite_yml/rewrite.yml
                     </configLocation>
                 </configuration>
             </plugin>
