@@ -58,12 +58,12 @@ public class RewriteDiscoverMojo extends AbstractRewriteMojo {
 
         getLog().info("Active Recipes:");
         for (String activeRecipe : activeRecipes) {
-            getLog().info("    " + activeRecipe);
+            getLog().info(indent(1, activeRecipe));
         }
         getLog().info("");
         getLog().info("Activatable Recipes:");
         for (Recipe recipe : recipesByName) {
-            getLog().info("    " + recipe.getName());
+            getLog().info(indent(1, recipe.getName()));
         }
         getLog().info("");
         if (verbose) {
@@ -76,18 +76,18 @@ public class RewriteDiscoverMojo extends AbstractRewriteMojo {
 
     private void logRecipeDescriptor(RecipeDescriptor recipeDescriptor, boolean verbose, boolean recursive) {
         if (verbose) {
-            getLog().info("    Name: " + recipeDescriptor.getName());
-            getLog().info("    Display name: " + recipeDescriptor.getDisplayName());
-            getLog().info("    Description: " + recipeDescriptor.getDescription());
+            getLog().info(indent(1, "Name: " + recipeDescriptor.getName()));
+            getLog().info(indent(1, "Display name: " + recipeDescriptor.getDisplayName()));
+            getLog().info(indent(1, "Description: " + recipeDescriptor.getDescription()));
             if (!recipeDescriptor.getTags().isEmpty()) {
-                getLog().info("    Tags: " + String.join(",", recipeDescriptor.getTags()));
+                getLog().info(indent(1, "Tags: " + String.join(",", recipeDescriptor.getTags())));
             }
         } else {
-            getLog().info("    " + recipeDescriptor.getName());
+            getLog().info(indent(1, recipeDescriptor.getName()));
         }
         if (!recipeDescriptor.getOptions().isEmpty()) {
             if (verbose) {
-                getLog().info("    Options:");
+                getLog().info(indent(1, "Options:"));
             }
             for (OptionDescriptor optionDescriptor : recipeDescriptor.getOptions()) {
                 StringBuilder optionBuilder = new StringBuilder(optionDescriptor.getName())
@@ -95,20 +95,20 @@ public class RewriteDiscoverMojo extends AbstractRewriteMojo {
                 if (optionDescriptor.isRequired()) {
                     optionBuilder.append("!");
                 }
-                getLog().info("        " + optionBuilder);
+                getLog().info(indent(2, optionBuilder));
                 if (verbose) {
-                    getLog().info("        Display name: " + optionDescriptor.getDisplayName());
-                    getLog().info("        Description: " + optionDescriptor.getDescription());
+                    getLog().info(indent(2, "Display name: " + optionDescriptor.getDisplayName()));
+                    getLog().info(indent(2, "Description: " + optionDescriptor.getDescription()));
                     getLog().info("");
                 }
             }
         }
         if (!recipeDescriptor.getRecipeList().isEmpty()) {
             if (verbose) {
-                getLog().info("    Recipe list:");
+                getLog().info(indent(1, "Recipe list:"));
             }
             for (RecipeDescriptor r : recipeDescriptor.getRecipeList()) {
-                logNestedRecipeDescriptor(r, verbose, recursive, "        ");
+                logNestedRecipeDescriptor(r, verbose, recursive, 2);
             }
             if (verbose) {
                 getLog().info("");
@@ -119,23 +119,23 @@ public class RewriteDiscoverMojo extends AbstractRewriteMojo {
         }
     }
 
-    private void logNestedRecipeDescriptor(RecipeDescriptor recipeDescriptor, boolean verbose, boolean recursive, String indent) {
+    private void logNestedRecipeDescriptor(RecipeDescriptor recipeDescriptor, boolean verbose, boolean recursive, int indent) {
         if (verbose) {
-            getLog().info(indent + "Name: " + recipeDescriptor.getName());
-            getLog().info(indent + "Display name: " + recipeDescriptor.getDisplayName());
-            getLog().info(indent + "Description: " + recipeDescriptor.getDescription());
+            getLog().info(indent(indent, "Name: " + recipeDescriptor.getName()));
+            getLog().info(indent(indent, "Display name: " + recipeDescriptor.getDisplayName()));
+            getLog().info(indent(indent, "Description: " + recipeDescriptor.getDescription()));
             if (!recipeDescriptor.getTags().isEmpty()) {
-                getLog().info(indent + "Tags: " + String.join(",", recipeDescriptor.getTags()));
+                getLog().info(indent(indent, "Tags: " + String.join(",", recipeDescriptor.getTags())));
             }
         } else {
-            getLog().info(indent + recipeDescriptor.getName());
+            getLog().info(indent(indent, recipeDescriptor.getName()));
         }
         if (!recipeDescriptor.getOptions().isEmpty()) {
             if (verbose) {
-                getLog().info(indent + "Options:");
+                getLog().info(indent(indent, "Options:"));
             }
             for (OptionDescriptor optionDescriptor : recipeDescriptor.getOptions()) {
-                getLog().info(indent + "    " + optionDescriptor.getName() + ": " + optionDescriptor.getValue());
+                getLog().info(indent(indent + 1, optionDescriptor.getName() + ": " + optionDescriptor.getValue()));
             }
             if (verbose) {
                 getLog().info("");
@@ -143,10 +143,10 @@ public class RewriteDiscoverMojo extends AbstractRewriteMojo {
         }
         if (recursive && !recipeDescriptor.getRecipeList().isEmpty()) {
             if (verbose) {
-                getLog().info(indent + "Recipe list:");
+                getLog().info(indent(indent, "Recipe list:"));
             }
             for (RecipeDescriptor nestedRecipeDescriptor : recipeDescriptor.getRecipeList()) {
-                logNestedRecipeDescriptor(nestedRecipeDescriptor, verbose, true, indent + "    ");
+                logNestedRecipeDescriptor(nestedRecipeDescriptor, verbose, true, indent + 1);
             }
             if (verbose) {
                 getLog().info("");
