@@ -4,12 +4,12 @@ name: ci
 on:
   push:
     branches:
-      - master
+      - main
     tags-ignore:
       - "*"
   pull_request:
     branches:
-      - master
+      - main
 
 jobs:
   build:
