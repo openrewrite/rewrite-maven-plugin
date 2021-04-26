@@ -97,6 +97,7 @@ public class RewriteDiscoverMojo extends AbstractRewriteMojo {
                     getLog().info(indent(indentLevel + 1, od.getName() + ": " + od.getType() + (od.isRequired() ? "!" : "")));
                     getLog().info(indent(indentLevel + 2, "displayName: " + od.getDisplayName()));
                     getLog().info(indent(indentLevel + 2, "description: " + od.getDescription()));
+                    getLog().info(indent(indentLevel + 2, (od.getExample() == null ? "" : "example: " + od.getExample())));
                 }
             }
 
