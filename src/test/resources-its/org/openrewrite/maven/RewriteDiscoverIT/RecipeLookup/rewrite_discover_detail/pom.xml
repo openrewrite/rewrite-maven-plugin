@@ -4,14 +4,10 @@
     <modelVersion>4.0.0</modelVersion>
 
     <groupId>org.openrewrite.maven</groupId>
-    <artifactId>rewrite_discover_verbose_output</artifactId>
+    <artifactId>rewrite_discover_detail</artifactId>
     <version>1.0</version>
     <packaging>jar</packaging>
-    <name>RewriteDiscoverIT#rewrite_discover_verbose_output</name>
-
-    <properties>
-        <rewrite.discover.verbose>true</rewrite.discover.verbose>
-    </properties>
+    <name>RewriteDiscoverIT#rewrite_discover_detail</name>
 
     <build>
         <plugins>

@@ -4,10 +4,10 @@
     <modelVersion>4.0.0</modelVersion>
 
     <groupId>org.openrewrite.maven</groupId>
-    <artifactId>rewrite_discover_default_output</artifactId>
+    <artifactId>rewrite_discover_recursion</artifactId>
     <version>1.0</version>
     <packaging>jar</packaging>
-    <name>RewriteDiscoverIT#rewrite_discover_default_output</name>
+    <name>RewriteDiscoverIT#rewrite_discover_recursion</name>
 
     <build>
         <plugins>
