@@ -94,7 +94,7 @@ public class RewriteDryRunMojo extends AbstractRewriteMojo {
                 throw new MojoExecutionException("Unable to generate rewrite result file.", e);
             }
             getLog().warn("Report available:");
-            getLog().warn("    " + patchFile.normalize().toString());
+            getLog().warn(indent(1, patchFile.normalize().toString()));
             getLog().warn("Run 'mvn rewrite:run' to apply the fixes. Afterwards, review and commit the results.");
         }
     }
