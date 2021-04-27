@@ -44,31 +44,31 @@ public class RewriteDryRunMojo extends AbstractRewriteMojo {
         if (results.isNotEmpty()) {
             for (Result result : results.generated) {
                 assert result.getAfter() != null;
-                getLog().warn("Applying fixes would generate new file " +
+                getLog().warn("These recipes would generate new file " +
                         result.getAfter().getSourcePath() +
-                        " by:");
+                        ":");
                 logRecipesThatMadeChanges(result);
             }
             for (Result result : results.deleted) {
                 assert result.getBefore() != null;
-                getLog().warn("Applying fixes would delete file " +
+                getLog().warn("These recipes would delete file " +
                         result.getBefore().getSourcePath() +
-                        " by:");
+                        ":");
                 logRecipesThatMadeChanges(result);
             }
             for (Result result : results.moved) {
                 assert result.getBefore() != null;
                 assert result.getAfter() != null;
-                getLog().warn("Applying fixes would move file from " +
+                getLog().warn("These recipes would move file from " +
                         result.getBefore().getSourcePath() + " to " +
-                        result.getAfter().getSourcePath() + " by:");
+                        result.getAfter().getSourcePath() + ":");
                 logRecipesThatMadeChanges(result);
             }
             for (Result result : results.refactoredInPlace) {
                 assert result.getBefore() != null;
-                getLog().warn("Applying fixes would make changes to " +
+                getLog().warn("These recipes would make changes to " +
                         result.getBefore().getSourcePath() +
-                        " by:");
+                        ":");
                 logRecipesThatMadeChanges(result);
             }
 
@@ -95,7 +95,7 @@ public class RewriteDryRunMojo extends AbstractRewriteMojo {
             }
             getLog().warn("Report available:");
             getLog().warn(indent(1, patchFile.normalize().toString()));
-            getLog().warn("Run 'mvn rewrite:run' to apply the fixes. Afterwards, review and commit the results.");
+            getLog().warn("Run 'mvn rewrite:run' to the recipes.");
         }
     }
 }
