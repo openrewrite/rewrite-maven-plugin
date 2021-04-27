@@ -16,19 +16,27 @@
 package org.openrewrite.maven;
 
 import org.apache.maven.plugin.MojoExecutionException;
-import org.apache.maven.plugins.annotations.Execute;
-import org.apache.maven.plugins.annotations.LifecyclePhase;
-import org.apache.maven.plugins.annotations.Mojo;
-import org.apache.maven.plugins.annotations.ResolutionScope;
+import org.apache.maven.plugins.annotations.*;
 import org.openrewrite.Result;
 
+import java.io.BufferedWriter;
+import java.io.File;
+import java.io.IOException;
+import java.nio.file.Files;
+import java.nio.file.Path;
+import java.util.stream.Stream;
+
 /**
- * Display warnings for any recipes that would suggest changes, but does not make any changes.
+ * Generates warnings in the console for any recipes that would suggest changes, but does not make any changes.
  */
 @Mojo(name = "dryRun", requiresDependencyResolution = ResolutionScope.TEST, threadSafe = true,
         defaultPhase = LifecyclePhase.PROCESS_TEST_CLASSES)
 @Execute(phase = LifecyclePhase.PROCESS_TEST_CLASSES)
 public class RewriteDryRunMojo extends AbstractRewriteMojo {
+
+    @Parameter(property = "reportOutputDirectory", defaultValue = "${project.reporting.outputDirectory}/rewrite")
+    private File reportOutputDirectory;
+
     @Override
     public void execute() throws MojoExecutionException {
         ResultsContainer results = listResults();
@@ -63,6 +71,30 @@ public class RewriteDryRunMojo extends AbstractRewriteMojo {
                         " by:");
                 logRecipesThatMadeChanges(result);
             }
+
+            //noinspection ResultOfMethodCallIgnored
+            reportOutputDirectory.mkdirs();
+
+            Path patchFile = reportOutputDirectory.toPath().resolve("rewrite.patch");
+            try (BufferedWriter writer = Files.newBufferedWriter(patchFile)) {
+                Stream.concat(
+                        Stream.concat(results.generated.stream(), results.deleted.stream()),
+                        Stream.concat(results.moved.stream(), results.refactoredInPlace.stream())
+                )
+                        .map(Result::diff)
+                        .forEach(diff -> {
+                            try {
+                                writer.write(diff + "\n");
+                            } catch (IOException e) {
+                                throw new RuntimeException(e);
+                            }
+                        });
+
+            } catch (Exception e) {
+                throw new MojoExecutionException("Unable to generate rewrite result file.", e);
+            }
+            getLog().warn("Report available:");
+            getLog().warn("    " + patchFile.normalize().toString());
             getLog().warn("Run 'mvn rewrite:run' to apply the fixes. Afterwards, review and commit the results.");
         }
     }
