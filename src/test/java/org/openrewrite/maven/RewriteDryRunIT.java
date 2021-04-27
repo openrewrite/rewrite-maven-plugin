@@ -18,7 +18,7 @@ public class RewriteDryRunIT {
                 .out()
                 .warn()
                 .matches(logLines ->
-                        logLines.stream().anyMatch(logLine -> logLine.contains("Applying fixes would make changes"))
+                        logLines.stream().anyMatch(logLine -> logLine.contains("org.openrewrite.java.cleanup.FinalizeLocalVariables"))
                 );
     }
 
@@ -29,7 +29,7 @@ public class RewriteDryRunIT {
                 .out()
                 .warn()
                 .matches(logLines ->
-                        logLines.stream().anyMatch(logLine -> logLine.contains("Applying fixes would make changes"))
+                        logLines.stream().anyMatch(logLine -> logLine.contains("org.openrewrite.java.format.AutoFormat"))
                 );
     }
 
