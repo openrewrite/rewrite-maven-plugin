@@ -179,6 +179,12 @@
             <version>${itf-maven.version}</version>
             <scope>test</scope>
         </dependency>
+        <dependency>
+            <groupId>com.soebes.itf.jupiter.extension</groupId>
+            <artifactId>itf-extension-maven</artifactId>
+            <version>${itf-maven.version}</version>
+            <scope>test</scope>
+        </dependency>
 
         <dependency>
             <groupId>org.apache.maven.plugin-testing</groupId>
