@@ -211,8 +211,6 @@ public abstract class AbstractRewriteMojo extends AbstractMojo {
             styles = env.activateStyles(activeStyles);
             Recipe recipe = env.activateRecipes(activeRecipes);
             
-
-
             List<SourceFile> sourceFiles = new ArrayList<>();
             List<Path> javaSources = new ArrayList<>();
             javaSources.addAll(listJavaSources(project.getBuild().getSourceDirectory()));
