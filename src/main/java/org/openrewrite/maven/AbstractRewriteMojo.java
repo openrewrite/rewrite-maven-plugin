@@ -236,7 +236,6 @@ public abstract class AbstractRewriteMojo extends AbstractMojo {
                     .parse(javaSources, baseDir, ctx));
 
             getLog().info("Parsing YAML files...");
-
             
             sourceFiles.addAll(
                     new YamlParser()
@@ -253,7 +252,6 @@ public abstract class AbstractRewriteMojo extends AbstractMojo {
             
             getLog().info("Parsing properties files...");
             
-
             sourceFiles.addAll(
                     new PropertiesParser()
                             .parse(
