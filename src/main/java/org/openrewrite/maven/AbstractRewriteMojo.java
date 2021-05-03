@@ -213,6 +213,15 @@ public abstract class AbstractRewriteMojo extends AbstractMojo {
             List<NamedStyles> styles;
             styles = env.activateStyles(activeStyles);
             Recipe recipe = env.activateRecipes(activeRecipes);
+            Collection<Validated> validated = recipe.validateAll();
+            List<Validated.Invalid> failedValidations = validated.stream().map(Validated::failures)
+                    .flatMap(Collection::stream).collect(toList());
+            if (!failedValidations.isEmpty()) {
+                failedValidations.forEach(failedValidation -> getLog().error(
+                        "Recipe validation error in " + failedValidation.getProperty() + ": " +
+                                failedValidation.getMessage(), failedValidation.getException()));
+                return new ResultsContainer(baseDir, Collections.emptyList());
+            }
 
             List<SourceFile> sourceFiles = new ArrayList<>();
             List<Path> javaSources = new ArrayList<>();
