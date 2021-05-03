@@ -151,7 +151,7 @@
             <!-- annotations used to describe the plugin metadata -->
             <groupId>org.apache.maven.plugin-tools</groupId>
             <artifactId>maven-plugin-annotations</artifactId>
-            <version>3.6.0</version>
+            <version>3.6.1</version>
             <scope>provided</scope>
         </dependency>
 
