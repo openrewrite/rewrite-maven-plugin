@@ -204,6 +204,8 @@ public abstract class AbstractRewriteMojo extends AbstractMojo {
             MeterRegistry meterRegistry = meterRegistryProvider.registry();
 
             Path baseDir = getBaseDir();
+            getLog().info(String.format("Using active recipe(s) %s", activeRecipes));
+            getLog().info(String.format("Using active styles(s) %s", activeStyles));
             if (activeRecipes.isEmpty()) {
                 return new ResultsContainer(baseDir, emptyList());
             }
@@ -214,6 +216,7 @@ public abstract class AbstractRewriteMojo extends AbstractMojo {
             styles = env.activateStyles(activeStyles);
             Recipe recipe = env.activateRecipes(activeRecipes);
 
+            getLog().info("Validating recipes...");
             Collection<Validated> validated = recipe.validateAll();
             List<Validated.Invalid> failedValidations = validated.stream().map(Validated::failures)
                     .flatMap(Collection::stream).collect(toList());
@@ -232,7 +235,6 @@ public abstract class AbstractRewriteMojo extends AbstractMojo {
             ExecutionContext ctx = executionContext();
 
             getLog().info("Parsing Java files...");
-            
             sourceFiles.addAll(JavaParser.fromJavaVersion()
                     .styles(styles)
                     .classpath(
@@ -249,7 +251,6 @@ public abstract class AbstractRewriteMojo extends AbstractMojo {
                     .parse(javaSources, baseDir, ctx));
 
             getLog().info("Parsing YAML files...");
-            
             sourceFiles.addAll(
                     new YamlParser()
                             .parse(
@@ -262,9 +263,8 @@ public abstract class AbstractRewriteMojo extends AbstractMojo {
                                     baseDir,
                                     ctx)
             );
-            
+
             getLog().info("Parsing properties files...");
-            
             sourceFiles.addAll(
                     new PropertiesParser()
                             .parse(
@@ -278,8 +278,7 @@ public abstract class AbstractRewriteMojo extends AbstractMojo {
                                     ctx)
             );
 
-            getLog().info("Parsing XML files ...");
-            
+            getLog().info("Parsing XML files...");
             sourceFiles.addAll(
                     new XmlParser()
                             .parse(
@@ -293,13 +292,11 @@ public abstract class AbstractRewriteMojo extends AbstractMojo {
                                     ctx)
             );
 
-            getLog().info("Parsing POM ...");
-
+            getLog().info("Parsing POM...");
             Maven pomAst = parseMaven(baseDir, ctx);
             sourceFiles.add(pomAst);
 
-            getLog().info(String.format("Running recipe(s) %s", activeRecipes));
-            
+            getLog().info("Running recipe(s)...");
             List<Result> results = recipe.run(sourceFiles, ctx);
 
             return new ResultsContainer(baseDir, results);
