@@ -9,6 +9,7 @@ import org.apache.maven.plugins.annotations.Parameter;
 import org.apache.maven.project.MavenProject;
 import org.openrewrite.*;
 import org.openrewrite.config.Environment;
+import org.openrewrite.config.RecipeDescriptor;
 import org.openrewrite.config.YamlResourceLoader;
 import org.openrewrite.internal.lang.Nullable;
 import org.openrewrite.java.JavaParser;
@@ -70,6 +71,8 @@ public abstract class AbstractRewriteMojo extends AbstractMojo {
      * The prefix used to left-pad log messages, multiplied per "level" of log message.
      */
     private static final String LOG_INDENT_INCREMENT = "    ";
+
+    private static final String RECIPE_NOT_FOUND_EXCEPTION_MSG = "Could not find recipe '%s' among available recipes";
 
     protected Environment environment() throws MojoExecutionException {
         Environment.Builder env = Environment
@@ -210,7 +213,17 @@ public abstract class AbstractRewriteMojo extends AbstractMojo {
             List<NamedStyles> styles;
             styles = env.activateStyles(activeStyles);
             Recipe recipe = env.activateRecipes(activeRecipes);
-            
+
+            Collection<Validated> validated = recipe.validateAll();
+            List<Validated.Invalid> failedValidations = validated.stream().map(Validated::failures)
+                    .flatMap(Collection::stream).collect(toList());
+            if (!failedValidations.isEmpty()) {
+                failedValidations.forEach(failedValidation -> getLog().error(
+                        "Recipe validation error in " + failedValidation.getProperty() + ": " +
+                                failedValidation.getMessage(), failedValidation.getException()));
+                return new ResultsContainer(baseDir, Collections.emptyList());
+            }
+
             List<SourceFile> sourceFiles = new ArrayList<>();
             List<Path> javaSources = new ArrayList<>();
             javaSources.addAll(listJavaSources(project.getBuild().getSourceDirectory()));
@@ -372,4 +385,12 @@ public abstract class AbstractRewriteMojo extends AbstractMojo {
         }
         return buffer;
     }
+
+    public static RecipeDescriptor getRecipeDescriptor(String recipe, Collection<RecipeDescriptor> recipeDescriptors) throws MojoExecutionException {
+        return recipeDescriptors.stream()
+                .filter(r -> r.getName().equalsIgnoreCase(recipe))
+                .findAny()
+                .orElseThrow(() -> new MojoExecutionException(String.format(RECIPE_NOT_FOUND_EXCEPTION_MSG, recipe)));
+    }
+
 }

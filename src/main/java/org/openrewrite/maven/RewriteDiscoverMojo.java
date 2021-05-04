@@ -20,8 +20,6 @@ import java.util.HashSet;
 @Mojo(name = "discover", threadSafe = true)
 public class RewriteDiscoverMojo extends AbstractRewriteMojo {
 
-    private static final String RECIPE_NOT_FOUND_EXCEPTION_MSG = "Could not find recipe '%s' among available recipes";
-
     /**
      * The name of a specific recipe to show details for. For example:<br>
      * {@code ./mvnw rewrite:discover -Ddetail=true -Drecipe=org.openrewrite.java.format.AutoFormat}
@@ -116,10 +114,4 @@ public class RewriteDiscoverMojo extends AbstractRewriteMojo {
 
     }
 
-    private static RecipeDescriptor getRecipeDescriptor(String recipe, Collection<RecipeDescriptor> recipeDescriptors) throws MojoExecutionException {
-        return recipeDescriptors.stream()
-                .filter(r -> r.getName().equalsIgnoreCase(recipe))
-                .findAny()
-                .orElseThrow(() -> new MojoExecutionException(String.format(RECIPE_NOT_FOUND_EXCEPTION_MSG, recipe)));
-    }
 }
