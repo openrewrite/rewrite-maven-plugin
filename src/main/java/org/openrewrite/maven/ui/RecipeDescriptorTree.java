@@ -1,6 +1,5 @@
 package org.openrewrite.maven.ui;
 
-import org.jetbrains.annotations.NotNull;
 import org.openrewrite.config.RecipeDescriptor;
 
 import java.util.ArrayList;
@@ -84,7 +83,7 @@ public class RecipeDescriptorTree implements Comparable<RecipeDescriptorTree> {
     }
 
     @Override
-    public int compareTo(@NotNull RecipeDescriptorTree o) {
+    public int compareTo(RecipeDescriptorTree o) {
         return this.children.size() - o.children.size();
     }
 }
