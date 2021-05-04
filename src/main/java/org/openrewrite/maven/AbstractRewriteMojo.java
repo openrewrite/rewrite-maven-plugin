@@ -213,6 +213,7 @@ public abstract class AbstractRewriteMojo extends AbstractMojo {
             List<NamedStyles> styles;
             styles = env.activateStyles(activeStyles);
             Recipe recipe = env.activateRecipes(activeRecipes);
+
             Collection<Validated> validated = recipe.validateAll();
             List<Validated.Invalid> failedValidations = validated.stream().map(Validated::failures)
                     .flatMap(Collection::stream).collect(toList());
@@ -230,6 +231,8 @@ public abstract class AbstractRewriteMojo extends AbstractMojo {
 
             ExecutionContext ctx = executionContext();
 
+            getLog().info("Parsing Java files...");
+            
             sourceFiles.addAll(JavaParser.fromJavaVersion()
                     .styles(styles)
                     .classpath(
@@ -245,6 +248,8 @@ public abstract class AbstractRewriteMojo extends AbstractMojo {
                     .build()
                     .parse(javaSources, baseDir, ctx));
 
+            getLog().info("Parsing YAML files...");
+            
             sourceFiles.addAll(
                     new YamlParser()
                             .parse(
@@ -257,7 +262,9 @@ public abstract class AbstractRewriteMojo extends AbstractMojo {
                                     baseDir,
                                     ctx)
             );
-
+            
+            getLog().info("Parsing properties files...");
+            
             sourceFiles.addAll(
                     new PropertiesParser()
                             .parse(
@@ -271,6 +278,8 @@ public abstract class AbstractRewriteMojo extends AbstractMojo {
                                     ctx)
             );
 
+            getLog().info("Parsing XML files ...");
+            
             sourceFiles.addAll(
                     new XmlParser()
                             .parse(
@@ -284,9 +293,13 @@ public abstract class AbstractRewriteMojo extends AbstractMojo {
                                     ctx)
             );
 
+            getLog().info("Parsing POM ...");
+
             Maven pomAst = parseMaven(baseDir, ctx);
             sourceFiles.add(pomAst);
 
+            getLog().info(String.format("Running recipe(s) %s", activeRecipes));
+            
             List<Result> results = recipe.run(sourceFiles, ctx);
 
             return new ResultsContainer(baseDir, results);
