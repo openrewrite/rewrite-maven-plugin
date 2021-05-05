@@ -68,6 +68,16 @@ public abstract class AbstractRewriteMojo extends AbstractMojo {
     private String pomCacheDirectory;
 
     /**
+     * Whether to throw an exception if an activeRecipe fails configuration validation.
+     * This may happen if the activeRecipe is improperly configured, or any downstream recipes are improperly configured.
+     * <p>
+     * For the time, this default is "false" to prevent one improperly recipe from failing the build.
+     * In the future, this default may be changed to "true" to be more restrictive.
+     */
+    @Parameter(property = "failOnInvalidActiveRecipes", defaultValue = "false")
+    private boolean failOnInvalidActiveRecipes;
+
+    /**
      * The prefix used to left-pad log messages, multiplied per "level" of log message.
      */
     private static final String LOG_INDENT_INCREMENT = "    ";
@@ -216,7 +226,7 @@ public abstract class AbstractRewriteMojo extends AbstractMojo {
             styles = env.activateStyles(activeStyles);
             Recipe recipe = env.activateRecipes(activeRecipes);
 
-            getLog().info("Validating recipes...");
+            getLog().info("Validating active recipes...");
             Collection<Validated> validated = recipe.validateAll();
             List<Validated.Invalid> failedValidations = validated.stream().map(Validated::failures)
                     .flatMap(Collection::stream).collect(toList());
@@ -224,7 +234,11 @@ public abstract class AbstractRewriteMojo extends AbstractMojo {
                 failedValidations.forEach(failedValidation -> getLog().error(
                         "Recipe validation error in " + failedValidation.getProperty() + ": " +
                                 failedValidation.getMessage(), failedValidation.getException()));
-                return new ResultsContainer(baseDir, Collections.emptyList());
+                if (failOnInvalidActiveRecipes) {
+                    throw new MojoExecutionException("Recipe validation errors detected as part of one or more activeRecipe(s). Please check error logs.");
+                } else {
+                    getLog().error("Recipe validation errors detected as part of one or more activeRecipe(s). Execution will continue regardless.");
+                }
             }
 
             List<SourceFile> sourceFiles = new ArrayList<>();
