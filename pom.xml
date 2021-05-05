@@ -144,6 +144,12 @@
                 </exclusion>
             </exclusions>
         </dependency>
+        <dependency>
+            <!-- https://github.com/jline/jline3 -->
+            <groupId>org.jline</groupId>
+            <artifactId>jline</artifactId>
+            <version>3.19.0</version>
+        </dependency>
 
         <dependency>
             <groupId>org.apache.maven.shared</groupId>

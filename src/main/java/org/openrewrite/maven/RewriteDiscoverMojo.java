@@ -9,7 +9,7 @@ import org.openrewrite.config.Environment;
 import org.openrewrite.config.OptionDescriptor;
 import org.openrewrite.config.RecipeDescriptor;
 import org.openrewrite.internal.lang.Nullable;
-import org.openrewrite.maven.ui.RecipeDescriptorTreePrompter;
+import org.openrewrite.maven.ui.JLinePrompter;
 import org.openrewrite.style.NamedStyles;
 
 import java.util.Collection;
@@ -62,8 +62,10 @@ public class RewriteDiscoverMojo extends AbstractRewriteMojo {
             writeRecipeDescriptor(rd, detail, 0, 0);
         } else if (interactive) {
             getLog().info("Entering interactive mode, Ctrl-C to exit...");
-            RecipeDescriptorTreePrompter treePrompter = new RecipeDescriptorTreePrompter(prompter);
-            RecipeDescriptor rd = treePrompter.execute(availableRecipeDescriptors);
+            // RecipeDescriptorTreePrompter treePrompter = new RecipeDescriptorTreePrompter(prompter);
+            // RecipeDescriptor rd = treePrompter.execute(availableRecipeDescriptors);
+            String recipeDescriptorId = JLinePrompter.select(availableRecipeDescriptors);
+            RecipeDescriptor rd = getRecipeDescriptor(recipeDescriptorId, availableRecipeDescriptors); // todo, gross
             writeRecipeDescriptor(rd, true, 0, 0);
         } else {
             Collection<RecipeDescriptor> activeRecipeDescriptors = new HashSet<>();
