@@ -27,7 +27,9 @@ import java.io.IOException;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
+import java.nio.file.attribute.BasicFileAttributes;
 import java.util.*;
+import java.util.function.BiPredicate;
 import java.util.stream.Stream;
 
 import static java.util.Collections.emptyList;
@@ -264,46 +266,45 @@ public abstract class AbstractRewriteMojo extends AbstractMojo {
                     .build()
                     .parse(javaSources, baseDir, ctx));
 
+            Set<Path> resources = new HashSet<>();
+            for (Resource resource : project.getBuild().getResources()) {
+                addToResources(ctx, resources, resource);
+            }
+            for (Resource resource : project.getBuild().getTestResources()) {
+                addToResources(ctx, resources, resource);
+            }
+
             getLog().info("Parsing YAML files...");
             sourceFiles.addAll(
                     new YamlParser()
-                            .parse(
-                                    Stream.concat(project.getBuild().getResources().stream(), project.getBuild().getTestResources().stream())
-                                            .map(Resource::getTargetPath)
-                                            .filter(Objects::nonNull)
-                                            .filter(it -> it.endsWith(".yml") || it.endsWith(".yaml"))
-                                            .map(Paths::get)
+                            .parse(resources.stream()
+                                            .filter(it -> it.getFileName().toString().endsWith(".yml") || it.getFileName().toString().endsWith(".yaml"))
                                             .collect(toList()),
                                     baseDir,
-                                    ctx)
+                                    ctx
+                            )
             );
 
             getLog().info("Parsing properties files...");
             sourceFiles.addAll(
                     new PropertiesParser()
-                            .parse(
-                                    Stream.concat(project.getBuild().getResources().stream(), project.getBuild().getTestResources().stream())
-                                            .map(Resource::getTargetPath)
-                                            .filter(Objects::nonNull)
-                                            .filter(it -> it.endsWith(".properties"))
-                                            .map(Paths::get)
+                            .parse(resources.stream()
+                                            .filter(it -> it.getFileName().toString().endsWith(".properties"))
                                             .collect(toList()),
                                     baseDir,
-                                    ctx)
+                                    ctx
+                            )
             );
 
             getLog().info("Parsing XML files...");
             sourceFiles.addAll(
                     new XmlParser()
-                            .parse(
-                                    Stream.concat(project.getBuild().getResources().stream(), project.getBuild().getTestResources().stream())
-                                            .map(Resource::getTargetPath)
-                                            .filter(Objects::nonNull)
-                                            .filter(it -> it.endsWith(".xml"))
-                                            .map(Paths::get)
+                            .parse(resources.stream()
+                                            .filter(it -> it.getFileName().toString().endsWith(".xml"))
                                             .collect(toList()),
                                     baseDir,
-                                    ctx)
+                                    ctx
+                            )
             );
 
             getLog().info("Parsing POM...");
@@ -317,6 +318,19 @@ public abstract class AbstractRewriteMojo extends AbstractMojo {
         } catch (
                 DependencyResolutionRequiredException e) {
             throw new MojoExecutionException("Dependency resolution required", e);
+        }
+    }
+
+    private void addToResources(ExecutionContext ctx, Set<Path> resources, Resource resource) {
+        File file = new File(resource.getDirectory());
+        if (file.exists()) {
+            BiPredicate<Path, BasicFileAttributes> predicate = (p, bfa) ->
+                    bfa.isRegularFile() && Stream.of("yml", "yaml").anyMatch(type -> p.getFileName().toString().endsWith(type));
+            try {
+                Files.find(file.toPath(), 999, predicate).forEach(resources::add);
+            } catch (IOException e) {
+                ctx.getOnError().accept(e);
+            }
         }
     }
 

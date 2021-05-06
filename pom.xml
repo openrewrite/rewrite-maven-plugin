@@ -146,6 +146,11 @@
         </dependency>
 
         <dependency>
+            <groupId>org.apache.maven.shared</groupId>
+            <artifactId>maven-filtering</artifactId>
+            <version>3.2.0</version>
+        </dependency>
+        <dependency>
             <!-- plugin interfaces and base classes -->
             <groupId>org.apache.maven</groupId>
             <artifactId>maven-plugin-api</artifactId>
@@ -259,12 +264,6 @@
                         <id>generate-descriptor</id>
                         <goals>
                             <goal>descriptor</goal>
-                        </goals>
-                    </execution>
-                    <execution>
-                        <id>generate-helpmojo</id>
-                        <goals>
-                            <goal>helpmojo</goal>
                         </goals>
                     </execution>
                 </executions>
