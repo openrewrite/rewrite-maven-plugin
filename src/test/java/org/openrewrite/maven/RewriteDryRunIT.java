@@ -12,6 +12,17 @@ import static com.soebes.itf.extension.assertj.MavenITAssertions.assertThat;
 public class RewriteDryRunIT {
 
     @MavenTest
+    void fail_on_dry_run(MavenExecutionResult result) {
+        assertThat(result)
+                .isFailure()
+                .out()
+                .error()
+                .matches(logLines ->
+                        logLines.stream().anyMatch(logLine -> logLine.contains("Applying recipes would make changes"))
+                );
+    }
+
+    @MavenTest
     void multi_module_project(MavenExecutionResult result) {
         assertThat(result)
                 .isSuccessful()

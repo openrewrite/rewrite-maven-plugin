@@ -37,6 +37,12 @@ public class RewriteDryRunMojo extends AbstractRewriteMojo {
     @Parameter(property = "reportOutputDirectory", defaultValue = "${project.reporting.outputDirectory}/rewrite")
     private File reportOutputDirectory;
 
+    /**
+     * Whether to throw an exception if there are any result changes produced.
+     */
+    @Parameter(property = "failOnDryRunResults", defaultValue = "false")
+    private boolean failOnDryRunResults;
+
     @Override
     public void execute() throws MojoExecutionException {
         ResultsContainer results = listResults();
@@ -96,6 +102,10 @@ public class RewriteDryRunMojo extends AbstractRewriteMojo {
             getLog().warn("Report available:");
             getLog().warn(indent(1, patchFile.normalize().toString()));
             getLog().warn("Run 'mvn rewrite:run' to apply the recipes.");
+
+            if (failOnDryRunResults) {
+                throw new MojoExecutionException("Applying recipes would make changes. See logs for more details.");
+            }
         }
     }
 }
