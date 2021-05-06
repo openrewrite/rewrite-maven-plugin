@@ -104,7 +104,7 @@ public class RewriteDryRunMojo extends AbstractRewriteMojo {
             getLog().warn("Run 'mvn rewrite:run' to apply the recipes.");
 
             if (failOnDryRunResults) {
-                throw new MojoExecutionException("Result changes detected. Please see result file for more information.");
+                throw new MojoExecutionException("Applying recipes would make changes. See logs for more details.");
             }
         }
     }

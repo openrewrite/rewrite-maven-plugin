@@ -18,7 +18,7 @@ public class RewriteDryRunIT {
                 .out()
                 .error()
                 .matches(logLines ->
-                        logLines.stream().anyMatch(logLine -> logLine.contains("Result changes detected"))
+                        logLines.stream().anyMatch(logLine -> logLine.contains("Applying recipes would make changes"))
                 );
     }
 
