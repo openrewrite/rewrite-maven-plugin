@@ -25,12 +25,6 @@ public class RewriteDiscoverIT {
                     .out()
                     .info()
                     .matches(logLines ->
-                            logLines.stream().anyMatch(logLine -> logLine.contains("displayName"))
-                    )
-                    .matches(logLines ->
-                            logLines.stream().anyMatch(logLine -> logLine.contains("description"))
-                    )
-                    .matches(logLines ->
                             logLines.stream().anyMatch(logLine -> logLine.contains("options"))
                     );
 

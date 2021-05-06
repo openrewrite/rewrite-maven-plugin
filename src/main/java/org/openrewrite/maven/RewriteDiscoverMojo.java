@@ -81,16 +81,19 @@ public class RewriteDiscoverMojo extends AbstractRewriteMojo {
             writeRecipeDescriptor(recipeDescriptor, detail, 0, 1);
         }
 
+        getLog().info(indent(0, ""));
         getLog().info(indent(0, "Available Styles:"));
         for (NamedStyles style : availableStyles) {
-            getLog().info(indent(1, "name: " + style.getName()));
+            getLog().info(indent(1, style.getName()));
         }
 
+        getLog().info(indent(0, ""));
         getLog().info(indent(0, "Active Styles:"));
         for (String activeStyle : activeStyles) {
             getLog().info(indent(1, activeStyle));
         }
 
+        getLog().info(indent(0, ""));
         getLog().info(indent(0, "Active Recipes:"));
         for (RecipeDescriptor recipeDescriptor : activeRecipeDescriptors) {
             writeRecipeDescriptor(recipeDescriptor, detail, 0, 1);
@@ -103,20 +106,25 @@ public class RewriteDiscoverMojo extends AbstractRewriteMojo {
 
     private void writeRecipeDescriptor(RecipeDescriptor rd, boolean verbose, int currentRecursionLevel, int indentLevel) {
         if (currentRecursionLevel <= recursion) {
-            getLog().info(indent(indentLevel, "name: " + rd.getName()));
             if (verbose) {
-                getLog().info(indent(indentLevel, "displayName: " + rd.getDisplayName()));
-                getLog().info(indent(indentLevel, "description: " + rd.getDescription()));
-
-                getLog().info(indent(indentLevel, "options: " + (rd.getOptions().isEmpty() ? "[]" : "")));
-                for (OptionDescriptor od : rd.getOptions()) {
-                    getLog().info(indent(indentLevel + 1, od.getName() + ": " + od.getType() + (od.isRequired() ? "!" : "")));
-                    getLog().info(indent(indentLevel + 2, "displayName: " + od.getDisplayName()));
-                    getLog().info(indent(indentLevel + 2, "description: " + od.getDescription()));
-                    getLog().info(indent(indentLevel + 2, (od.getExample() == null ? "" : "example: " + od.getExample())));
+                getLog().info(indent(indentLevel, rd.getDisplayName()));
+                getLog().info(indent(indentLevel + 1, rd.getName()));
+                if (rd.getDescription() != null && !rd.getDescription().isEmpty()) {
+                    getLog().info(indent(indentLevel + 1, rd.getDescription()));
                 }
-            }
 
+                if (!rd.getOptions().isEmpty()) {
+                    getLog().info(indent(indentLevel, "options: "));
+                    for (OptionDescriptor od : rd.getOptions()) {
+                        getLog().info(indent(indentLevel + 1, od.getName() + ": " + od.getType() + (od.isRequired() ? "!" : "")));
+                        if (od.getDescription() != null && !od.getDescription().isEmpty()) {
+                            getLog().info(indent(indentLevel + 2, od.getDescription()));
+                        }
+                    }
+                }
+            } else {
+                getLog().info(indent(indentLevel, rd.getName()));
+            }
 
             if (!rd.getRecipeList().isEmpty() && (currentRecursionLevel + 1 <= recursion)) {
                 getLog().info(indent(indentLevel, "recipeList:"));
