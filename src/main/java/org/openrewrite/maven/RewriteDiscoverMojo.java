@@ -8,7 +8,6 @@ import org.codehaus.plexus.components.interactivity.Prompter;
 import org.openrewrite.config.Environment;
 import org.openrewrite.config.OptionDescriptor;
 import org.openrewrite.config.RecipeDescriptor;
-import org.openrewrite.internal.StringUtils;
 import org.openrewrite.internal.lang.Nullable;
 import org.openrewrite.maven.ui.RecipeDescriptorTreePrompter;
 import org.openrewrite.style.NamedStyles;
@@ -110,7 +109,7 @@ public class RewriteDiscoverMojo extends AbstractRewriteMojo {
             if (verbose) {
                 getLog().info(indent(indentLevel, rd.getDisplayName()));
                 getLog().info(indent(indentLevel + 1, rd.getName()));
-                if (!StringUtils.isNullOrEmpty(rd.getDescription())) {
+                if (rd.getDescription() != null && !rd.getDescription().isEmpty()) {
                     getLog().info(indent(indentLevel + 1, rd.getDescription()));
                 }
 
@@ -118,7 +117,7 @@ public class RewriteDiscoverMojo extends AbstractRewriteMojo {
                     getLog().info(indent(indentLevel, "options: "));
                     for (OptionDescriptor od : rd.getOptions()) {
                         getLog().info(indent(indentLevel + 1, od.getName() + ": " + od.getType() + (od.isRequired() ? "!" : "")));
-                        if (!StringUtils.isNullOrEmpty(od.getDescription())) {
+                        if (od.getDescription() != null && !od.getDescription().isEmpty()) {
                             getLog().info(indent(indentLevel + 2, od.getDescription()));
                         }
                     }
