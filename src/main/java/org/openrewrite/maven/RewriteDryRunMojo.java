@@ -27,7 +27,7 @@ import java.nio.file.Path;
 import java.util.stream.Stream;
 
 /**
- * Generates warnings in the console for any recipes that would suggest changes, but does not make any changes.
+ * Generate warnings to the console for any recipe that would make changes, but do not make changes.
  */
 @Mojo(name = "dryRun", requiresDependencyResolution = ResolutionScope.TEST, threadSafe = true,
         defaultPhase = LifecyclePhase.PROCESS_TEST_CLASSES)

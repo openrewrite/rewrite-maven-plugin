@@ -16,7 +16,7 @@ import java.util.Collection;
 import java.util.HashSet;
 
 /**
- * Display available recipes found on the classpath.<br>
+ * Generate a report of available recipes found on the classpath.<br>
  * {@code ./mvnw rewrite:discover -Ddetail=true -Drecipe=<recipe-name>} to display recipe configuration details. For example:<br>
  * {@code ./mvnw rewrite:discover -Ddetail=true -Drecipe=org.openrewrite.java.format.AutoFormat}
  */
