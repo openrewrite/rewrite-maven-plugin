@@ -232,16 +232,17 @@ public abstract class AbstractRewriteMojo extends AbstractMojo {
             Collection<Validated> validated = recipe.validateAll();
             List<Validated.Invalid> failedValidations = validated.stream().map(Validated::failures)
                     .flatMap(Collection::stream).collect(toList());
-            if (!failedValidations.isEmpty()) {
-                failedValidations.forEach(failedValidation -> getLog().error(
-                        "Recipe validation error in " + failedValidation.getProperty() + ": " +
-                                failedValidation.getMessage(), failedValidation.getException()));
-                if (failOnInvalidActiveRecipes) {
-                    throw new MojoExecutionException("Recipe validation errors detected as part of one or more activeRecipe(s). Please check error logs.");
-                } else {
-                    getLog().error("Recipe validation errors detected as part of one or more activeRecipe(s). Execution will continue regardless.");
-                }
-            }
+            // todo
+            // if (!failedValidations.isEmpty()) {
+            //     failedValidations.forEach(failedValidation -> getLog().error(
+            //             "Recipe validation error in " + failedValidation.getProperty() + ": " +
+            //                     failedValidation.getMessage(), failedValidation.getException()));
+            //     if (failOnInvalidActiveRecipes) {
+            //         throw new MojoExecutionException("Recipe validation errors detected as part of one or more activeRecipe(s). Please check error logs.");
+            //     } else {
+            //         getLog().error("Recipe validation errors detected as part of one or more activeRecipe(s). Execution will continue regardless.");
+            //     }
+            // }
 
             List<SourceFile> sourceFiles = new ArrayList<>();
             List<Path> javaSources = new ArrayList<>();
