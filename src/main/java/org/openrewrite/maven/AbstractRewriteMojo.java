@@ -243,7 +243,6 @@ public abstract class AbstractRewriteMojo extends AbstractMojo {
                 }
             }
 
-            List<SourceFile> sourceFiles = new ArrayList<>();
             List<Path> javaSources = new ArrayList<>();
             javaSources.addAll(listJavaSources(project.getBuild().getSourceDirectory()));
             javaSources.addAll(listJavaSources(project.getBuild().getTestSourceDirectory()));
@@ -251,7 +250,8 @@ public abstract class AbstractRewriteMojo extends AbstractMojo {
             ExecutionContext ctx = executionContext();
 
             getLog().info("Parsing Java files...");
-            sourceFiles.addAll(JavaParser.fromJavaVersion()
+            List<SourceFile> sourceFiles = new ArrayList<>(JavaParser.fromJavaVersion()
+                    .relaxedClassTypeMatching(true)
                     .styles(styles)
                     .classpath(
                             Stream.concat(
