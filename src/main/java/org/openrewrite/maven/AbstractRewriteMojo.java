@@ -325,7 +325,7 @@ public abstract class AbstractRewriteMojo extends AbstractMojo {
         File file = new File(resource.getDirectory());
         if (file.exists()) {
             BiPredicate<Path, BasicFileAttributes> predicate = (p, bfa) ->
-                    bfa.isRegularFile() && Stream.of("yml", "yaml").anyMatch(type -> p.getFileName().toString().endsWith(type));
+                    bfa.isRegularFile() && Stream.of("yml", "yaml", "properties", "xml").anyMatch(type -> p.getFileName().toString().endsWith(type));
             try {
                 Files.find(file.toPath(), 999, predicate).forEach(resources::add);
             } catch (IOException e) {
