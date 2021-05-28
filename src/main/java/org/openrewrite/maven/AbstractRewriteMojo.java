@@ -152,7 +152,7 @@ public abstract class AbstractRewriteMojo extends AbstractMojo {
             try {
                 if (pomCacheDirectory == null) {
                     //Default directory in the RocksdbMavenPomCache is ".rewrite-cache"
-                    mavenParserBuilder.cache(new RocksdbMavenPomCache(Paths.get(".")));
+                    mavenParserBuilder.cache(new RocksdbMavenPomCache(Paths.get(System.getProperty("user.home"))));
                 } else {
 
                     mavenParserBuilder.cache(new RocksdbMavenPomCache(Paths.get(pomCacheDirectory)));
