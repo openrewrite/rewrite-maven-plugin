@@ -154,7 +154,6 @@ public abstract class AbstractRewriteMojo extends AbstractMojo {
                     //Default directory in the RocksdbMavenPomCache is ".rewrite-cache"
                     mavenParserBuilder.cache(new RocksdbMavenPomCache(Paths.get(System.getProperty("user.home"))));
                 } else {
-
                     mavenParserBuilder.cache(new RocksdbMavenPomCache(Paths.get(pomCacheDirectory)));
                 }
             } catch (Exception e) {
@@ -176,8 +175,11 @@ public abstract class AbstractRewriteMojo extends AbstractMojo {
                                 }
                             }),
                     ctx);
-            if (settings != null && settings.getActiveProfiles() != null) {
-                mavenParserBuilder.activeProfiles(settings.getActiveProfiles().getActiveProfiles().toArray(new String[]{}));
+            if (settings != null) {
+                new MavenExecutionContextView(ctx).setMavenSettings(settings);
+                if (settings.getActiveProfiles() != null) {
+                    mavenParserBuilder.activeProfiles(settings.getActiveProfiles().getActiveProfiles().toArray(new String[]{}));
+                }
             }
         }
 
