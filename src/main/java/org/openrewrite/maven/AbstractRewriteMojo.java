@@ -90,9 +90,6 @@ public abstract class AbstractRewriteMojo extends AbstractMojo {
         Environment.Builder env = Environment
                 .builder(project.getProperties())
                 .scanRuntimeClasspath()
-                .scanClasspath(project.getArtifacts().stream()
-                        .map(d -> d.getFile().toPath())
-                        .collect(toList()))
                 .scanUserHome();
 
         Path absoluteConfigLocation = Paths.get(configLocation);
