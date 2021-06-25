@@ -1,6 +1,6 @@
 package org.openrewrite.maven;
 
-import io.micrometer.core.instrument.MeterRegistry;
+import io.micrometer.core.instrument.Metrics;
 import org.apache.maven.artifact.DependencyResolutionRequiredException;
 import org.apache.maven.model.Resource;
 import org.apache.maven.plugin.AbstractMojo;
@@ -13,17 +13,22 @@ import org.openrewrite.config.RecipeDescriptor;
 import org.openrewrite.config.YamlResourceLoader;
 import org.openrewrite.internal.lang.Nullable;
 import org.openrewrite.java.JavaParser;
+import org.openrewrite.java.JavaVisitor;
 import org.openrewrite.maven.cache.InMemoryMavenPomCache;
 import org.openrewrite.maven.cache.RocksdbMavenPomCache;
 import org.openrewrite.maven.tree.Maven;
 import org.openrewrite.properties.PropertiesParser;
+import org.openrewrite.properties.PropertiesVisitor;
 import org.openrewrite.style.NamedStyles;
 import org.openrewrite.xml.XmlParser;
+import org.openrewrite.xml.XmlVisitor;
 import org.openrewrite.yaml.YamlParser;
+import org.openrewrite.yaml.YamlVisitor;
 
 import java.io.File;
 import java.io.FileInputStream;
 import java.io.IOException;
+import java.lang.reflect.InvocationTargetException;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
@@ -36,11 +41,9 @@ import static java.util.Collections.emptyList;
 import static java.util.stream.Collectors.toList;
 
 public abstract class AbstractRewriteMojo extends AbstractMojo {
-    @SuppressWarnings("NotNullFieldNotInitialized")
     @Parameter(property = "configLocation", defaultValue = "${maven.multiModuleProjectDirectory}/rewrite.yml")
     String configLocation;
 
-    @SuppressWarnings("NotNullFieldNotInitialized")
     @Parameter(defaultValue = "${project}", readonly = true, required = true)
     protected MavenProject project;
 
@@ -78,11 +81,6 @@ public abstract class AbstractRewriteMojo extends AbstractMojo {
      */
     @Parameter(property = "failOnInvalidActiveRecipes", defaultValue = "false")
     private boolean failOnInvalidActiveRecipes;
-
-    /**
-     * The prefix used to left-pad log messages, multiplied per "level" of log message.
-     */
-    private static final String LOG_INDENT_INCREMENT = "    ";
 
     private static final String RECIPE_NOT_FOUND_EXCEPTION_MSG = "Could not find recipe '%s' among available recipes";
 
@@ -196,7 +194,6 @@ public abstract class AbstractRewriteMojo extends AbstractMojo {
     protected Path getBaseDir() {
         // This property is set by Maven, apparently for both multi and single module builds
         Object maybeMultiModuleDir = System.getProperties().get("maven.multiModuleProjectDirectory");
-        Path baseDir;
         try {
             if (maybeMultiModuleDir instanceof String) {
                 return Paths.get((String) maybeMultiModuleDir).toRealPath();
@@ -212,7 +209,7 @@ public abstract class AbstractRewriteMojo extends AbstractMojo {
     protected ResultsContainer listResults() throws MojoExecutionException {
         try (MeterRegistryProvider meterRegistryProvider = new MeterRegistryProvider(getLog(),
                 metricsUri, metricsUsername, metricsPassword)) {
-            MeterRegistry meterRegistry = meterRegistryProvider.registry();
+            Metrics.addRegistry(meterRegistryProvider.registry());
 
             Path baseDir = getBaseDir();
             getLog().info(String.format("Using active recipe(s) %s", activeRecipes));
@@ -273,50 +270,92 @@ public abstract class AbstractRewriteMojo extends AbstractMojo {
                 addToResources(ctx, resources, resource);
             }
 
-            getLog().info("Parsing YAML files...");
-            sourceFiles.addAll(
-                    new YamlParser()
-                            .parse(resources.stream()
-                                            .filter(it -> it.getFileName().toString().endsWith(".yml") || it.getFileName().toString().endsWith(".yaml"))
-                                            .collect(toList()),
-                                    baseDir,
-                                    ctx
-                            )
-            );
+            Set<Class<?>> recipeTypes = new HashSet<>();
+            discoverRecipeTypes(recipe, recipeTypes);
 
-            getLog().info("Parsing properties files...");
-            sourceFiles.addAll(
-                    new PropertiesParser()
-                            .parse(resources.stream()
-                                            .filter(it -> it.getFileName().toString().endsWith(".properties"))
-                                            .collect(toList()),
-                                    baseDir,
-                                    ctx
-                            )
-            );
+            if(recipeTypes.contains(YamlVisitor.class)) {
+                getLog().info("Parsing YAML files...");
+                sourceFiles.addAll(
+                        new YamlParser()
+                                .parse(resources.stream()
+                                                .filter(it -> it.getFileName().toString().endsWith(".yml") || it.getFileName().toString().endsWith(".yaml"))
+                                                .collect(toList()),
+                                        baseDir,
+                                        ctx
+                                )
+                );
+            } else {
+                getLog().info("Skipping YAML files because there are no active YAML recipes.");
+            }
 
-            getLog().info("Parsing XML files...");
-            sourceFiles.addAll(
-                    new XmlParser()
-                            .parse(resources.stream()
-                                            .filter(it -> it.getFileName().toString().endsWith(".xml"))
-                                            .collect(toList()),
-                                    baseDir,
-                                    ctx
-                            )
-            );
+            if(recipeTypes.contains(PropertiesVisitor.class)) {
+                getLog().info("Parsing properties files...");
+                sourceFiles.addAll(
+                        new PropertiesParser()
+                                .parse(resources.stream()
+                                                .filter(it -> it.getFileName().toString().endsWith(".properties"))
+                                                .collect(toList()),
+                                        baseDir,
+                                        ctx
+                                )
+                );
+            } else {
+                getLog().info("Skipping properties files because there are no active properties recipes.");
+            }
 
-            getLog().info("Parsing POM...");
-            Maven pomAst = parseMaven(baseDir, ctx);
-            sourceFiles.add(pomAst);
+            if(recipeTypes.contains(XmlVisitor.class)) {
+                getLog().info("Parsing XML files...");
+                sourceFiles.addAll(
+                        new XmlParser()
+                                .parse(resources.stream()
+                                                .filter(it -> it.getFileName().toString().endsWith(".xml"))
+                                                .collect(toList()),
+                                        baseDir,
+                                        ctx
+                                )
+                );
+            } else {
+                getLog().info("Skipping XML files because there are no active XML recipes.");
+            }
+
+            if(recipeTypes.contains(MavenVisitor.class)) {
+                getLog().info("Parsing POM...");
+                Maven pomAst = parseMaven(baseDir, ctx);
+                sourceFiles.add(pomAst);
+            } else {
+                getLog().info("Skipping Maven POM files because there are no active Maven recipes.");
+            }
 
             getLog().info("Running recipe(s)...");
             List<Result> results = recipe.run(sourceFiles, ctx);
 
+            Metrics.removeRegistry(meterRegistryProvider.registry());
+
             return new ResultsContainer(baseDir, results);
-        } catch (
-                DependencyResolutionRequiredException e) {
+        } catch (DependencyResolutionRequiredException e) {
             throw new MojoExecutionException("Dependency resolution required", e);
+        }
+    }
+
+    private void discoverRecipeTypes(Recipe recipe, Set<Class<?>> recipeTypes) {
+        try {
+            Object visitor = recipe.getClass().getDeclaredMethod("getVisitor").invoke(recipe);
+            if (visitor instanceof MavenVisitor) {
+                recipeTypes.add(MavenVisitor.class);
+            } else if (visitor instanceof JavaVisitor) {
+                recipeTypes.add(JavaVisitor.class);
+            } else if (visitor instanceof PropertiesVisitor) {
+                recipeTypes.add(PropertiesVisitor.class);
+            } else if (visitor instanceof XmlVisitor) {
+                recipeTypes.add(XmlVisitor.class);
+            } else if (visitor instanceof YamlVisitor) {
+                recipeTypes.add(YamlVisitor.class);
+            }
+            for (Recipe next : recipe.getRecipeList()) {
+                discoverRecipeTypes(next, recipeTypes);
+            }
+        } catch (NoSuchMethodException | InvocationTargetException | IllegalAccessException e) {
+            e.printStackTrace();
         }
     }
 
@@ -393,21 +432,8 @@ public abstract class AbstractRewriteMojo extends AbstractMojo {
 
     protected void logRecipesThatMadeChanges(Result result) {
         for (Recipe recipe : result.getRecipesThatMadeChanges()) {
-            getLog().warn(indent(1, recipe.getName()));
+            getLog().warn("    " + recipe.getName());
         }
-    }
-
-    protected static StringBuilder indent(int indent, CharSequence content) {
-        StringBuilder prefix = repeat(indent, LOG_INDENT_INCREMENT);
-        return prefix.append(content);
-    }
-
-    private static StringBuilder repeat(int repeat, String str) {
-        StringBuilder buffer = new StringBuilder(repeat * str.length());
-        for (int i = 0; i < repeat; i++) {
-            buffer.append(str);
-        }
-        return buffer;
     }
 
     public static RecipeDescriptor getRecipeDescriptor(String recipe, Collection<RecipeDescriptor> recipeDescriptors) throws MojoExecutionException {
