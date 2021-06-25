@@ -1,5 +1,6 @@
 package org.openrewrite.maven;
 
+import org.apache.commons.lang3.StringUtils;
 import org.apache.maven.plugin.MojoExecutionException;
 import org.apache.maven.plugins.annotations.Component;
 import org.apache.maven.plugins.annotations.Mojo;
@@ -76,68 +77,68 @@ public class RewriteDiscoverMojo extends AbstractRewriteMojo {
     }
 
     private void writeDiscovery(Collection<RecipeDescriptor> availableRecipeDescriptors, Collection<RecipeDescriptor> activeRecipeDescriptors, Collection<NamedStyles> availableStyles) {
-        getLog().info(indent(0, "Available Recipes:"));
+        getLog().info("Available Recipes:");
         for (RecipeDescriptor recipeDescriptor : availableRecipeDescriptors) {
             writeRecipeDescriptor(recipeDescriptor, detail, 0, 1);
         }
 
-        getLog().info(indent(0, ""));
-        getLog().info(indent(0, "Available Styles:"));
+        getLog().info("");
+        getLog().info("Available Styles:");
         for (NamedStyles style : availableStyles) {
-            getLog().info(indent(1, style.getName()));
+            getLog().info("    " + style.getName());
         }
 
-        getLog().info(indent(0, ""));
-        getLog().info(indent(0, "Active Styles:"));
+        getLog().info("");
+        getLog().info("Active Styles:");
         for (String activeStyle : activeStyles) {
-            getLog().info(indent(1, activeStyle));
+            getLog().info("    " + activeStyle);
         }
 
-        getLog().info(indent(0, ""));
-        getLog().info(indent(0, "Active Recipes:"));
+        getLog().info("");
+        getLog().info("Active Recipes:");
         for (RecipeDescriptor recipeDescriptor : activeRecipeDescriptors) {
             writeRecipeDescriptor(recipeDescriptor, detail, 0, 1);
         }
 
-        getLog().info(indent(0, ""));
-        getLog().info(indent(0, "Found " + availableRecipeDescriptors.size() + " available recipes and " + availableStyles.size() + " available styles."));
-        getLog().info(indent(0, "Configured with " + activeRecipeDescriptors.size() + " active recipes and " + activeStyles.size() + " active styles."));
+        getLog().info("");
+        getLog().info("Found " + availableRecipeDescriptors.size() + " available recipes and " + availableStyles.size() + " available styles.");
+        getLog().info("Configured with " + activeRecipeDescriptors.size() + " active recipes and " + activeStyles.size() + " active styles.");
     }
 
     private void writeRecipeDescriptor(RecipeDescriptor rd, boolean verbose, int currentRecursionLevel, int indentLevel) {
+        String indent = StringUtils.repeat("    ", indentLevel * 4);
         if (currentRecursionLevel <= recursion) {
             if (verbose) {
-                getLog().info(indent(indentLevel, rd.getDisplayName()));
-                getLog().info(indent(indentLevel + 1, rd.getName()));
-                if (rd.getDescription() != null && !rd.getDescription().isEmpty()) {
-                    getLog().info(indent(indentLevel + 1, rd.getDescription()));
+
+                getLog().info(indent + rd.getDisplayName());
+                getLog().info(indent + "    " + rd.getName());
+                if (!rd.getDescription().isEmpty()) {
+                    getLog().info(indent + "    " + rd.getDescription());
                 }
 
                 if (!rd.getOptions().isEmpty()) {
-                    getLog().info(indent(indentLevel, "options: "));
+                    getLog().info(indent + "options: ");
                     for (OptionDescriptor od : rd.getOptions()) {
-                        getLog().info(indent(indentLevel + 1, od.getName() + ": " + od.getType() + (od.isRequired() ? "!" : "")));
+                        getLog().info(indent + "    " + od.getName() + ": " + od.getType() + (od.isRequired() ? "!" : ""));
                         if (od.getDescription() != null && !od.getDescription().isEmpty()) {
-                            getLog().info(indent(indentLevel + 2, od.getDescription()));
+                            getLog().info(indent + "    " + "    " + od.getDescription());
                         }
                     }
                 }
             } else {
-                getLog().info(indent(indentLevel, rd.getName()));
+                getLog().info(indent + rd.getName());
             }
 
             if (!rd.getRecipeList().isEmpty() && (currentRecursionLevel + 1 <= recursion)) {
-                getLog().info(indent(indentLevel, "recipeList:"));
+                getLog().info(indent + "recipeList:");
                 for (RecipeDescriptor r : rd.getRecipeList()) {
                     writeRecipeDescriptor(r, verbose, currentRecursionLevel + 1, indentLevel + 1);
                 }
             }
 
             if (verbose) {
-                getLog().info(indent(indentLevel, ""));
+                getLog().info("");
             }
         }
-
     }
-
 }
