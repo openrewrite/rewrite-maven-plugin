@@ -29,6 +29,7 @@ import java.io.File;
 import java.io.FileInputStream;
 import java.io.IOException;
 import java.lang.reflect.InvocationTargetException;
+import java.lang.reflect.Method;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
@@ -339,7 +340,9 @@ public abstract class AbstractRewriteMojo extends AbstractMojo {
 
     private void discoverRecipeTypes(Recipe recipe, Set<Class<?>> recipeTypes) {
         try {
-            Object visitor = recipe.getClass().getDeclaredMethod("getVisitor").invoke(recipe);
+            Method getVisitor = recipe.getClass().getDeclaredMethod("getVisitor");
+            getVisitor.setAccessible(true);
+            Object visitor = getVisitor.invoke(recipe);
             if (visitor instanceof MavenVisitor) {
                 recipeTypes.add(MavenVisitor.class);
             } else if (visitor instanceof JavaVisitor) {
@@ -354,8 +357,8 @@ public abstract class AbstractRewriteMojo extends AbstractMojo {
             for (Recipe next : recipe.getRecipeList()) {
                 discoverRecipeTypes(next, recipeTypes);
             }
-        } catch (NoSuchMethodException | InvocationTargetException | IllegalAccessException e) {
-            e.printStackTrace();
+        } catch (NoSuchMethodException | InvocationTargetException | IllegalAccessException ignored) {
+            // not every recipe will implement getVisitor() directly, e.g. CompositeRecipe.
         }
     }
 
