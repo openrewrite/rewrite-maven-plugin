@@ -274,7 +274,7 @@ public abstract class AbstractRewriteMojo extends AbstractMojo {
             Set<Class<?>> recipeTypes = new HashSet<>();
             discoverRecipeTypes(recipe, recipeTypes);
 
-            if(recipeTypes.contains(YamlVisitor.class)) {
+            if (recipeTypes.contains(YamlVisitor.class)) {
                 getLog().info("Parsing YAML files...");
                 sourceFiles.addAll(
                         new YamlParser()
@@ -289,7 +289,7 @@ public abstract class AbstractRewriteMojo extends AbstractMojo {
                 getLog().info("Skipping YAML files because there are no active YAML recipes.");
             }
 
-            if(recipeTypes.contains(PropertiesVisitor.class)) {
+            if (recipeTypes.contains(PropertiesVisitor.class)) {
                 getLog().info("Parsing properties files...");
                 sourceFiles.addAll(
                         new PropertiesParser()
@@ -304,7 +304,7 @@ public abstract class AbstractRewriteMojo extends AbstractMojo {
                 getLog().info("Skipping properties files because there are no active properties recipes.");
             }
 
-            if(recipeTypes.contains(XmlVisitor.class)) {
+            if (recipeTypes.contains(XmlVisitor.class)) {
                 getLog().info("Parsing XML files...");
                 sourceFiles.addAll(
                         new XmlParser()
@@ -319,7 +319,7 @@ public abstract class AbstractRewriteMojo extends AbstractMojo {
                 getLog().info("Skipping XML files because there are no active XML recipes.");
             }
 
-            if(recipeTypes.contains(MavenVisitor.class)) {
+            if (recipeTypes.contains(MavenVisitor.class)) {
                 getLog().info("Parsing POM...");
                 Maven pomAst = parseMaven(baseDir, ctx);
                 sourceFiles.add(pomAst);
