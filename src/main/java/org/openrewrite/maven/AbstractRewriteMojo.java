@@ -339,6 +339,10 @@ public abstract class AbstractRewriteMojo extends AbstractMojo {
     }
 
     private void discoverRecipeTypes(Recipe recipe, Set<Class<?>> recipeTypes) {
+        for (Recipe next : recipe.getRecipeList()) {
+            discoverRecipeTypes(next, recipeTypes);
+        }
+
         try {
             Method getVisitor = recipe.getClass().getDeclaredMethod("getVisitor");
             getVisitor.setAccessible(true);
@@ -353,9 +357,6 @@ public abstract class AbstractRewriteMojo extends AbstractMojo {
                 recipeTypes.add(XmlVisitor.class);
             } else if (visitor instanceof YamlVisitor) {
                 recipeTypes.add(YamlVisitor.class);
-            }
-            for (Recipe next : recipe.getRecipeList()) {
-                discoverRecipeTypes(next, recipeTypes);
             }
         } catch (NoSuchMethodException | InvocationTargetException | IllegalAccessException ignored) {
             // not every recipe will implement getVisitor() directly, e.g. CompositeRecipe.
