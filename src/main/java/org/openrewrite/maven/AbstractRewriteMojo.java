@@ -1,12 +1,16 @@
 package org.openrewrite.maven;
 
+import com.puppycrawl.tools.checkstyle.Checker;
+import com.puppycrawl.tools.checkstyle.api.CheckstyleException;
 import io.micrometer.core.instrument.Metrics;
 import org.apache.maven.artifact.DependencyResolutionRequiredException;
+import org.apache.maven.model.Plugin;
 import org.apache.maven.model.Resource;
 import org.apache.maven.plugin.AbstractMojo;
 import org.apache.maven.plugin.MojoExecutionException;
 import org.apache.maven.plugins.annotations.Parameter;
 import org.apache.maven.project.MavenProject;
+import org.codehaus.plexus.util.xml.Xpp3Dom;
 import org.openrewrite.*;
 import org.openrewrite.config.Environment;
 import org.openrewrite.config.RecipeDescriptor;
@@ -14,6 +18,8 @@ import org.openrewrite.config.YamlResourceLoader;
 import org.openrewrite.internal.lang.Nullable;
 import org.openrewrite.java.JavaParser;
 import org.openrewrite.java.JavaVisitor;
+import org.openrewrite.java.style.Checkstyle;
+import org.openrewrite.java.style.CheckstyleConfigLoader;
 import org.openrewrite.maven.cache.InMemoryMavenPomCache;
 import org.openrewrite.maven.cache.RocksdbMavenPomCache;
 import org.openrewrite.maven.tree.Maven;
@@ -28,6 +34,7 @@ import org.openrewrite.yaml.YamlVisitor;
 import java.io.File;
 import java.io.FileInputStream;
 import java.io.IOException;
+import java.io.InputStream;
 import java.lang.reflect.InvocationTargetException;
 import java.lang.reflect.Method;
 import java.nio.file.Files;
@@ -39,6 +46,7 @@ import java.util.function.BiPredicate;
 import java.util.stream.Stream;
 
 import static java.util.Collections.emptyList;
+import static java.util.Collections.emptyMap;
 import static java.util.stream.Collectors.toList;
 
 public abstract class AbstractRewriteMojo extends AbstractMojo {
@@ -223,6 +231,30 @@ public abstract class AbstractRewriteMojo extends AbstractMojo {
 
             List<NamedStyles> styles;
             styles = env.activateStyles(activeStyles);
+            Plugin checkstylePlugin = project.getPlugin("org.apache.maven.plugins:maven-checkstyle-plugin");
+            if(checkstylePlugin != null) {
+                Object checkstyleConfRaw = checkstylePlugin.getConfiguration();
+                if(checkstyleConfRaw instanceof Xpp3Dom) {
+                    Xpp3Dom xmlCheckstyleConf = (Xpp3Dom) checkstyleConfRaw;
+                    Xpp3Dom xmlConfigLocation = xmlCheckstyleConf.getChild("configLocation");
+                    try {
+                        if(xmlConfigLocation == null) {
+                            // When no config location is specified, the maven-checkstyle-plugin falls back on sun_checks.xml
+                            try(InputStream is = Checker.class.getResourceAsStream("/sun_checks.xml")) {
+                                Checkstyle checkstyle = CheckstyleConfigLoader.loadCheckstyleConfig(is, emptyMap());
+                                styles.add(checkstyle);
+                            }
+                        } else {
+                            Path configPath = Paths.get(xmlConfigLocation.getValue());
+                            Checkstyle checkstyle = CheckstyleConfigLoader.loadCheckstyleConfig(configPath, emptyMap());
+                            styles.add(checkstyle);
+                        }
+                    } catch (Exception e) {
+                        getLog().warn("Unable to parse checkstyle configuration. Checkstyle will not inform rewrite execution.", e);
+                    }
+                }
+            }
+
             Recipe recipe = env.activateRecipes(activeRecipes);
 
             getLog().info("Validating active recipes...");

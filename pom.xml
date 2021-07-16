@@ -103,6 +103,11 @@
         </dependency>
 
         <dependency>
+            <groupId>com.puppycrawl.tools</groupId>
+            <artifactId>checkstyle</artifactId>
+            <version>8.44</version>
+        </dependency>
+        <dependency>
             <groupId>io.micrometer.prometheus</groupId>
             <artifactId>prometheus-rsocket-client</artifactId>
             <version>1.3.0</version>
