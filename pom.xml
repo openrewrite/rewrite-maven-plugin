@@ -323,7 +323,19 @@
                 <configuration>
                     <releaseProfiles>release</releaseProfiles>
                     <tagNameFormat>v@{project.version}</tagNameFormat>
+                    <!-- "SemVerVersionPolicy" causes maven-release to increment the MINOR version when calculating the next development version. -->
+                    <!-- For example, if the current version is 4.6.3-SNAPSHOT, then we release, this will release 4.6.3, then set the next development version to 4.7.0-SNAPSHOT -->
+                    <!-- By contrast, the "default" policy increments the PATCH version. -->
+                    <projectVersionPolicyId>SemVerVersionPolicy</projectVersionPolicyId>
                 </configuration>
+                <dependencies>
+                    <dependency>
+                        <!-- needed only for the SemVerVersionPolicy policy -->
+                        <groupId>org.apache.maven.release</groupId>
+                        <artifactId>maven-release-semver-policy</artifactId>
+                        <version>${maven-release-plugin.version}</version>
+                    </dependency>
+                </dependencies>
             </plugin>
 
             <!-- testing-related plugins -->
