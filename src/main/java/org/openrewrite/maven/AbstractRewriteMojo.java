@@ -81,6 +81,10 @@ public abstract class AbstractRewriteMojo extends AbstractMojo {
     @Parameter(property = "pomCacheDirectory")
     private String pomCacheDirectory;
 
+    @Nullable
+    @Parameter(property = "checkstyleConfigFile")
+    private String checkstyleConfigFile;
+
     /**
      * Whether to throw an exception if an activeRecipe fails configuration validation.
      * This may happen if the activeRecipe is improperly configured, or any downstream recipes are improperly configured.
@@ -231,28 +235,30 @@ public abstract class AbstractRewriteMojo extends AbstractMojo {
 
             List<NamedStyles> styles;
             styles = env.activateStyles(activeStyles);
-            Plugin checkstylePlugin = project.getPlugin("org.apache.maven.plugins:maven-checkstyle-plugin");
-            if(checkstylePlugin != null) {
-                Object checkstyleConfRaw = checkstylePlugin.getConfiguration();
-                if(checkstyleConfRaw instanceof Xpp3Dom) {
-                    Xpp3Dom xmlCheckstyleConf = (Xpp3Dom) checkstyleConfRaw;
-                    Xpp3Dom xmlConfigLocation = xmlCheckstyleConf.getChild("configLocation");
-                    try {
-                        if(xmlConfigLocation == null) {
+            try {
+                Plugin checkstylePlugin = project.getPlugin("org.apache.maven.plugins:maven-checkstyle-plugin");
+                if (checkstyleConfigFile != null && !checkstyleConfigFile.isEmpty()) {
+                    styles.add(CheckstyleConfigLoader.loadCheckstyleConfig(Paths.get(checkstyleConfigFile), emptyMap()));
+                } else if (checkstylePlugin != null) {
+                    Object checkstyleConfRaw = checkstylePlugin.getConfiguration();
+                    if (checkstyleConfRaw instanceof Xpp3Dom) {
+                        Xpp3Dom xmlCheckstyleConf = (Xpp3Dom) checkstyleConfRaw;
+                        Xpp3Dom xmlConfigLocation = xmlCheckstyleConf.getChild("configLocation");
+
+                        if (xmlConfigLocation == null) {
                             // When no config location is specified, the maven-checkstyle-plugin falls back on sun_checks.xml
-                            try(InputStream is = Checker.class.getResourceAsStream("/sun_checks.xml")) {
-                                Checkstyle checkstyle = CheckstyleConfigLoader.loadCheckstyleConfig(is, emptyMap());
-                                styles.add(checkstyle);
+                            try (InputStream is = Checker.class.getResourceAsStream("/sun_checks.xml")) {
+                                styles.add(CheckstyleConfigLoader.loadCheckstyleConfig(is, emptyMap()));
                             }
                         } else {
                             Path configPath = Paths.get(xmlConfigLocation.getValue());
-                            Checkstyle checkstyle = CheckstyleConfigLoader.loadCheckstyleConfig(configPath, emptyMap());
-                            styles.add(checkstyle);
+                            styles.add(CheckstyleConfigLoader.loadCheckstyleConfig(configPath, emptyMap()));
                         }
-                    } catch (Exception e) {
-                        getLog().warn("Unable to parse checkstyle configuration. Checkstyle will not inform rewrite execution.", e);
+
                     }
                 }
+            } catch (Exception e) {
+                getLog().warn("Unable to parse checkstyle configuration. Checkstyle will not inform rewrite execution.", e);
             }
 
             Recipe recipe = env.activateRecipes(activeRecipes);
