@@ -8,21 +8,27 @@ import org.apache.maven.model.Plugin;
 import org.apache.maven.model.Resource;
 import org.apache.maven.plugin.AbstractMojo;
 import org.apache.maven.plugin.MojoExecutionException;
+import org.apache.maven.plugins.annotations.Component;
 import org.apache.maven.plugins.annotations.Parameter;
 import org.apache.maven.project.MavenProject;
+import org.apache.maven.rtinfo.RuntimeInformation;
 import org.codehaus.plexus.util.xml.Xpp3Dom;
 import org.openrewrite.*;
 import org.openrewrite.config.Environment;
 import org.openrewrite.config.RecipeDescriptor;
 import org.openrewrite.config.YamlResourceLoader;
+import org.openrewrite.internal.ListUtils;
+import org.openrewrite.internal.lang.NonNull;
 import org.openrewrite.internal.lang.Nullable;
 import org.openrewrite.java.JavaParser;
 import org.openrewrite.java.JavaVisitor;
+import org.openrewrite.java.marker.JavaProvenance;
 import org.openrewrite.java.style.Checkstyle;
 import org.openrewrite.java.style.CheckstyleConfigLoader;
 import org.openrewrite.maven.cache.InMemoryMavenPomCache;
 import org.openrewrite.maven.cache.RocksdbMavenPomCache;
 import org.openrewrite.maven.tree.Maven;
+import org.openrewrite.maven.tree.Pom;
 import org.openrewrite.properties.PropertiesParser;
 import org.openrewrite.properties.PropertiesVisitor;
 import org.openrewrite.style.NamedStyles;
@@ -31,10 +37,7 @@ import org.openrewrite.xml.XmlVisitor;
 import org.openrewrite.yaml.YamlParser;
 import org.openrewrite.yaml.YamlVisitor;
 
-import java.io.File;
-import java.io.FileInputStream;
-import java.io.IOException;
-import java.io.InputStream;
+import java.io.*;
 import java.lang.reflect.InvocationTargetException;
 import java.lang.reflect.Method;
 import java.nio.file.Files;
@@ -43,18 +46,28 @@ import java.nio.file.Paths;
 import java.nio.file.attribute.BasicFileAttributes;
 import java.util.*;
 import java.util.function.BiPredicate;
+import java.util.regex.Matcher;
 import java.util.stream.Stream;
 
 import static java.util.Collections.emptyList;
 import static java.util.Collections.emptyMap;
 import static java.util.stream.Collectors.toList;
+import static org.openrewrite.Tree.randomId;
 
 public abstract class AbstractRewriteMojo extends AbstractMojo {
+
+
+    @SuppressWarnings("NotNullFieldNotInitialized")
     @Parameter(property = "configLocation", defaultValue = "${maven.multiModuleProjectDirectory}/rewrite.yml")
     String configLocation;
 
+    @SuppressWarnings("NotNullFieldNotInitialized")
     @Parameter(defaultValue = "${project}", readonly = true, required = true)
     protected MavenProject project;
+
+    @SuppressWarnings("NotNullFieldNotInitialized")
+    @Component
+    protected RuntimeInformation runtime;
 
     @Parameter(property = "activeRecipes")
     protected Set<String> activeRecipes = Collections.emptySet();
@@ -248,7 +261,9 @@ public abstract class AbstractRewriteMojo extends AbstractMojo {
                         if (xmlConfigLocation == null) {
                             // When no config location is specified, the maven-checkstyle-plugin falls back on sun_checks.xml
                             try (InputStream is = Checker.class.getResourceAsStream("/sun_checks.xml")) {
-                                styles.add(CheckstyleConfigLoader.loadCheckstyleConfig(is, emptyMap()));
+                                if (is != null) {
+                                    styles.add(CheckstyleConfigLoader.loadCheckstyleConfig(is, emptyMap()));
+                                }
                             }
                         } else {
                             Path configPath = Paths.get(xmlConfigLocation.getValue());
@@ -278,14 +293,7 @@ public abstract class AbstractRewriteMojo extends AbstractMojo {
                 }
             }
 
-            List<Path> javaSources = new ArrayList<>();
-            javaSources.addAll(listJavaSources(project.getBuild().getSourceDirectory()));
-            javaSources.addAll(listJavaSources(project.getBuild().getTestSourceDirectory()));
-
-            ExecutionContext ctx = executionContext();
-
-            getLog().info("Parsing Java files...");
-            List<SourceFile> sourceFiles = new ArrayList<>(JavaParser.fromJavaVersion()
+            JavaParser javaParser = JavaParser.fromJavaVersion()
                     .relaxedClassTypeMatching(true)
                     .styles(styles)
                     .classpath(
@@ -298,15 +306,26 @@ public abstract class AbstractRewriteMojo extends AbstractMojo {
                                     .collect(toList())
                     )
                     .logCompilationWarningsAndErrors(false)
-                    .build()
-                    .parse(javaSources, baseDir, ctx));
+                    .build();
 
-            Set<Path> resources = new HashSet<>();
+            ExecutionContext ctx = executionContext();
+
+
+            List<SourceFile> mainSourceFiles = new ArrayList<>(512);
+            List<SourceFile> testSourceFiles = new ArrayList<>(512);
+            Set<Path> mainResources = new HashSet<>(512);
+            Set<Path> testResources = new HashSet<>(512);
+
+            getLog().info("Parsing Java files...");
+            mainSourceFiles.addAll(javaParser.parse(listJavaSources(project.getBuild().getSourceDirectory()), baseDir, ctx));
+            testSourceFiles.addAll(javaParser.parse(listJavaSources(project.getBuild().getTestSourceDirectory()), baseDir, ctx));
+
+
             for (Resource resource : project.getBuild().getResources()) {
-                addToResources(ctx, resources, resource);
+                addToResources(ctx, mainResources, resource);
             }
             for (Resource resource : project.getBuild().getTestResources()) {
-                addToResources(ctx, resources, resource);
+                addToResources(ctx, testResources, resource);
             }
 
             Set<Class<?>> recipeTypes = new HashSet<>();
@@ -314,14 +333,24 @@ public abstract class AbstractRewriteMojo extends AbstractMojo {
 
             if (recipeTypes.contains(YamlVisitor.class)) {
                 getLog().info("Parsing YAML files...");
-                sourceFiles.addAll(
-                        new YamlParser()
-                                .parse(resources.stream()
-                                                .filter(it -> it.getFileName().toString().endsWith(".yml") || it.getFileName().toString().endsWith(".yaml"))
-                                                .collect(toList()),
-                                        baseDir,
-                                        ctx
-                                )
+                YamlParser yamlParser = new YamlParser();
+                mainSourceFiles.addAll(
+                        yamlParser.parse(
+                            mainResources.stream()
+                                    .filter(it -> it.getFileName().toString().endsWith(".yml") || it.getFileName().toString().endsWith(".yaml"))
+                                    .collect(toList()),
+                            baseDir,
+                            ctx
+                        )
+                );
+                testSourceFiles.addAll(
+                        yamlParser.parse(
+                                testResources.stream()
+                                        .filter(it -> it.getFileName().toString().endsWith(".yml") || it.getFileName().toString().endsWith(".yaml"))
+                                        .collect(toList()),
+                                baseDir,
+                                ctx
+                        )
                 );
             } else {
                 getLog().info("Skipping YAML files because there are no active YAML recipes.");
@@ -329,14 +358,24 @@ public abstract class AbstractRewriteMojo extends AbstractMojo {
 
             if (recipeTypes.contains(PropertiesVisitor.class)) {
                 getLog().info("Parsing properties files...");
-                sourceFiles.addAll(
-                        new PropertiesParser()
-                                .parse(resources.stream()
-                                                .filter(it -> it.getFileName().toString().endsWith(".properties"))
-                                                .collect(toList()),
-                                        baseDir,
-                                        ctx
-                                )
+                PropertiesParser propertiesParser = new PropertiesParser();
+                mainSourceFiles.addAll(
+                        propertiesParser.parse(
+                                mainResources.stream()
+                                        .filter(it -> it.getFileName().toString().endsWith(".properties"))
+                                        .collect(toList()),
+                                baseDir,
+                                ctx
+                        )
+                );
+                testSourceFiles.addAll(
+                        propertiesParser.parse(
+                                testResources.stream()
+                                        .filter(it -> it.getFileName().toString().endsWith(".properties"))
+                                        .collect(toList()),
+                                baseDir,
+                                ctx
+                        )
                 );
             } else {
                 getLog().info("Skipping properties files because there are no active properties recipes.");
@@ -344,18 +383,38 @@ public abstract class AbstractRewriteMojo extends AbstractMojo {
 
             if (recipeTypes.contains(XmlVisitor.class)) {
                 getLog().info("Parsing XML files...");
-                sourceFiles.addAll(
-                        new XmlParser()
-                                .parse(resources.stream()
-                                                .filter(it -> it.getFileName().toString().endsWith(".xml"))
-                                                .collect(toList()),
-                                        baseDir,
-                                        ctx
-                                )
+                XmlParser xmlParser = new XmlParser();
+                mainSourceFiles.addAll(
+                        xmlParser.parse(
+                                mainResources.stream()
+                                        .filter(it -> it.getFileName().toString().endsWith(".xml"))
+                                        .collect(toList()),
+                                baseDir,
+                                ctx
+                        )
+                );
+                testSourceFiles.addAll(
+                        xmlParser.parse(
+                                testResources.stream()
+                                        .filter(it -> it.getFileName().toString().endsWith(".xml"))
+                                        .collect(toList()),
+                                baseDir,
+                                ctx
+                        )
                 );
             } else {
                 getLog().info("Skipping XML files because there are no active XML recipes.");
             }
+
+            JavaProvenance mainProvenance = getJavaProvenance("main");
+            JavaProvenance testProvenance = getJavaProvenance("test");
+
+            List<SourceFile> sourceFiles = new ArrayList<>(
+                    ListUtils.map(mainSourceFiles, s -> s.withMarkers(s.getMarkers().addIfAbsent(mainProvenance)))
+            );
+            sourceFiles.addAll(
+                    ListUtils.map(testSourceFiles, s -> s.withMarkers(s.getMarkers().addIfAbsent(testProvenance)))
+            );
 
             if (recipeTypes.contains(MavenVisitor.class)) {
                 getLog().info("Parsing POM...");
@@ -374,6 +433,49 @@ public abstract class AbstractRewriteMojo extends AbstractMojo {
         } catch (DependencyResolutionRequiredException e) {
             throw new MojoExecutionException("Dependency resolution required", e);
         }
+    }
+
+    private JavaProvenance getJavaProvenance(String sourceSet) {
+
+        String javaRuntimeVersion = System.getProperty("java.runtime.version");
+        String javaVendor = System.getProperty("java.vm.vendor");
+        String sourceCompatibility = javaRuntimeVersion;
+        String targetCompatibility = javaRuntimeVersion;
+
+        String propertiesSourceCompatibility = (String) project.getProperties().get("maven.compiler.source");
+        if (propertiesSourceCompatibility != null) {
+            sourceCompatibility = propertiesSourceCompatibility;
+        }
+        String propertiesTargetCompatibility = (String) project.getProperties().get("maven.compiler.target");
+        if (propertiesTargetCompatibility != null) {
+            targetCompatibility = propertiesTargetCompatibility;
+        }
+
+
+        JavaProvenance.BuildTool buildTool = new JavaProvenance.BuildTool(JavaProvenance.BuildTool.Type.Maven,
+                runtime.getMavenVersion());
+
+        JavaProvenance.JavaVersion javaVersion = new JavaProvenance.JavaVersion(
+                javaRuntimeVersion,
+                javaVendor,
+                sourceCompatibility,
+                targetCompatibility
+        );
+
+        JavaProvenance.Publication publication = new JavaProvenance.Publication(
+                project.getGroupId(),
+                project.getArtifactId(),
+                project.getVersion()
+        );
+
+        return new JavaProvenance(
+                randomId(),
+                project.getName(),
+                sourceSet,
+                buildTool,
+                javaVersion,
+                publication
+        );
     }
 
     private void discoverRecipeTypes(Recipe recipe, Set<Class<?>> recipeTypes) {
