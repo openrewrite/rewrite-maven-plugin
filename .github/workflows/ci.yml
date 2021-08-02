@@ -37,7 +37,7 @@ jobs:
           restore-keys: |
             ${{ runner.os }}-maven-
       - name: build
-        run: ./mvnw --no-transfer-progress -B clean verify --file pom.xml
+        run: ./mvnw --no-transfer-progress -B clean verify -DskipITs --file pom.xml
 
   # # keeping this commented out until the implications can be thought through;
   # # don't want to accidentally perform "deploy" on non-snapshot versions,
