@@ -296,37 +296,53 @@ public abstract class AbstractRewriteMojo extends AbstractMojo {
             JavaParser javaParser = JavaParser.fromJavaVersion()
                     .relaxedClassTypeMatching(true)
                     .styles(styles)
-                    .classpath(
-                            Stream.concat(
-                                    project.getCompileClasspathElements().stream(),
-                                    project.getTestClasspathElements().stream()
-                            )
-                                    .distinct()
-                                    .map(Paths::get)
-                                    .collect(toList())
-                    )
                     .logCompilationWarningsAndErrors(false)
                     .build();
 
             ExecutionContext ctx = executionContext();
 
+            getLog().info("Parsing Java main files...");
+            List<SourceFile> mainJavaSourceFiles = new ArrayList<>(512);
+            List<Path> dependencies = project.getCompileClasspathElements().stream()
+                    .distinct()
+                    .map(Paths::get)
+                    .collect(toList());
 
-            List<SourceFile> mainSourceFiles = new ArrayList<>(512);
-            List<SourceFile> testSourceFiles = new ArrayList<>(512);
+            javaParser.setClasspath(dependencies);
+            mainJavaSourceFiles.addAll(javaParser.parse(listJavaSources(project.getBuild().getSourceDirectory()), baseDir, ctx));
+
             Set<Path> mainResources = new HashSet<>(512);
-            Set<Path> testResources = new HashSet<>(512);
-
-            getLog().info("Parsing Java files...");
-            mainSourceFiles.addAll(javaParser.parse(listJavaSources(project.getBuild().getSourceDirectory()), baseDir, ctx));
-            testSourceFiles.addAll(javaParser.parse(listJavaSources(project.getBuild().getTestSourceDirectory()), baseDir, ctx));
-
-
             for (Resource resource : project.getBuild().getResources()) {
                 addToResources(ctx, mainResources, resource);
             }
+
+            JavaProvenance mainProvenance = getJavaProvenance("main", dependencies);
+            List<SourceFile> sourceFiles = new ArrayList<>(
+                    ListUtils.map(mainJavaSourceFiles, s -> s.withMarkers(s.getMarkers().addIfAbsent(mainProvenance)))
+            );
+
+            getLog().info("Parsing Java test files...");
+            List<SourceFile> testJavaSourceFiles = new ArrayList<>(512);
+            List<Path> testDependencies = project.getTestClasspathElements().stream()
+                    .distinct()
+                    .map(Paths::get)
+                    .collect(toList());
+
+            javaParser.setClasspath(testDependencies);
+            testJavaSourceFiles.addAll(javaParser.parse(listJavaSources(project.getBuild().getTestSourceDirectory()), baseDir, ctx));
+
+            Set<Path> testResources = new HashSet<>(512);
             for (Resource resource : project.getBuild().getTestResources()) {
                 addToResources(ctx, testResources, resource);
             }
+
+            JavaProvenance testProvenance = getJavaProvenance("test", testDependencies);
+            sourceFiles.addAll(
+                    ListUtils.map(testJavaSourceFiles, s -> s.withMarkers(s.getMarkers().addIfAbsent(testProvenance)))
+            );
+
+            List<SourceFile> otherMainSourceFiles = new ArrayList<>(512);
+            List<SourceFile> otherTestSourceFiles = new ArrayList<>(512);
 
             Set<Class<?>> recipeTypes = new HashSet<>();
             discoverRecipeTypes(recipe, recipeTypes);
@@ -334,7 +350,7 @@ public abstract class AbstractRewriteMojo extends AbstractMojo {
             if (recipeTypes.contains(YamlVisitor.class)) {
                 getLog().info("Parsing YAML files...");
                 YamlParser yamlParser = new YamlParser();
-                mainSourceFiles.addAll(
+                otherMainSourceFiles.addAll(
                         yamlParser.parse(
                             mainResources.stream()
                                     .filter(it -> it.getFileName().toString().endsWith(".yml") || it.getFileName().toString().endsWith(".yaml"))
@@ -343,7 +359,7 @@ public abstract class AbstractRewriteMojo extends AbstractMojo {
                             ctx
                         )
                 );
-                testSourceFiles.addAll(
+                otherTestSourceFiles.addAll(
                         yamlParser.parse(
                                 testResources.stream()
                                         .filter(it -> it.getFileName().toString().endsWith(".yml") || it.getFileName().toString().endsWith(".yaml"))
@@ -359,7 +375,7 @@ public abstract class AbstractRewriteMojo extends AbstractMojo {
             if (recipeTypes.contains(PropertiesVisitor.class)) {
                 getLog().info("Parsing properties files...");
                 PropertiesParser propertiesParser = new PropertiesParser();
-                mainSourceFiles.addAll(
+                otherMainSourceFiles.addAll(
                         propertiesParser.parse(
                                 mainResources.stream()
                                         .filter(it -> it.getFileName().toString().endsWith(".properties"))
@@ -368,7 +384,7 @@ public abstract class AbstractRewriteMojo extends AbstractMojo {
                                 ctx
                         )
                 );
-                testSourceFiles.addAll(
+                otherTestSourceFiles.addAll(
                         propertiesParser.parse(
                                 testResources.stream()
                                         .filter(it -> it.getFileName().toString().endsWith(".properties"))
@@ -384,7 +400,7 @@ public abstract class AbstractRewriteMojo extends AbstractMojo {
             if (recipeTypes.contains(XmlVisitor.class)) {
                 getLog().info("Parsing XML files...");
                 XmlParser xmlParser = new XmlParser();
-                mainSourceFiles.addAll(
+                otherMainSourceFiles.addAll(
                         xmlParser.parse(
                                 mainResources.stream()
                                         .filter(it -> it.getFileName().toString().endsWith(".xml"))
@@ -393,7 +409,7 @@ public abstract class AbstractRewriteMojo extends AbstractMojo {
                                 ctx
                         )
                 );
-                testSourceFiles.addAll(
+                otherTestSourceFiles.addAll(
                         xmlParser.parse(
                                 testResources.stream()
                                         .filter(it -> it.getFileName().toString().endsWith(".xml"))
@@ -406,14 +422,14 @@ public abstract class AbstractRewriteMojo extends AbstractMojo {
                 getLog().info("Skipping XML files because there are no active XML recipes.");
             }
 
-            JavaProvenance mainProvenance = getJavaProvenance("main");
-            JavaProvenance testProvenance = getJavaProvenance("test");
-
-            List<SourceFile> sourceFiles = new ArrayList<>(
-                    ListUtils.map(mainSourceFiles, s -> s.withMarkers(s.getMarkers().addIfAbsent(mainProvenance)))
-            );
+            JavaProvenance otherMainSourceProvenance = getJavaProvenance("main", new HashSet<>());
             sourceFiles.addAll(
-                    ListUtils.map(testSourceFiles, s -> s.withMarkers(s.getMarkers().addIfAbsent(testProvenance)))
+                    ListUtils.map(otherMainSourceFiles, s -> s.withMarkers(s.getMarkers().addIfAbsent(otherMainSourceProvenance)))
+            );
+
+            JavaProvenance otherTestSourceProvenance = getJavaProvenance("test", new HashSet<>());
+            sourceFiles.addAll(
+                    ListUtils.map(otherTestSourceFiles, s -> s.withMarkers(s.getMarkers().addIfAbsent(otherTestSourceProvenance)))
             );
 
             if (recipeTypes.contains(MavenVisitor.class)) {
@@ -435,7 +451,7 @@ public abstract class AbstractRewriteMojo extends AbstractMojo {
         }
     }
 
-    private JavaProvenance getJavaProvenance(String sourceSet) {
+    private JavaProvenance getJavaProvenance(String sourceSet, Iterable<Path> classpath) {
 
         String javaRuntimeVersion = System.getProperty("java.runtime.version");
         String javaVendor = System.getProperty("java.vm.vendor");
@@ -450,7 +466,6 @@ public abstract class AbstractRewriteMojo extends AbstractMojo {
         if (propertiesTargetCompatibility != null) {
             targetCompatibility = propertiesTargetCompatibility;
         }
-
 
         JavaProvenance.BuildTool buildTool = new JavaProvenance.BuildTool(JavaProvenance.BuildTool.Type.Maven,
                 runtime.getMavenVersion());
@@ -468,12 +483,12 @@ public abstract class AbstractRewriteMojo extends AbstractMojo {
                 project.getVersion()
         );
 
-        return new JavaProvenance(
-                randomId(),
+        return JavaProvenance.build(
                 project.getName(),
                 sourceSet,
                 buildTool,
                 javaVersion,
+                classpath,
                 publication
         );
     }
