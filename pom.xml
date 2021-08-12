@@ -46,7 +46,7 @@
         <developerConnectionUrl>scm:git:ssh://git@github.com/openrewrite/rewrite-maven-plugin.git</developerConnectionUrl>
         <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
         <java.version>1.8</java.version>
-        <rocksdbjni.version>6.22.1</rocksdbjni.version>
+        <rocksdbjni.version>6.22.1.1</rocksdbjni.version>
         <maven-dependencies.version>3.6.3</maven-dependencies.version>
         <itf-maven.version>0.10.0</itf-maven.version>
 
