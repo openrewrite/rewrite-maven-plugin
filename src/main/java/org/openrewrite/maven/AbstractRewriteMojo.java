@@ -340,7 +340,7 @@ public abstract class AbstractRewriteMojo extends AbstractMojo {
                 addToResources(ctx, testResources, resource);
             }
 
-            JavaSourceSet testProvenance = JavaSourceSet.build("main", dependencies);
+            JavaSourceSet testProvenance = JavaSourceSet.build("test", dependencies);
             sourceFiles.addAll(
                     ListUtils.map(testJavaSourceFiles, addProvenance(projectProvenance, testProvenance))
             );
