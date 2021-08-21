@@ -1,7 +1,6 @@
 package org.openrewrite.maven;
 
 import com.puppycrawl.tools.checkstyle.Checker;
-import com.puppycrawl.tools.checkstyle.api.CheckstyleException;
 import io.micrometer.core.instrument.Metrics;
 import org.apache.maven.artifact.DependencyResolutionRequiredException;
 import org.apache.maven.model.Plugin;
@@ -18,17 +17,19 @@ import org.openrewrite.config.Environment;
 import org.openrewrite.config.RecipeDescriptor;
 import org.openrewrite.config.YamlResourceLoader;
 import org.openrewrite.internal.ListUtils;
-import org.openrewrite.internal.lang.NonNull;
 import org.openrewrite.internal.lang.Nullable;
 import org.openrewrite.java.JavaParser;
 import org.openrewrite.java.JavaVisitor;
-import org.openrewrite.java.marker.JavaProvenance;
-import org.openrewrite.java.style.Checkstyle;
+import org.openrewrite.java.marker.JavaProject;
+import org.openrewrite.java.marker.JavaSourceSet;
+import org.openrewrite.java.marker.JavaVersion;
 import org.openrewrite.java.style.CheckstyleConfigLoader;
+import org.openrewrite.marker.BuildTool;
+import org.openrewrite.marker.Marker;
 import org.openrewrite.maven.cache.InMemoryMavenPomCache;
 import org.openrewrite.maven.cache.RocksdbMavenPomCache;
 import org.openrewrite.maven.tree.Maven;
-import org.openrewrite.maven.tree.Pom;
+import org.openrewrite.maven.tree.Scope;
 import org.openrewrite.properties.PropertiesParser;
 import org.openrewrite.properties.PropertiesVisitor;
 import org.openrewrite.style.NamedStyles;
@@ -46,6 +47,7 @@ import java.nio.file.Paths;
 import java.nio.file.attribute.BasicFileAttributes;
 import java.util.*;
 import java.util.function.BiPredicate;
+import java.util.function.UnaryOperator;
 import java.util.regex.Matcher;
 import java.util.stream.Stream;
 
@@ -316,9 +318,11 @@ public abstract class AbstractRewriteMojo extends AbstractMojo {
                 addToResources(ctx, mainResources, resource);
             }
 
-            JavaProvenance mainProvenance = getJavaProvenance("main", dependencies);
+            //Add provenance information to main source files
+            List<Marker> projectProvenance = getJavaProvenance();
+            JavaSourceSet mainProvenance = JavaSourceSet.build("main", dependencies);
             List<SourceFile> sourceFiles = new ArrayList<>(
-                    ListUtils.map(mainJavaSourceFiles, s -> s.withMarkers(s.getMarkers().addIfAbsent(mainProvenance)))
+                    ListUtils.map(mainJavaSourceFiles, addProvenance(projectProvenance, mainProvenance))
             );
 
             getLog().info("Parsing Java test files...");
@@ -336,9 +340,9 @@ public abstract class AbstractRewriteMojo extends AbstractMojo {
                 addToResources(ctx, testResources, resource);
             }
 
-            JavaProvenance testProvenance = getJavaProvenance("test", testDependencies);
+            JavaSourceSet testProvenance = JavaSourceSet.build("test", dependencies);
             sourceFiles.addAll(
-                    ListUtils.map(testJavaSourceFiles, s -> s.withMarkers(s.getMarkers().addIfAbsent(testProvenance)))
+                    ListUtils.map(testJavaSourceFiles, addProvenance(projectProvenance, testProvenance))
             );
 
             List<SourceFile> otherMainSourceFiles = new ArrayList<>(512);
@@ -422,20 +426,22 @@ public abstract class AbstractRewriteMojo extends AbstractMojo {
                 getLog().info("Skipping XML files because there are no active XML recipes.");
             }
 
-            JavaProvenance otherMainSourceProvenance = getJavaProvenance("main", new HashSet<>());
             sourceFiles.addAll(
-                    ListUtils.map(otherMainSourceFiles, s -> s.withMarkers(s.getMarkers().addIfAbsent(otherMainSourceProvenance)))
+                    ListUtils.map(otherMainSourceFiles, addProvenance(projectProvenance, mainProvenance))
             );
 
-            JavaProvenance otherTestSourceProvenance = getJavaProvenance("test", new HashSet<>());
             sourceFiles.addAll(
-                    ListUtils.map(otherTestSourceFiles, s -> s.withMarkers(s.getMarkers().addIfAbsent(otherTestSourceProvenance)))
+                    ListUtils.map(otherTestSourceFiles, addProvenance(projectProvenance, testProvenance))
             );
 
             if (recipeTypes.contains(MavenVisitor.class)) {
                 getLog().info("Parsing POM...");
                 Maven pomAst = parseMaven(baseDir, ctx);
-                sourceFiles.add(pomAst);
+                sourceFiles.add(
+                        pomAst.withMarkers(
+                            pomAst.getMarkers().withMarkers(ListUtils.concatAll(pomAst.getMarkers().getMarkers(), projectProvenance))
+                        )
+                );
             } else {
                 getLog().info("Skipping Maven POM files because there are no active Maven recipes.");
             }
@@ -451,7 +457,7 @@ public abstract class AbstractRewriteMojo extends AbstractMojo {
         }
     }
 
-    private JavaProvenance getJavaProvenance(String sourceSet, Iterable<Path> classpath) {
+    private List<Marker> getJavaProvenance() {
 
         String javaRuntimeVersion = System.getProperty("java.runtime.version");
         String javaVendor = System.getProperty("java.vm.vendor");
@@ -467,30 +473,25 @@ public abstract class AbstractRewriteMojo extends AbstractMojo {
             targetCompatibility = propertiesTargetCompatibility;
         }
 
-        JavaProvenance.BuildTool buildTool = new JavaProvenance.BuildTool(JavaProvenance.BuildTool.Type.Maven,
-                runtime.getMavenVersion());
-
-        JavaProvenance.JavaVersion javaVersion = new JavaProvenance.JavaVersion(
-                javaRuntimeVersion,
-                javaVendor,
-                sourceCompatibility,
-                targetCompatibility
+        return Arrays.asList(
+                new BuildTool(randomId(), BuildTool.Type.Maven, runtime.getMavenVersion()),
+                new JavaVersion(randomId(), javaRuntimeVersion, javaVendor, sourceCompatibility, targetCompatibility),
+                new JavaProject(randomId(), project.getName(), new JavaProject.Publication(
+                        project.getGroupId(),
+                        project.getArtifactId(),
+                        project.getVersion()
+                ))
         );
+    }
 
-        JavaProvenance.Publication publication = new JavaProvenance.Publication(
-                project.getGroupId(),
-                project.getArtifactId(),
-                project.getVersion()
-        );
-
-        return JavaProvenance.build(
-                project.getName(),
-                sourceSet,
-                buildTool,
-                javaVersion,
-                classpath,
-                publication
-        );
+    private <S extends SourceFile> UnaryOperator<S> addProvenance(List<Marker> projectProvenance, JavaSourceSet sourceSet) {
+        return s -> {
+            for (Marker marker : projectProvenance) {
+                s = s.withMarkers(s.getMarkers().addIfAbsent(marker));
+            }
+            s = s.withMarkers(s.getMarkers().addIfAbsent(sourceSet));
+            return s;
+        };
     }
 
     private void discoverRecipeTypes(Recipe recipe, Set<Class<?>> recipeTypes) {
