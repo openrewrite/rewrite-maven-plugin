@@ -320,7 +320,7 @@ public abstract class AbstractRewriteMojo extends AbstractMojo {
 
             //Add provenance information to main source files
             List<Marker> projectProvenance = getJavaProvenance();
-            JavaSourceSet mainProvenance = JavaSourceSet.build("main", dependencies);
+            JavaSourceSet mainProvenance = JavaSourceSet.build("main", dependencies, ctx);
             List<SourceFile> sourceFiles = new ArrayList<>(
                     ListUtils.map(mainJavaSourceFiles, addProvenance(projectProvenance, mainProvenance))
             );
@@ -340,7 +340,7 @@ public abstract class AbstractRewriteMojo extends AbstractMojo {
                 addToResources(ctx, testResources, resource);
             }
 
-            JavaSourceSet testProvenance = JavaSourceSet.build("test", dependencies);
+            JavaSourceSet testProvenance = JavaSourceSet.build("test", dependencies, ctx);
             sourceFiles.addAll(
                     ListUtils.map(testJavaSourceFiles, addProvenance(projectProvenance, testProvenance))
             );
