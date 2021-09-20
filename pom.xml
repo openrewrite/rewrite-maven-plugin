@@ -493,7 +493,7 @@
                     <plugin>
                         <groupId>org.openrewrite.maven</groupId>
                         <artifactId>rewrite-maven-plugin</artifactId>
-                        <version>4.6.3</version>
+                        <version>4.12.0</version>
                         <configuration>
                             <activeRecipes>
                                 <recipe>org.openrewrite.java.format.AutoFormat</recipe>
@@ -504,7 +504,7 @@
                             <dependency>
                                 <groupId>org.openrewrite.recipe</groupId>
                                 <artifactId>rewrite-testing-frameworks</artifactId>
-                                <version>1.12.0</version>
+                                <version>1.13.1</version>
                             </dependency>
                         </dependencies>
                     </plugin>
