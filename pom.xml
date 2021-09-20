@@ -139,7 +139,7 @@
         <dependency>
             <groupId>org.codehaus.plexus</groupId>
             <artifactId>plexus-interactivity-api</artifactId>
-            <version>1.0</version>
+            <version>1.1</version>
             <exclusions>
                 <!-- https://github.com/apache/maven-archetype/blob/5351651b33fde2cb046e2f103bbc6be3c38acbab/pom.xml -->
                 <exclusion>
@@ -178,7 +178,7 @@
         <dependency>
             <groupId>org.junit.jupiter</groupId>
             <artifactId>junit-jupiter-api</artifactId>
-            <version>5.7.2</version>
+            <version>5.8.0</version>
             <scope>test</scope>
         </dependency>
         <dependency>
