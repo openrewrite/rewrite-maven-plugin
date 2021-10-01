@@ -296,7 +296,6 @@ public abstract class AbstractRewriteMojo extends AbstractMojo {
             }
 
             JavaParser javaParser = JavaParser.fromJavaVersion()
-                    .relaxedClassTypeMatching(true)
                     .styles(styles)
                     .logCompilationWarningsAndErrors(false)
                     .build();
