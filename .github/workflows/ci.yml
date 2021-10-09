@@ -32,13 +32,7 @@ jobs:
         with:
           distribution: "temurin"
           java-version: ${{ matrix.java }}
-      - name: setup-cache
-        uses: actions/cache@v2.1.6
-        with:
-          path: ~/.m2/repository
-          key: ${{ runner.os }}-maven-${{ hashFiles('**/pom.xml') }}
-          restore-keys: |
-            ${{ runner.os }}-maven-
+          cache: 'maven'
       - name: build
         if: github.event_name != 'workflow_dispatch'
         run: ./mvnw --no-transfer-progress -B clean verify -DskipITs --file pom.xml
