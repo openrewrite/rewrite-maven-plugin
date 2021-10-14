@@ -57,14 +57,10 @@ public class MavenMojoProjectParser {
                 .build();
 
         // Some annotation processors output generated sources to the /target directory
-        List<Path> generatedSourcePaths = listJavaSources(project.getBuild().getOutputDirectory());
+        List<Path> generatedSourcePaths = listJavaSources(project.getBuild().getDirectory());
         List<Path> mainJavaSources = Stream.concat(
                 generatedSourcePaths.stream(),
                 listJavaSources(project.getBuild().getSourceDirectory()).stream()
-            ).collect(toList());
-        List<Path> testJavaSources = Stream.concat(
-                generatedSourcePaths.stream(),
-                listJavaSources(project.getBuild().getTestSourceDirectory()).stream()
             ).collect(toList());
 
         logger.info("Parsing Java main files...");
@@ -81,7 +77,7 @@ public class MavenMojoProjectParser {
         List<Marker> projectProvenance = getJavaProvenance(project, runtime);
         JavaSourceSet mainProvenance = JavaSourceSet.build("main", dependencies, ctx);
         List<SourceFile> sourceFiles = new ArrayList<>(
-                ListUtils.map(mainJavaSourceFiles, addProvenance(projectProvenance, mainProvenance, generatedSourcePaths))
+                ListUtils.map(mainJavaSourceFiles, addProvenance(baseDir, projectProvenance, mainProvenance, generatedSourcePaths))
         );
 
         logger.info("Parsing Java test files...");
@@ -92,11 +88,11 @@ public class MavenMojoProjectParser {
                 .collect(toList());
 
         javaParser.setClasspath(testDependencies);
-        testJavaSourceFiles.addAll(javaParser.parse(testJavaSources, baseDir, ctx));
+        testJavaSourceFiles.addAll(javaParser.parse(listJavaSources(project.getBuild().getTestSourceDirectory()), baseDir, ctx));
 
         JavaSourceSet testProvenance = JavaSourceSet.build("test", dependencies, ctx);
         sourceFiles.addAll(
-                ListUtils.map(testJavaSourceFiles, addProvenance(projectProvenance, testProvenance, generatedSourcePaths))
+                ListUtils.map(testJavaSourceFiles, addProvenance(baseDir, projectProvenance, testProvenance, generatedSourcePaths))
         );
 
         GitProvenance gitProvenance = GitProvenance.fromProjectDirectory(baseDir);
@@ -105,14 +101,14 @@ public class MavenMojoProjectParser {
                 .collect(Collectors.toList());
     }
 
-    private <S extends SourceFile> UnaryOperator<S> addProvenance(
+    private <S extends SourceFile> UnaryOperator<S> addProvenance(Path baseDir,
             List<Marker> projectProvenance, JavaSourceSet sourceSet, Collection<Path> generatedSources) {
         return s -> {
             for (Marker marker : projectProvenance) {
                 s = s.withMarkers(s.getMarkers().addIfAbsent(marker));
             }
             s = s.withMarkers(s.getMarkers().addIfAbsent(sourceSet));
-            if(generatedSources.contains(s.getSourcePath())) {
+            if(generatedSources.contains(baseDir.resolve(s.getSourcePath()))) {
                 s = s.withMarkers(s.getMarkers().addIfAbsent(new GeneratedSourceMarker(randomId())));
             }
             return s;
@@ -129,13 +125,6 @@ public class MavenMojoProjectParser {
         try {
             return Files.walk(sourceRoot)
                     .filter(f -> !Files.isDirectory(f) && f.toFile().getName().endsWith(".java"))
-                    .map(it -> {
-                        try {
-                            return it.toRealPath();
-                        } catch (IOException e) {
-                            throw new RuntimeException(e);
-                        }
-                    })
                     .collect(toList());
         } catch (IOException e) {
             throw new MojoExecutionException("Unable to list Java source files", e);
