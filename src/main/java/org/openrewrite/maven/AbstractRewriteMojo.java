@@ -17,6 +17,7 @@ import org.openrewrite.config.RecipeDescriptor;
 import org.openrewrite.config.YamlResourceLoader;
 import org.openrewrite.internal.lang.Nullable;
 import org.openrewrite.java.style.CheckstyleConfigLoader;
+import org.openrewrite.marker.Generated;
 import org.openrewrite.maven.tree.Maven;
 import org.openrewrite.style.NamedStyles;
 
@@ -217,9 +218,9 @@ public abstract class AbstractRewriteMojo extends AbstractMojo {
                     .filter(source -> {
                         // Remove ASTs originating from generated files
                         if(source.getAfter() != null) {
-                            return !source.getAfter().getMarkers().findFirst(GeneratedSourceMarker.class).isPresent();
+                            return !source.getAfter().getMarkers().findFirst(Generated.class).isPresent();
                         } else if(source.getBefore() != null) {
-                            return !source.getBefore().getMarkers().findFirst(GeneratedSourceMarker.class).isPresent();
+                            return !source.getBefore().getMarkers().findFirst(Generated.class).isPresent();
                         }
                         return true;
                     })
