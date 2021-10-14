@@ -214,7 +214,17 @@ public abstract class AbstractRewriteMojo extends AbstractMojo {
             rp.parse(project.getBasedir().toPath(), alreadyParsed);
 
             getLog().info("Running recipe(s)...");
-            List<Result> results = recipe.run(sourceFiles, ctx);
+            List<Result> results = recipe.run(sourceFiles, ctx).stream()
+                    .filter(source -> {
+                        // Remove ASTs originating from generated files
+                        if(source.getAfter() != null) {
+                            return !source.getAfter().getMarkers().findFirst(GeneratedSourceMarker.class).isPresent();
+                        } else if(source.getBefore() != null) {
+                            return !source.getBefore().getMarkers().findFirst(GeneratedSourceMarker.class).isPresent();
+                        }
+                        return true;
+                    })
+                    .collect(toList());
 
             Metrics.removeRegistry(meterRegistryProvider.registry());
 

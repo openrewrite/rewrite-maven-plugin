@@ -8,6 +8,7 @@ import org.apache.maven.rtinfo.RuntimeInformation;
 import org.openrewrite.ExecutionContext;
 import org.openrewrite.Parser;
 import org.openrewrite.SourceFile;
+import org.openrewrite.Tree;
 import org.openrewrite.internal.ListUtils;
 import org.openrewrite.internal.lang.Nullable;
 import org.openrewrite.java.JavaParser;
@@ -29,9 +30,11 @@ import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.util.ArrayList;
 import java.util.Arrays;
+import java.util.Collection;
 import java.util.List;
 import java.util.function.UnaryOperator;
 import java.util.stream.Collectors;
+import java.util.stream.Stream;
 
 import static java.util.Collections.emptyList;
 import static java.util.stream.Collectors.toList;
@@ -41,7 +44,8 @@ public class MavenMojoProjectParser {
     private final Log logger;
     private final RuntimeInformation runtime;
     private final boolean pomCacheEnabled;
-    @Nullable private final String pomCacheDirectory;
+    @Nullable
+    private final String pomCacheDirectory;
 
     public MavenMojoProjectParser(Log logger, RuntimeInformation runtime, boolean pomCacheEnabled, @Nullable String pomCacheDirectory) {
         this.logger = logger;
@@ -58,6 +62,17 @@ public class MavenMojoProjectParser {
                 .logCompilationWarningsAndErrors(false)
                 .build();
 
+        // Some annotation processors output generated sources to the /target directory
+        List<Path> generatedSourcePaths = listJavaSources(project.getBuild().getOutputDirectory());
+        List<Path> mainJavaSources = Stream.concat(
+                generatedSourcePaths.stream(),
+                listJavaSources(project.getBuild().getSourceDirectory()).stream()
+            ).collect(toList());
+        List<Path> testJavaSources = Stream.concat(
+                generatedSourcePaths.stream(),
+                listJavaSources(project.getBuild().getTestSourceDirectory()).stream()
+            ).collect(toList());
+
         logger.info("Parsing Java main files...");
         List<SourceFile> mainJavaSourceFiles = new ArrayList<>(512);
         List<Path> dependencies = project.getCompileClasspathElements().stream()
@@ -66,13 +81,13 @@ public class MavenMojoProjectParser {
                 .collect(toList());
 
         javaParser.setClasspath(dependencies);
-        mainJavaSourceFiles.addAll(javaParser.parse(listJavaSources(project.getBuild().getSourceDirectory()), baseDir, ctx));
+        mainJavaSourceFiles.addAll(javaParser.parse(mainJavaSources, baseDir, ctx));
 
         //Add provenance information to main source files
         List<Marker> projectProvenance = getJavaProvenance(project, runtime);
         JavaSourceSet mainProvenance = JavaSourceSet.build("main", dependencies, ctx);
         List<SourceFile> sourceFiles = new ArrayList<>(
-                ListUtils.map(mainJavaSourceFiles, addProvenance(projectProvenance, mainProvenance))
+                ListUtils.map(mainJavaSourceFiles, addProvenance(projectProvenance, mainProvenance, generatedSourcePaths))
         );
 
         logger.info("Parsing Java test files...");
@@ -83,11 +98,11 @@ public class MavenMojoProjectParser {
                 .collect(toList());
 
         javaParser.setClasspath(testDependencies);
-        testJavaSourceFiles.addAll(javaParser.parse(listJavaSources(project.getBuild().getTestSourceDirectory()), baseDir, ctx));
+        testJavaSourceFiles.addAll(javaParser.parse(testJavaSources, baseDir, ctx));
 
         JavaSourceSet testProvenance = JavaSourceSet.build("test", dependencies, ctx);
         sourceFiles.addAll(
-                ListUtils.map(testJavaSourceFiles, addProvenance(projectProvenance, testProvenance))
+                ListUtils.map(testJavaSourceFiles, addProvenance(projectProvenance, testProvenance, generatedSourcePaths))
         );
 
         logger.info("Parsing POM...");
@@ -104,12 +119,16 @@ public class MavenMojoProjectParser {
                 .collect(Collectors.toList());
     }
 
-    private <S extends SourceFile> UnaryOperator<S> addProvenance(List<Marker> projectProvenance, JavaSourceSet sourceSet) {
+    private <S extends SourceFile> UnaryOperator<S> addProvenance(
+            List<Marker> projectProvenance, JavaSourceSet sourceSet, Collection<Path> generatedSources) {
         return s -> {
             for (Marker marker : projectProvenance) {
                 s = s.withMarkers(s.getMarkers().addIfAbsent(marker));
             }
             s = s.withMarkers(s.getMarkers().addIfAbsent(sourceSet));
+            if(generatedSources.contains(s.getSourcePath())) {
+                s = s.withMarkers(s.getMarkers().addIfAbsent(new GeneratedSourceMarker(randomId())));
+            }
             return s;
         };
     }
