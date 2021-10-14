@@ -210,7 +210,7 @@ public abstract class AbstractRewriteMojo extends AbstractMojo {
             }
 
             ResourceParser rp = new ResourceParser(getLog());
-            rp.parse(project.getBasedir().toPath(), alreadyParsed);
+            sourceFiles.addAll(rp.parse(project.getBasedir().toPath(), alreadyParsed));
 
             getLog().info("Running recipe(s)...");
             List<Result> results = recipe.run(sourceFiles, ctx).stream()
