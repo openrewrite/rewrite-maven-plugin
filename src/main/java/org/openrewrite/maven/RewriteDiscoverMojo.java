@@ -68,7 +68,7 @@ public class RewriteDiscoverMojo extends AbstractRewriteMojo {
             writeRecipeDescriptor(rd, true, 0, 0);
         } else {
             Collection<RecipeDescriptor> activeRecipeDescriptors = new HashSet<>();
-            for (String activeRecipe : activeRecipes) {
+            for (String activeRecipe : getActiveRecipes()) {
                 RecipeDescriptor rd = getRecipeDescriptor(activeRecipe, availableRecipeDescriptors);
                 activeRecipeDescriptors.add(rd);
             }
@@ -90,7 +90,7 @@ public class RewriteDiscoverMojo extends AbstractRewriteMojo {
 
         getLog().info("");
         getLog().info("Active Styles:");
-        for (String activeStyle : activeStyles) {
+        for (String activeStyle : getActiveStyles()) {
             getLog().info("    " + activeStyle);
         }
 
@@ -102,7 +102,7 @@ public class RewriteDiscoverMojo extends AbstractRewriteMojo {
 
         getLog().info("");
         getLog().info("Found " + availableRecipeDescriptors.size() + " available recipes and " + availableStyles.size() + " available styles.");
-        getLog().info("Configured with " + activeRecipeDescriptors.size() + " active recipes and " + activeStyles.size() + " active styles.");
+        getLog().info("Configured with " + activeRecipeDescriptors.size() + " active recipes and " + getActiveRecipes().size() + " active styles.");
     }
 
     private void writeRecipeDescriptor(RecipeDescriptor rd, boolean verbose, int currentRecursionLevel, int indentLevel) {
