@@ -8,7 +8,6 @@ import org.apache.maven.rtinfo.RuntimeInformation;
 import org.openrewrite.ExecutionContext;
 import org.openrewrite.Parser;
 import org.openrewrite.SourceFile;
-import org.openrewrite.Tree;
 import org.openrewrite.internal.ListUtils;
 import org.openrewrite.internal.lang.Nullable;
 import org.openrewrite.java.JavaParser;
@@ -43,15 +42,10 @@ import static org.openrewrite.Tree.randomId;
 public class MavenMojoProjectParser {
     private final Log logger;
     private final RuntimeInformation runtime;
-    private final boolean pomCacheEnabled;
-    @Nullable
-    private final String pomCacheDirectory;
 
-    public MavenMojoProjectParser(Log logger, RuntimeInformation runtime, boolean pomCacheEnabled, @Nullable String pomCacheDirectory) {
+    public MavenMojoProjectParser(Log logger, RuntimeInformation runtime) {
         this.logger = logger;
         this.runtime = runtime;
-        this.pomCacheEnabled = pomCacheEnabled;
-        this.pomCacheDirectory = pomCacheDirectory;
     }
 
     public List<SourceFile> listSourceFiles(MavenProject project, Path baseDir, Iterable<NamedStyles> styles,
@@ -103,14 +97,6 @@ public class MavenMojoProjectParser {
         JavaSourceSet testProvenance = JavaSourceSet.build("test", dependencies, ctx);
         sourceFiles.addAll(
                 ListUtils.map(testJavaSourceFiles, addProvenance(projectProvenance, testProvenance, generatedSourcePaths))
-        );
-
-        logger.info("Parsing POM...");
-        Maven pomAst = parseMaven(project, baseDir, pomCacheEnabled, pomCacheDirectory, ctx);
-        sourceFiles.add(
-                pomAst.withMarkers(
-                        pomAst.getMarkers().withMarkers(ListUtils.concatAll(pomAst.getMarkers().getMarkers(), projectProvenance))
-                )
         );
 
         GitProvenance gitProvenance = GitProvenance.fromProjectDirectory(baseDir);

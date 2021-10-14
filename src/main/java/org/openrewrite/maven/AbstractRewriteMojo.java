@@ -201,11 +201,10 @@ public abstract class AbstractRewriteMojo extends AbstractMojo {
             ExecutionContext ctx = executionContext();
             List<SourceFile> sourceFiles = new ArrayList<>();
             Set<Path> alreadyParsed = new HashSet<>();
-            MavenMojoProjectParser mmpp = new MavenMojoProjectParser(getLog(), runtime, pomCacheEnabled, pomCacheDirectory);
-
-            Maven maven = mmpp.parseMaven(project, baseDir, pomCacheEnabled, pomCacheDirectory, ctx);
+            MavenMojoProjectParser projectParser = new MavenMojoProjectParser(getLog(), runtime);
+            Maven maven = projectParser.parseMaven(project, baseDir, pomCacheEnabled, pomCacheDirectory, ctx);
             sourceFiles.add(maven);
-            sourceFiles.addAll(mmpp.listSourceFiles(project, baseDir, styles, ctx));
+            sourceFiles.addAll(projectParser.listSourceFiles(project, baseDir, styles, ctx));
             for(SourceFile sourceFile : sourceFiles) {
                 alreadyParsed.add(sourceFile.getSourcePath());
             }
