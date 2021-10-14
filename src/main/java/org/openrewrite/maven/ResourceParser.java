@@ -49,7 +49,7 @@ public class ResourceParser {
         try {
             List<Path> resourceFiles = Files.find(projectDir, 16, (path, attrs) -> {
                 try {
-                    if (path.toString().contains("/target/")) {
+                    if (path.toString().contains("/target/") || path.toString().contains("/.idea/")) {
                         return false;
                     }
 
