@@ -31,7 +31,7 @@ public class CycloneDxBomMojo extends AbstractRewriteMojo {
     public void execute() throws MojoExecutionException {
         ExecutionContext ctx = executionContext();
         Path baseDir = getBaseDir();
-        Maven maven = parseMaven(baseDir, ctx);
+        Maven maven = new MavenMojoProjectParser(getLog(), runtime).parseMaven(project, baseDir, pomCacheEnabled, pomCacheDirectory, ctx);
         File cycloneDxBom = buildCycloneDxBom(maven);
         projectHelper.attachArtifact(project, "xml", "cyclonedx", cycloneDxBom);
     }
