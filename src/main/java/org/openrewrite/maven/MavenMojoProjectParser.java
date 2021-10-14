@@ -116,7 +116,7 @@ public class MavenMojoProjectParser {
         };
     }
 
-    protected static List<Path> listJavaSources(String sourceDirectory) throws MojoExecutionException {
+    public static List<Path> listJavaSources(String sourceDirectory) throws MojoExecutionException {
         File sourceDirectoryFile = new File(sourceDirectory);
         if (!sourceDirectoryFile.exists()) {
             return emptyList();
@@ -132,7 +132,7 @@ public class MavenMojoProjectParser {
         }
     }
 
-    protected Maven parseMaven(MavenProject project, Path baseDir, boolean pomCacheEnabled, @Nullable String pomCacheDirectory, ExecutionContext ctx) {
+    public Maven parseMaven(MavenProject project, Path baseDir, boolean pomCacheEnabled, @Nullable String pomCacheDirectory, ExecutionContext ctx) {
         List<Path> allPoms = new ArrayList<>();
         allPoms.add(project.getFile().toPath());
 

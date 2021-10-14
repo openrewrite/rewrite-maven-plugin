@@ -108,18 +108,9 @@ public abstract class AbstractRewriteMojo extends AbstractMojo {
         return env.build();
     }
 
-
-    /**
-     * Maven dependency resolution has a few bugs that lead to the log filling up with (recoverable) errors.
-     * While we work on fixing those issues, set this to 'true' during maven parsing to avoid log spam
-     */
-    protected boolean suppressWarnings = false;
-
     protected ExecutionContext executionContext() {
         return new InMemoryExecutionContext(t -> {
-            if (!suppressWarnings) {
-                getLog().warn(t.getMessage());
-            }
+            getLog().warn(t.getMessage());
             getLog().debug(t);
         });
     }
