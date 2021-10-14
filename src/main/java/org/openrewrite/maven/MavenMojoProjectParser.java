@@ -1,28 +1,26 @@
 package org.openrewrite.maven;
 
 import org.apache.maven.artifact.DependencyResolutionRequiredException;
-import org.apache.maven.model.Resource;
 import org.apache.maven.plugin.MojoExecutionException;
 import org.apache.maven.plugin.logging.Log;
 import org.apache.maven.project.MavenProject;
+import org.apache.maven.rtinfo.RuntimeInformation;
 import org.openrewrite.ExecutionContext;
 import org.openrewrite.Parser;
 import org.openrewrite.SourceFile;
 import org.openrewrite.internal.ListUtils;
+import org.openrewrite.internal.lang.Nullable;
 import org.openrewrite.java.JavaParser;
+import org.openrewrite.java.marker.JavaProject;
 import org.openrewrite.java.marker.JavaSourceSet;
+import org.openrewrite.java.marker.JavaVersion;
+import org.openrewrite.marker.BuildTool;
 import org.openrewrite.marker.GitProvenance;
 import org.openrewrite.marker.Marker;
 import org.openrewrite.maven.cache.InMemoryMavenPomCache;
 import org.openrewrite.maven.cache.RocksdbMavenPomCache;
 import org.openrewrite.maven.tree.Maven;
-import org.openrewrite.properties.PropertiesParser;
-import org.openrewrite.properties.PropertiesVisitor;
 import org.openrewrite.style.NamedStyles;
-import org.openrewrite.xml.XmlParser;
-import org.openrewrite.xml.XmlVisitor;
-import org.openrewrite.yaml.YamlParser;
-import org.openrewrite.yaml.YamlVisitor;
 
 import java.io.File;
 import java.io.IOException;
@@ -30,20 +28,26 @@ import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.util.ArrayList;
-import java.util.HashSet;
+import java.util.Arrays;
 import java.util.List;
-import java.util.Set;
 import java.util.function.UnaryOperator;
 import java.util.stream.Collectors;
 
 import static java.util.Collections.emptyList;
 import static java.util.stream.Collectors.toList;
+import static org.openrewrite.Tree.randomId;
 
 public class MavenMojoProjectParser {
     private final Log logger;
+    private final RuntimeInformation runtime;
+    private final boolean pomCacheEnabled;
+    @Nullable private final String pomCacheDirectory;
 
-    public MavenMojoProjectParser(Log logger) {
+    public MavenMojoProjectParser(Log logger, RuntimeInformation runtime, boolean pomCacheEnabled, @Nullable String pomCacheDirectory) {
         this.logger = logger;
+        this.runtime = runtime;
+        this.pomCacheEnabled = pomCacheEnabled;
+        this.pomCacheDirectory = pomCacheDirectory;
     }
 
     public List<SourceFile> listSourceFiles(MavenProject project, Path baseDir, Iterable<NamedStyles> styles,
@@ -64,13 +68,8 @@ public class MavenMojoProjectParser {
         javaParser.setClasspath(dependencies);
         mainJavaSourceFiles.addAll(javaParser.parse(listJavaSources(project.getBuild().getSourceDirectory()), baseDir, ctx));
 
-        Set<Path> mainResources = new HashSet<>(512);
-        for (Resource resource : project.getBuild().getResources()) {
-            addToResources(ctx, mainResources, resource);
-        }
-
         //Add provenance information to main source files
-        List<Marker> projectProvenance = getJavaProvenance();
+        List<Marker> projectProvenance = getJavaProvenance(project, runtime);
         JavaSourceSet mainProvenance = JavaSourceSet.build("main", dependencies, ctx);
         List<SourceFile> sourceFiles = new ArrayList<>(
                 ListUtils.map(mainJavaSourceFiles, addProvenance(projectProvenance, mainProvenance))
@@ -86,116 +85,18 @@ public class MavenMojoProjectParser {
         javaParser.setClasspath(testDependencies);
         testJavaSourceFiles.addAll(javaParser.parse(listJavaSources(project.getBuild().getTestSourceDirectory()), baseDir, ctx));
 
-        Set<Path> testResources = new HashSet<>(512);
-        for (Resource resource : project.getBuild().getTestResources()) {
-            addToResources(ctx, testResources, resource);
-        }
-
         JavaSourceSet testProvenance = JavaSourceSet.build("test", dependencies, ctx);
         sourceFiles.addAll(
                 ListUtils.map(testJavaSourceFiles, addProvenance(projectProvenance, testProvenance))
         );
 
-        List<SourceFile> otherMainSourceFiles = new ArrayList<>(512);
-        List<SourceFile> otherTestSourceFiles = new ArrayList<>(512);
-
-        Set<Class<?>> recipeTypes = new HashSet<>();
-        discoverRecipeTypes(recipe, recipeTypes);
-
-        if (recipeTypes.contains(YamlVisitor.class)) {
-            logger.info("Parsing YAML files...");
-            YamlParser yamlParser = new YamlParser();
-            otherMainSourceFiles.addAll(
-                    yamlParser.parse(
-                            mainResources.stream()
-                                    .filter(it -> it.getFileName().toString().endsWith(".yml") || it.getFileName().toString().endsWith(".yaml"))
-                                    .collect(toList()),
-                            baseDir,
-                            ctx
-                    )
-            );
-            otherTestSourceFiles.addAll(
-                    yamlParser.parse(
-                            testResources.stream()
-                                    .filter(it -> it.getFileName().toString().endsWith(".yml") || it.getFileName().toString().endsWith(".yaml"))
-                                    .collect(toList()),
-                            baseDir,
-                            ctx
-                    )
-            );
-        } else {
-            logger.info("Skipping YAML files because there are no active YAML recipes.");
-        }
-
-        if (recipeTypes.contains(PropertiesVisitor.class)) {
-            logger.info("Parsing properties files...");
-            PropertiesParser propertiesParser = new PropertiesParser();
-            otherMainSourceFiles.addAll(
-                    propertiesParser.parse(
-                            mainResources.stream()
-                                    .filter(it -> it.getFileName().toString().endsWith(".properties"))
-                                    .collect(toList()),
-                            baseDir,
-                            ctx
-                    )
-            );
-            otherTestSourceFiles.addAll(
-                    propertiesParser.parse(
-                            testResources.stream()
-                                    .filter(it -> it.getFileName().toString().endsWith(".properties"))
-                                    .collect(toList()),
-                            baseDir,
-                            ctx
-                    )
-            );
-        } else {
-            logger.info("Skipping properties files because there are no active properties recipes.");
-        }
-
-        if (recipeTypes.contains(XmlVisitor.class)) {
-            logger.info("Parsing XML files...");
-            XmlParser xmlParser = new XmlParser();
-            otherMainSourceFiles.addAll(
-                    xmlParser.parse(
-                            mainResources.stream()
-                                    .filter(it -> it.getFileName().toString().endsWith(".xml"))
-                                    .collect(toList()),
-                            baseDir,
-                            ctx
-                    )
-            );
-            otherTestSourceFiles.addAll(
-                    xmlParser.parse(
-                            testResources.stream()
-                                    .filter(it -> it.getFileName().toString().endsWith(".xml"))
-                                    .collect(toList()),
-                            baseDir,
-                            ctx
-                    )
-            );
-        } else {
-            logger.info("Skipping XML files because there are no active XML recipes.");
-        }
-
-        sourceFiles.addAll(
-                ListUtils.map(otherMainSourceFiles, addProvenance(projectProvenance, mainProvenance))
+        logger.info("Parsing POM...");
+        Maven pomAst = parseMaven(project, baseDir, pomCacheEnabled, pomCacheDirectory, ctx);
+        sourceFiles.add(
+                pomAst.withMarkers(
+                        pomAst.getMarkers().withMarkers(ListUtils.concatAll(pomAst.getMarkers().getMarkers(), projectProvenance))
+                )
         );
-
-        sourceFiles.addAll(
-                ListUtils.map(otherTestSourceFiles, addProvenance(projectProvenance, testProvenance))
-        );
-
-        if (recipeTypes.contains(MavenVisitor.class)) {
-            logger.info("Parsing POM...");
-            Maven pomAst = parseMaven(project, baseDir, ctx);
-            sourceFiles.add(
-                    pomAst.withMarkers(
-                            pomAst.getMarkers().withMarkers(ListUtils.concatAll(pomAst.getMarkers().getMarkers(), projectProvenance))
-                    )
-            );
-        } else {
-            logger.info("Skipping Maven POM files because there are no active Maven recipes.");
-        }
 
         GitProvenance gitProvenance = GitProvenance.fromProjectDirectory(baseDir);
         return sourceFiles.stream()
@@ -236,7 +137,7 @@ public class MavenMojoProjectParser {
         }
     }
 
-    protected Maven parseMaven(MavenProject project, Path baseDir, ExecutionContext ctx) {
+    protected Maven parseMaven(MavenProject project, Path baseDir, boolean pomCacheEnabled, @Nullable String pomCacheDirectory, ExecutionContext ctx) {
         List<Path> allPoms = new ArrayList<>();
         allPoms.add(project.getFile().toPath());
 
@@ -291,16 +192,38 @@ public class MavenMojoProjectParser {
             }
         }
 
-        try {
-            // suppressing warnings down to debug log level is temporary while we work out the kinks in maven dependency resolution
-            suppressWarnings = true;
-            return mavenParserBuilder
-                    .build()
-                    .parse(allPoms, baseDir, ctx)
-                    .iterator()
-                    .next();
-        } finally {
-            suppressWarnings = false;
-        }
+        return mavenParserBuilder
+                .build()
+                .parse(allPoms, baseDir, ctx)
+                .iterator()
+                .next();
     }
+
+    private List<Marker> getJavaProvenance(MavenProject project, RuntimeInformation runtime) {
+
+        String javaRuntimeVersion = System.getProperty("java.runtime.version");
+        String javaVendor = System.getProperty("java.vm.vendor");
+        String sourceCompatibility = javaRuntimeVersion;
+        String targetCompatibility = javaRuntimeVersion;
+
+        String propertiesSourceCompatibility = (String) project.getProperties().get("maven.compiler.source");
+        if (propertiesSourceCompatibility != null) {
+            sourceCompatibility = propertiesSourceCompatibility;
+        }
+        String propertiesTargetCompatibility = (String) project.getProperties().get("maven.compiler.target");
+        if (propertiesTargetCompatibility != null) {
+            targetCompatibility = propertiesTargetCompatibility;
+        }
+
+        return Arrays.asList(
+                new BuildTool(randomId(), BuildTool.Type.Maven, runtime.getMavenVersion()),
+                new JavaVersion(randomId(), javaRuntimeVersion, javaVendor, sourceCompatibility, targetCompatibility),
+                new JavaProject(randomId(), project.getName(), new JavaProject.Publication(
+                        project.getGroupId(),
+                        project.getArtifactId(),
+                        project.getVersion()
+                ))
+        );
+    }
+
 }

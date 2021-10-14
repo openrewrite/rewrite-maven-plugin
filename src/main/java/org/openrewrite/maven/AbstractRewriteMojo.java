@@ -4,7 +4,6 @@ import com.puppycrawl.tools.checkstyle.Checker;
 import io.micrometer.core.instrument.Metrics;
 import org.apache.maven.artifact.DependencyResolutionRequiredException;
 import org.apache.maven.model.Plugin;
-import org.apache.maven.model.Resource;
 import org.apache.maven.plugin.AbstractMojo;
 import org.apache.maven.plugin.MojoExecutionException;
 import org.apache.maven.plugins.annotations.Component;
@@ -16,46 +15,19 @@ import org.openrewrite.*;
 import org.openrewrite.config.Environment;
 import org.openrewrite.config.RecipeDescriptor;
 import org.openrewrite.config.YamlResourceLoader;
-import org.openrewrite.internal.ListUtils;
 import org.openrewrite.internal.lang.Nullable;
-import org.openrewrite.java.JavaParser;
-import org.openrewrite.java.JavaVisitor;
-import org.openrewrite.java.marker.JavaProject;
-import org.openrewrite.java.marker.JavaSourceSet;
-import org.openrewrite.java.marker.JavaVersion;
 import org.openrewrite.java.style.CheckstyleConfigLoader;
-import org.openrewrite.marker.BuildTool;
-import org.openrewrite.marker.GitProvenance;
-import org.openrewrite.marker.Marker;
-import org.openrewrite.maven.cache.InMemoryMavenPomCache;
-import org.openrewrite.maven.cache.RocksdbMavenPomCache;
 import org.openrewrite.maven.tree.Maven;
-import org.openrewrite.maven.tree.Scope;
-import org.openrewrite.properties.PropertiesParser;
-import org.openrewrite.properties.PropertiesVisitor;
 import org.openrewrite.style.NamedStyles;
-import org.openrewrite.xml.XmlParser;
-import org.openrewrite.xml.XmlVisitor;
-import org.openrewrite.yaml.YamlParser;
-import org.openrewrite.yaml.YamlVisitor;
 
 import java.io.*;
-import java.lang.reflect.InvocationTargetException;
-import java.lang.reflect.Method;
-import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
-import java.nio.file.attribute.BasicFileAttributes;
 import java.util.*;
-import java.util.function.BiPredicate;
-import java.util.function.UnaryOperator;
-import java.util.regex.Matcher;
-import java.util.stream.Stream;
 
 import static java.util.Collections.emptyList;
 import static java.util.Collections.emptyMap;
 import static java.util.stream.Collectors.toList;
-import static org.openrewrite.Tree.randomId;
 
 public abstract class AbstractRewriteMojo extends AbstractMojo {
 
@@ -90,11 +62,11 @@ public abstract class AbstractRewriteMojo extends AbstractMojo {
     private String metricsPassword;
 
     @Parameter(property = "pomCacheEnabled", defaultValue = "true")
-    private boolean pomCacheEnabled;
+    protected boolean pomCacheEnabled;
 
     @Nullable
     @Parameter(property = "pomCacheDirectory")
-    private String pomCacheDirectory;
+    protected String pomCacheDirectory;
 
     @Nullable
     @Parameter(property = "checkstyleConfigFile")
@@ -226,6 +198,20 @@ public abstract class AbstractRewriteMojo extends AbstractMojo {
                     getLog().error("Recipe validation errors detected as part of one or more activeRecipe(s). Execution will continue regardless.");
                 }
             }
+            ExecutionContext ctx = executionContext();
+            List<SourceFile> sourceFiles = new ArrayList<>();
+            Set<Path> alreadyParsed = new HashSet<>();
+            MavenMojoProjectParser mmpp = new MavenMojoProjectParser(getLog(), runtime, pomCacheEnabled, pomCacheDirectory);
+
+            Maven maven = mmpp.parseMaven(project, baseDir, pomCacheEnabled, pomCacheDirectory, ctx);
+            sourceFiles.add(maven);
+            sourceFiles.addAll(mmpp.listSourceFiles(project, baseDir, styles, ctx));
+            for(SourceFile sourceFile : sourceFiles) {
+                alreadyParsed.add(sourceFile.getSourcePath());
+            }
+
+            ResourceParser rp = new ResourceParser(getLog());
+            rp.parse(project.getBasedir().toPath(), alreadyParsed);
 
             getLog().info("Running recipe(s)...");
             List<Result> results = recipe.run(sourceFiles, ctx);
@@ -235,71 +221,6 @@ public abstract class AbstractRewriteMojo extends AbstractMojo {
             return new ResultsContainer(baseDir, results);
         } catch (DependencyResolutionRequiredException e) {
             throw new MojoExecutionException("Dependency resolution required", e);
-        }
-    }
-
-    private List<Marker> getJavaProvenance() {
-
-        String javaRuntimeVersion = System.getProperty("java.runtime.version");
-        String javaVendor = System.getProperty("java.vm.vendor");
-        String sourceCompatibility = javaRuntimeVersion;
-        String targetCompatibility = javaRuntimeVersion;
-
-        String propertiesSourceCompatibility = (String) project.getProperties().get("maven.compiler.source");
-        if (propertiesSourceCompatibility != null) {
-            sourceCompatibility = propertiesSourceCompatibility;
-        }
-        String propertiesTargetCompatibility = (String) project.getProperties().get("maven.compiler.target");
-        if (propertiesTargetCompatibility != null) {
-            targetCompatibility = propertiesTargetCompatibility;
-        }
-
-        return Arrays.asList(
-                new BuildTool(randomId(), BuildTool.Type.Maven, runtime.getMavenVersion()),
-                new JavaVersion(randomId(), javaRuntimeVersion, javaVendor, sourceCompatibility, targetCompatibility),
-                new JavaProject(randomId(), project.getName(), new JavaProject.Publication(
-                        project.getGroupId(),
-                        project.getArtifactId(),
-                        project.getVersion()
-                ))
-        );
-    }
-
-    private void discoverRecipeTypes(Recipe recipe, Set<Class<?>> recipeTypes) {
-        for (Recipe next : recipe.getRecipeList()) {
-            discoverRecipeTypes(next, recipeTypes);
-        }
-
-        try {
-            Method getVisitor = recipe.getClass().getDeclaredMethod("getVisitor");
-            getVisitor.setAccessible(true);
-            Object visitor = getVisitor.invoke(recipe);
-            if (visitor instanceof MavenVisitor) {
-                recipeTypes.add(MavenVisitor.class);
-            } else if (visitor instanceof JavaVisitor) {
-                recipeTypes.add(JavaVisitor.class);
-            } else if (visitor instanceof PropertiesVisitor) {
-                recipeTypes.add(PropertiesVisitor.class);
-            } else if (visitor instanceof XmlVisitor) {
-                recipeTypes.add(XmlVisitor.class);
-            } else if (visitor instanceof YamlVisitor) {
-                recipeTypes.add(YamlVisitor.class);
-            }
-        } catch (NoSuchMethodException | InvocationTargetException | IllegalAccessException ignored) {
-            // not every recipe will implement getVisitor() directly, e.g. CompositeRecipe.
-        }
-    }
-
-    private void addToResources(ExecutionContext ctx, Set<Path> resources, Resource resource) {
-        File file = new File(resource.getDirectory());
-        if (file.exists()) {
-            BiPredicate<Path, BasicFileAttributes> predicate = (p, bfa) ->
-                    bfa.isRegularFile() && Stream.of("yml", "yaml", "properties", "xml").anyMatch(type -> p.getFileName().toString().endsWith(type));
-            try {
-                Files.find(file.toPath(), 999, predicate).forEach(resources::add);
-            } catch (IOException e) {
-                ctx.getOnError().accept(e);
-            }
         }
     }
 

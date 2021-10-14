@@ -10,6 +10,7 @@ import org.openrewrite.properties.PropertiesParser;
 import org.openrewrite.xml.XmlParser;
 import org.openrewrite.yaml.YamlParser;
 
+import javax.xml.transform.Source;
 import java.io.IOException;
 import java.io.UncheckedIOException;
 import java.nio.file.Files;
@@ -68,6 +69,7 @@ public class ResourceParser {
                 }
                 return parser.accept(path);
             }).collect(Collectors.toList());
+            alreadyParsed.addAll(resourceFiles);
 
             return parser.parse(resourceFiles, projectDir, ctx);
         } catch (IOException e) {
