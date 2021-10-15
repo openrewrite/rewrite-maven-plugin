@@ -14,6 +14,7 @@ import org.apache.maven.repository.RepositorySystem;
 import org.apache.maven.rtinfo.RuntimeInformation;
 import org.codehaus.plexus.util.xml.Xpp3Dom;
 import org.openrewrite.*;
+import org.openrewrite.config.ClasspathScanningLoader;
 import org.openrewrite.config.Environment;
 import org.openrewrite.config.RecipeDescriptor;
 import org.openrewrite.config.YamlResourceLoader;
@@ -59,15 +60,7 @@ public abstract class AbstractRewriteMojo extends ConfigurableRewriteMojo {
             env.scanRuntimeClasspath()
                 .scanUserHome();
         } else {
-            URLClassLoader recipeClassloader = getRecipeClassloader();
-            // TODO - replace this with https://github.com/openrewrite/rewrite/pull/1100
-            for (URL url : recipeClassloader.getURLs()) {
-                try {
-                    env.scanJar(Paths.get(url.toURI()), recipeClassloader);
-                } catch (URISyntaxException e) {
-                    throw new MojoExecutionException("Failed to load recipe classpath", e);
-                }
-            }
+            env.load(new ClasspathScanningLoader(project.getProperties(), getRecipeClassloader()));
         }
 
         Path absoluteConfigLocation = Paths.get(configLocation);
