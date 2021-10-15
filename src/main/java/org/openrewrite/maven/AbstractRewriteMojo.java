@@ -2,26 +2,32 @@ package org.openrewrite.maven;
 
 import com.puppycrawl.tools.checkstyle.Checker;
 import io.micrometer.core.instrument.Metrics;
+import org.apache.maven.artifact.Artifact;
 import org.apache.maven.artifact.DependencyResolutionRequiredException;
+import org.apache.maven.execution.MavenSession;
 import org.apache.maven.model.Plugin;
-import org.apache.maven.plugin.AbstractMojo;
 import org.apache.maven.plugin.MojoExecutionException;
 import org.apache.maven.plugins.annotations.Component;
 import org.apache.maven.plugins.annotations.Parameter;
 import org.apache.maven.project.MavenProject;
+import org.apache.maven.repository.RepositorySystem;
 import org.apache.maven.rtinfo.RuntimeInformation;
 import org.codehaus.plexus.util.xml.Xpp3Dom;
 import org.openrewrite.*;
+import org.openrewrite.config.ClasspathScanningLoader;
 import org.openrewrite.config.Environment;
 import org.openrewrite.config.RecipeDescriptor;
 import org.openrewrite.config.YamlResourceLoader;
-import org.openrewrite.internal.lang.Nullable;
 import org.openrewrite.java.style.CheckstyleConfigLoader;
 import org.openrewrite.marker.Generated;
 import org.openrewrite.maven.tree.Maven;
 import org.openrewrite.style.NamedStyles;
 
 import java.io.*;
+import java.net.MalformedURLException;
+import java.net.URISyntaxException;
+import java.net.URL;
+import java.net.URLClassLoader;
 import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.util.*;
@@ -30,11 +36,7 @@ import static java.util.Collections.emptyList;
 import static java.util.Collections.emptyMap;
 import static java.util.stream.Collectors.toList;
 
-public abstract class AbstractRewriteMojo extends AbstractMojo {
-
-    @SuppressWarnings("NotNullFieldNotInitialized")
-    @Parameter(property = "configLocation", defaultValue = "${maven.multiModuleProjectDirectory}/rewrite.yml")
-    String configLocation;
+public abstract class AbstractRewriteMojo extends ConfigurableRewriteMojo {
 
     @SuppressWarnings("NotNullFieldNotInitialized")
     @Parameter(defaultValue = "${project}", readonly = true, required = true)
@@ -44,52 +46,22 @@ public abstract class AbstractRewriteMojo extends AbstractMojo {
     @Component
     protected RuntimeInformation runtime;
 
-    @Parameter(property = "activeRecipes")
-    protected Set<String> activeRecipes = Collections.emptySet();
+    @Component
+    protected RepositorySystem repositorySystem;
 
-    @Parameter(property = "activeStyles")
-    protected Set<String> activeStyles = Collections.emptySet();
-
-    @Nullable
-    @Parameter(property = "metricsUri")
-    private String metricsUri;
-
-    @Nullable
-    @Parameter(property = "metricsUsername")
-    private String metricsUsername;
-
-    @Nullable
-    @Parameter(property = "metricsPassword")
-    private String metricsPassword;
-
-    @Parameter(property = "pomCacheEnabled", defaultValue = "true")
-    protected boolean pomCacheEnabled;
-
-    @Nullable
-    @Parameter(property = "pomCacheDirectory")
-    protected String pomCacheDirectory;
-
-    @Nullable
-    @Parameter(property = "checkstyleConfigFile")
-    private String checkstyleConfigFile;
-
-    /**
-     * Whether to throw an exception if an activeRecipe fails configuration validation.
-     * This may happen if the activeRecipe is improperly configured, or any downstream recipes are improperly configured.
-     * <p>
-     * For the time, this default is "false" to prevent one improperly recipe from failing the build.
-     * In the future, this default may be changed to "true" to be more restrictive.
-     */
-    @Parameter(property = "failOnInvalidActiveRecipes", defaultValue = "false")
-    private boolean failOnInvalidActiveRecipes;
+    @Component
+    protected MavenSession mavenSession;
 
     private static final String RECIPE_NOT_FOUND_EXCEPTION_MSG = "Could not find recipe '%s' among available recipes";
 
     protected Environment environment() throws MojoExecutionException {
-        Environment.Builder env = Environment
-                .builder(project.getProperties())
-                .scanRuntimeClasspath()
+        Environment.Builder env = Environment.builder(project.getProperties());
+        if (getRecipeArtifactCoordinates().isEmpty()) {
+            env.scanRuntimeClasspath()
                 .scanUserHome();
+        } else {
+            env.load(new ClasspathScanningLoader(project.getProperties(), getRecipeClassloader()));
+        }
 
         Path absoluteConfigLocation = Paths.get(configLocation);
         if (!absoluteConfigLocation.isAbsolute()) {
@@ -136,16 +108,16 @@ public abstract class AbstractRewriteMojo extends AbstractMojo {
             Metrics.addRegistry(meterRegistryProvider.registry());
 
             Path baseDir = getBaseDir();
-            getLog().info(String.format("Using active recipe(s) %s", activeRecipes));
-            getLog().info(String.format("Using active styles(s) %s", activeStyles));
-            if (activeRecipes.isEmpty()) {
+            getLog().info(String.format("Using active recipe(s) %s", getActiveRecipes()));
+            getLog().info(String.format("Using active styles(s) %s", getActiveStyles()));
+            if (getActiveRecipes().isEmpty()) {
                 return new ResultsContainer(baseDir, emptyList());
             }
 
             Environment env = environment();
 
             List<NamedStyles> styles;
-            styles = env.activateStyles(activeStyles);
+            styles = env.activateStyles(getActiveStyles());
             try {
                 Plugin checkstylePlugin = project.getPlugin("org.apache.maven.plugins:maven-checkstyle-plugin");
                 if (checkstyleConfigFile != null && !checkstyleConfigFile.isEmpty()) {
@@ -174,7 +146,7 @@ public abstract class AbstractRewriteMojo extends AbstractMojo {
                 getLog().warn("Unable to parse checkstyle configuration. Checkstyle will not inform rewrite execution.", e);
             }
 
-            Recipe recipe = env.activateRecipes(activeRecipes);
+            Recipe recipe = env.activateRecipes(getActiveRecipes());
 
             getLog().info("Validating active recipes...");
             Collection<Validated> validated = recipe.validateAll();
@@ -223,6 +195,31 @@ public abstract class AbstractRewriteMojo extends AbstractMojo {
         } catch (DependencyResolutionRequiredException e) {
             throw new MojoExecutionException("Dependency resolution required", e);
         }
+    }
+
+    private URLClassLoader getRecipeClassloader() throws MojoExecutionException {
+        ArtifactResolver resolver = new ArtifactResolver(repositorySystem, mavenSession);
+
+        Set<Artifact> artifacts = new HashSet<>();
+        for (String coordinate : getRecipeArtifactCoordinates()) {
+            artifacts.add(resolver.createArtifact(coordinate));
+        }
+
+        Set<Artifact> resolvedArtifacts = resolver.resolveArtifactsAndDependencies(artifacts);
+        Set<URL> urls = new HashSet<>();
+        for (Artifact artifact : resolvedArtifacts) {
+            try {
+                urls.add(artifact.getFile().toURI().toURL());
+            } catch (MalformedURLException e) {
+                throw new MojoExecutionException("Failed to resolve artifacts from rewrite.recipeArtifactCoordinates", e);
+            }
+        }
+
+        return new URLClassLoader(
+            urls.toArray(new URL[0]),
+            // TODO - confirm this is always the correct classloader in this plexus context
+            AbstractRewriteMojo.class.getClassLoader()
+        );
     }
 
     public static class ResultsContainer {
