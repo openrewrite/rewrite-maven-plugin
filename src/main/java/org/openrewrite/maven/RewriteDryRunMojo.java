@@ -97,15 +97,17 @@ public class RewriteDryRunMojo extends AbstractRewriteMojo {
                         });
 
             } catch (Exception e) {
-                throw new MojoExecutionException("Unable to generate rewrite result file.", e);
+                throw new MojoExecutionException("Unable to generate rewrite result.", e);
             }
-            getLog().warn("Report available:");
+            getLog().warn("Patch file available:");
             getLog().warn("    " + patchFile.normalize().toString());
             getLog().warn("Run 'mvn rewrite:run' to apply the recipes.");
 
             if (failOnDryRunResults) {
                 throw new MojoExecutionException("Applying recipes would make changes. See logs for more details.");
             }
+        } else {
+            getLog().info("Applying recipes would make no changes. No patch file generated.");
         }
     }
 }

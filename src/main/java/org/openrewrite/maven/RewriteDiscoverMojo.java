@@ -112,7 +112,9 @@ public class RewriteDiscoverMojo extends AbstractRewriteMojo {
 
                 getLog().info(indent + rd.getDisplayName());
                 getLog().info(indent + "    " + rd.getName());
-                if (!rd.getDescription().isEmpty()) {
+                // Recipe parsed from yaml might have null description, even though that isn't technically allowed
+                //noinspection ConstantConditions
+                if (rd.getDescription() != null && !rd.getDescription().isEmpty()) {
                     getLog().info(indent + "    " + rd.getDescription());
                 }
 

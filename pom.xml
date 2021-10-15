@@ -92,6 +92,16 @@
         </dependency>
         <dependency>
             <groupId>org.openrewrite</groupId>
+            <artifactId>rewrite-hcl</artifactId>
+            <version>${rewrite.version}</version>
+        </dependency>
+        <dependency>
+            <groupId>org.openrewrite</groupId>
+            <artifactId>rewrite-json</artifactId>
+            <version>${rewrite.version}</version>
+        </dependency>
+        <dependency>
+            <groupId>org.openrewrite</groupId>
             <artifactId>rewrite-properties</artifactId>
             <version>${rewrite.version}</version>
         </dependency>
