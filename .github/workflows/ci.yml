@@ -39,8 +39,6 @@ jobs:
       - name: build
         if: github.event_name != 'workflow_dispatch'
         run: ./mvnw --no-transfer-progress -B clean verify -DskipITs --file pom.xml
-        env:
-          GRADLE_ENTERPRISE_ACCESS_KEY: ${{ secrets.GRADLE_ENTERPRISE_ACCESS_KEY }}
       - name: verify
         if: github.event_name != 'push'
         run: ./mvnw --no-transfer-progress -B clean verify --file pom.xml

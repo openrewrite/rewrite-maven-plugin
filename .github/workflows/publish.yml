@@ -17,19 +17,13 @@ jobs:
         with:
           distribution: "temurin"
           java-version: "11"
+          cache: "maven"
           server-id: ossrh
           settings-path: ${{ github.workspace }}
           server-username: SONATYPE_USERNAME
           server-password: SONATYPE_PASSWORD
           gpg-private-key: ${{ secrets.OSSRH_SIGNING_KEY }}
           gpg-passphrase: SONATYPE_SIGNING_PASSWORD
-      - name: setup-cache
-        uses: actions/cache@v2.1.6
-        with:
-          path: ~/.m2/repository
-          key: ${{ runner.os }}-maven-${{ hashFiles('**/pom.xml') }}
-          restore-keys: |
-            ${{ runner.os }}-maven-
       - name: configure-git-user
         run: |
           git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
@@ -43,7 +37,6 @@ jobs:
           SONATYPE_USERNAME: ${{ secrets.OSSRH_USERNAME }}
           SONATYPE_PASSWORD: ${{ secrets.OSSRH_TOKEN }}
           SONATYPE_SIGNING_PASSWORD: ${{ secrets.OSSRH_SIGNING_PASSWORD }}
-          GRADLE_ENTERPRISE_ACCESS_KEY: ${{ secrets.GRADLE_ENTERPRISE_ACCESS_KEY }}
 
       - name: rollback
         if: ${{ failure() }}
