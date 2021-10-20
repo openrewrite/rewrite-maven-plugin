@@ -1,6 +1,7 @@
 package org.openrewrite.maven;
 
 import org.apache.maven.plugin.logging.Log;
+import org.openrewrite.ExecutionContext;
 import org.openrewrite.InMemoryExecutionContext;
 import org.openrewrite.Parser;
 import org.openrewrite.SourceFile;
@@ -10,7 +11,6 @@ import org.openrewrite.properties.PropertiesParser;
 import org.openrewrite.xml.XmlParser;
 import org.openrewrite.yaml.YamlParser;
 
-import javax.xml.transform.Source;
 import java.io.IOException;
 import java.io.UncheckedIOException;
 import java.nio.file.Files;
@@ -28,32 +28,37 @@ public class ResourceParser {
         this.logger = logger;
     }
 
-    public List<SourceFile> parse(Path projectDir, Collection<Path> alreadyParsed) {
+    public List<SourceFile> parse(Path baseDir, Path searchDir, Collection<Path> alreadyParsed) {
+        List<SourceFile> sourceFiles = new ArrayList<>();
+        if(!searchDir.toFile().exists()) {
+            return sourceFiles;
+        }
         Consumer<Throwable> errorConsumer = t -> logger.error("Error parsing", t);
         InMemoryExecutionContext ctx = new InMemoryExecutionContext(errorConsumer);
 
-        List<SourceFile> sourceFiles = new ArrayList<>();
-        sourceFiles.addAll(parseSourceFiles(ctx, new JsonParser(), projectDir, alreadyParsed));
-        sourceFiles.addAll(parseSourceFiles(ctx, new XmlParser(), projectDir, alreadyParsed));
-        sourceFiles.addAll(parseSourceFiles(ctx, new YamlParser(), projectDir, alreadyParsed));
-        sourceFiles.addAll(parseSourceFiles(ctx, new PropertiesParser(), projectDir, alreadyParsed));
-        sourceFiles.addAll(parseSourceFiles(ctx, HclParser.builder().build(), projectDir, alreadyParsed));
+        sourceFiles.addAll(parseSourceFiles(baseDir, new JsonParser(), searchDir, alreadyParsed, ctx));
+        sourceFiles.addAll(parseSourceFiles(baseDir, new XmlParser(), searchDir, alreadyParsed, ctx));
+        sourceFiles.addAll(parseSourceFiles(baseDir, new YamlParser(), searchDir, alreadyParsed, ctx));
+        sourceFiles.addAll(parseSourceFiles(baseDir, new PropertiesParser(), searchDir, alreadyParsed, ctx));
+        sourceFiles.addAll(parseSourceFiles(baseDir, HclParser.builder().build(), searchDir, alreadyParsed, ctx));
 
         return sourceFiles;
     }
 
-    public <S extends SourceFile> List<S> parseSourceFiles(InMemoryExecutionContext ctx,
+
+    public <S extends SourceFile> List<S> parseSourceFiles(Path baseDir,
                                                            Parser<S> parser,
-                                                           Path projectDir,
-                                                           Collection<Path> alreadyParsed) {
+                                                           Path searchDir,
+                                                           Collection<Path> alreadyParsed,
+                                                           ExecutionContext ctx) {
         try {
-            List<Path> resourceFiles = Files.find(projectDir, 16, (path, attrs) -> {
+            List<Path> resourceFiles = Files.find(searchDir, 16, (path, attrs) -> {
                 try {
                     if (path.toString().contains("/target/")) {
                         return false;
                     }
 
-                    if (alreadyParsed.contains(projectDir.relativize(path))) {
+                    if (alreadyParsed.contains(searchDir.relativize(path))) {
                         return false;
                     }
 
@@ -69,9 +74,8 @@ public class ResourceParser {
                 }
                 return parser.accept(path);
             }).collect(Collectors.toList());
-            alreadyParsed.addAll(resourceFiles);
 
-            return parser.parse(resourceFiles, projectDir, ctx);
+            return parser.parse(resourceFiles, baseDir, ctx);
         } catch (IOException e) {
             logger.error(e.getMessage(), e);
             throw new UncheckedIOException(e);

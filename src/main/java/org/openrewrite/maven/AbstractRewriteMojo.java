@@ -19,13 +19,12 @@ import org.openrewrite.config.Environment;
 import org.openrewrite.config.RecipeDescriptor;
 import org.openrewrite.config.YamlResourceLoader;
 import org.openrewrite.java.style.CheckstyleConfigLoader;
-import org.openrewrite.marker.Generated;
+//import org.openrewrite.marker.Generated;
 import org.openrewrite.maven.tree.Maven;
 import org.openrewrite.style.NamedStyles;
 
 import java.io.*;
 import java.net.MalformedURLException;
-import java.net.URISyntaxException;
 import java.net.URL;
 import java.net.URLClassLoader;
 import java.nio.file.Path;
@@ -49,19 +48,19 @@ public abstract class AbstractRewriteMojo extends ConfigurableRewriteMojo {
     @Component
     protected RepositorySystem repositorySystem;
 
-    @Component
+    @Parameter(defaultValue = "${session}", readonly = true)
     protected MavenSession mavenSession;
 
     private static final String RECIPE_NOT_FOUND_EXCEPTION_MSG = "Could not find recipe '%s' among available recipes";
 
     protected Environment environment() throws MojoExecutionException {
         Environment.Builder env = Environment.builder(project.getProperties());
-        if (getRecipeArtifactCoordinates().isEmpty()) {
+//        if (getRecipeArtifactCoordinates().isEmpty()) {
             env.scanRuntimeClasspath()
                 .scanUserHome();
-        } else {
-            env.load(new ClasspathScanningLoader(project.getProperties(), getRecipeClassloader()));
-        }
+//        } else {
+//            env.load(new ClasspathScanningLoader(project.getProperties(), getRecipeClassloader()));
+//        }
 
         Path absoluteConfigLocation = Paths.get(configLocation);
         if (!absoluteConfigLocation.isAbsolute()) {
@@ -164,29 +163,24 @@ public abstract class AbstractRewriteMojo extends ConfigurableRewriteMojo {
             }
             ExecutionContext ctx = executionContext();
             List<SourceFile> sourceFiles = new ArrayList<>();
-            Set<Path> alreadyParsed = new HashSet<>();
-            MavenMojoProjectParser projectParser = new MavenMojoProjectParser(getLog(), project, runtime);
-            Maven maven = projectParser.parseMaven(baseDir, pomCacheEnabled, pomCacheDirectory, ctx);
-            sourceFiles.add(maven);
-            sourceFiles.addAll(projectParser.listSourceFiles(baseDir, styles, ctx));
-            for(SourceFile sourceFile : sourceFiles) {
-                alreadyParsed.add(sourceFile.getSourcePath());
+            MavenMojoProjectParser projectParser = new MavenMojoProjectParser(getLog(), baseDir, project, runtime);
+            Maven maven = projectParser.parseMaven(pomCacheEnabled, pomCacheDirectory, ctx);
+            if(maven != null) {
+                sourceFiles.add(maven);
             }
-
-            ResourceParser rp = new ResourceParser(getLog());
-            sourceFiles.addAll(rp.parse(project.getBasedir().toPath(), alreadyParsed));
+            sourceFiles.addAll(projectParser.listSourceFiles(styles, ctx));
 
             getLog().info("Running recipe(s)...");
             List<Result> results = recipe.run(sourceFiles, ctx).stream()
-                    .filter(source -> {
-                        // Remove ASTs originating from generated files
-                        if(source.getAfter() != null) {
-                            return !source.getAfter().getMarkers().findFirst(Generated.class).isPresent();
-                        } else if(source.getBefore() != null) {
-                            return !source.getBefore().getMarkers().findFirst(Generated.class).isPresent();
-                        }
-                        return true;
-                    })
+//                    .filter(source -> {
+//                        // Remove ASTs originating from generated files
+//                        if(source.getAfter() != null) {
+//                            return !source.getAfter().getMarkers().findFirst(Generated.class).isPresent();
+//                        } else if(source.getBefore() != null) {
+//                            return !source.getBefore().getMarkers().findFirst(Generated.class).isPresent();
+//                        }
+//                        return true;
+//                    })
                     .collect(toList());
 
             Metrics.removeRegistry(meterRegistryProvider.registry());
