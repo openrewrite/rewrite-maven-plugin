@@ -19,7 +19,7 @@ import org.openrewrite.config.Environment;
 import org.openrewrite.config.RecipeDescriptor;
 import org.openrewrite.config.YamlResourceLoader;
 import org.openrewrite.java.style.CheckstyleConfigLoader;
-//import org.openrewrite.marker.Generated;
+import org.openrewrite.marker.Generated;
 import org.openrewrite.maven.tree.Maven;
 import org.openrewrite.style.NamedStyles;
 
@@ -55,12 +55,12 @@ public abstract class AbstractRewriteMojo extends ConfigurableRewriteMojo {
 
     protected Environment environment() throws MojoExecutionException {
         Environment.Builder env = Environment.builder(project.getProperties());
-//        if (getRecipeArtifactCoordinates().isEmpty()) {
+        if (getRecipeArtifactCoordinates().isEmpty()) {
             env.scanRuntimeClasspath()
                 .scanUserHome();
-//        } else {
-//            env.load(new ClasspathScanningLoader(project.getProperties(), getRecipeClassloader()));
-//        }
+        } else {
+            env.load(new ClasspathScanningLoader(project.getProperties(), getRecipeClassloader()));
+        }
 
         Path absoluteConfigLocation = Paths.get(configLocation);
         if (!absoluteConfigLocation.isAbsolute()) {
@@ -172,15 +172,13 @@ public abstract class AbstractRewriteMojo extends ConfigurableRewriteMojo {
 
             getLog().info("Running recipe(s)...");
             List<Result> results = recipe.run(sourceFiles, ctx).stream()
-//                    .filter(source -> {
-//                        // Remove ASTs originating from generated files
-//                        if(source.getAfter() != null) {
-//                            return !source.getAfter().getMarkers().findFirst(Generated.class).isPresent();
-//                        } else if(source.getBefore() != null) {
-//                            return !source.getBefore().getMarkers().findFirst(Generated.class).isPresent();
-//                        }
-//                        return true;
-//                    })
+                    .filter(source -> {
+                        // Remove ASTs originating from generated files
+                        if(source.getBefore() != null) {
+                            return !source.getBefore().getMarkers().findFirst(Generated.class).isPresent();
+                        }
+                        return true;
+                    })
                     .collect(toList());
 
             Metrics.removeRegistry(meterRegistryProvider.registry());

@@ -15,7 +15,7 @@ import org.openrewrite.java.marker.JavaProject;
 import org.openrewrite.java.marker.JavaSourceSet;
 import org.openrewrite.java.marker.JavaVersion;
 import org.openrewrite.marker.BuildTool;
-//import org.openrewrite.marker.Generated;
+import org.openrewrite.marker.Generated;
 import org.openrewrite.marker.GitProvenance;
 import org.openrewrite.marker.Marker;
 import org.openrewrite.maven.cache.InMemoryMavenPomCache;
@@ -211,9 +211,9 @@ public class MavenMojoProjectParser {
             if (sourceSet != null) {
                 s = s.withMarkers(s.getMarkers().addIfAbsent(sourceSet));
             }
-//            if(generatedSources != null && generatedSources.contains(baseDir.resolve(s.getSourcePath()))) {
-//                s = s.withMarkers(s.getMarkers().addIfAbsent(new Generated(randomId())));
-//            }
+            if(generatedSources != null && generatedSources.contains(baseDir.resolve(s.getSourcePath()))) {
+                s = s.withMarkers(s.getMarkers().addIfAbsent(new Generated(randomId())));
+            }
             return s;
         };
     }
