@@ -61,16 +61,27 @@ public class MavenMojoProjectParser {
             targetCompatibility = propertiesTargetCompatibility;
         }
 
-        projectProvenance = Arrays.asList(
-                GitProvenance.fromProjectDirectory(baseDir),
-                new BuildTool(randomId(), BuildTool.Type.Maven, runtime.getMavenVersion()),
-                new JavaVersion(randomId(), javaRuntimeVersion, javaVendor, sourceCompatibility, targetCompatibility),
-                new JavaProject(randomId(), mavenProject.getName(), new JavaProject.Publication(
-                        mavenProject.getGroupId(),
-                        mavenProject.getArtifactId(),
-                        mavenProject.getVersion()
-                ))
-        );
+        projectProvenance = Stream.of(gitProvenance(baseDir),
+                        new BuildTool(randomId(), BuildTool.Type.Maven, runtime.getMavenVersion()),
+                        new JavaVersion(randomId(), javaRuntimeVersion, javaVendor, sourceCompatibility, targetCompatibility),
+                        new JavaProject(randomId(), mavenProject.getName(), new JavaProject.Publication(
+                                mavenProject.getGroupId(),
+                                mavenProject.getArtifactId(),
+                                mavenProject.getVersion()
+                        )))
+                .filter(Objects::nonNull)
+                .collect(toList());
+    }
+
+    @Nullable
+    private GitProvenance gitProvenance(Path baseDir) {
+        try {
+            return GitProvenance.fromProjectDirectory(baseDir);
+        } catch(Exception e) {
+            // Logging at a low level as this is unlikely to happen except in non-git projects, where it is expected
+            logger.debug("Unable to determine git provenance", e);
+        }
+        return null;
     }
 
     @Nullable
