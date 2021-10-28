@@ -41,11 +41,16 @@ public class MavenMojoProjectParser {
     private final Path baseDir;
     private final MavenProject mavenProject;
     private final List<Marker> projectProvenance;
+    private final boolean pomCacheEnabled;
+    @Nullable private final String pomCacheDirectory;
+    @Nullable private List<Maven> poms = null;
 
-    public MavenMojoProjectParser(Log logger, Path baseDir, MavenProject mavenProject, RuntimeInformation runtime) {
+    public MavenMojoProjectParser(Log logger, Path baseDir, boolean pomCacheEnabled, @Nullable String pomCacheDirectory, MavenProject mavenProject, RuntimeInformation runtime) {
         this.logger = logger;
         this.baseDir = baseDir;
         this.mavenProject = mavenProject;
+        this.pomCacheEnabled = pomCacheEnabled;
+        this.pomCacheDirectory = pomCacheDirectory;
 
         String javaRuntimeVersion = System.getProperty("java.runtime.version");
         String javaVendor = System.getProperty("java.vm.vendor");
@@ -85,73 +90,79 @@ public class MavenMojoProjectParser {
     }
 
     @Nullable
-    public Maven parseMaven(boolean pomCacheEnabled, @Nullable String pomCacheDirectory, ExecutionContext ctx) {
+    public Maven parseMaven(ExecutionContext ctx) {
         if(System.getProperty("skipMavenParsing") != null) {
             return null;
         }
-        List<Path> allPoms = new ArrayList<>();
-        allPoms.add(mavenProject.getFile().toPath());
+        if(poms == null) {
+            List<Path> allPoms = new ArrayList<>();
+            allPoms.add(mavenProject.getFile().toPath());
 
-        // children
-        if (mavenProject.getCollectedProjects() != null) {
-            mavenProject.getCollectedProjects().stream()
-                    .filter(collectedProject -> collectedProject != mavenProject)
-                    .map(collectedProject -> collectedProject.getFile().toPath())
-                    .forEach(allPoms::add);
-        }
-
-        MavenProject parent = mavenProject.getParent();
-        while (parent != null && parent.getFile() != null) {
-            allPoms.add(parent.getFile().toPath());
-            parent = parent.getParent();
-        }
-        MavenParser.Builder mavenParserBuilder = MavenParser.builder()
-                .mavenConfig(baseDir.resolve(".mvn/maven.config"));
-
-        if (pomCacheEnabled) {
-            try {
-                if (pomCacheDirectory == null) {
-                    //Default directory in the RocksdbMavenPomCache is ".rewrite-cache"
-                    mavenParserBuilder.cache(new RocksdbMavenPomCache(Paths.get(System.getProperty("user.home"))));
-                } else {
-                    mavenParserBuilder.cache(new RocksdbMavenPomCache(Paths.get(pomCacheDirectory)));
-                }
-            } catch (Exception e) {
-                logger.warn("Unable to initialize RocksdbMavenPomCache, falling back to InMemoryMavenPomCache");
-                logger.debug(e);
-                mavenParserBuilder.cache(new InMemoryMavenPomCache());
+            // children
+            if (mavenProject.getCollectedProjects() != null) {
+                mavenProject.getCollectedProjects().stream()
+                        .filter(collectedProject -> collectedProject != mavenProject)
+                        .map(collectedProject -> collectedProject.getFile().toPath())
+                        .forEach(allPoms::add);
             }
-        }
 
-        Path mavenSettings = Paths.get(System.getProperty("user.home")).resolve(".m2/settings.xml");
-        if (mavenSettings.toFile().exists()) {
-            MavenSettings settings = MavenSettings.parse(new Parser.Input(mavenSettings,
-                            () -> {
-                                try {
-                                    return Files.newInputStream(mavenSettings);
-                                } catch (IOException e) {
-                                    logger.warn("Unable to load Maven settings from user home directory. Skipping.", e);
-                                    return null;
-                                }
-                            }),
-                    ctx);
-            if (settings != null) {
-                new MavenExecutionContextView(ctx).setMavenSettings(settings);
-                if (settings.getActiveProfiles() != null) {
-                    mavenParserBuilder.activeProfiles(settings.getActiveProfiles().getActiveProfiles().toArray(new String[]{}));
+            MavenProject parent = mavenProject.getParent();
+            while (parent != null && parent.getFile() != null) {
+                allPoms.add(parent.getFile().toPath());
+                parent = parent.getParent();
+            }
+            MavenParser.Builder mavenParserBuilder = MavenParser.builder()
+                    .mavenConfig(baseDir.resolve(".mvn/maven.config"));
+
+            if (pomCacheEnabled) {
+                try {
+                    if (pomCacheDirectory == null) {
+                        //Default directory in the RocksdbMavenPomCache is ".rewrite-cache"
+                        mavenParserBuilder.cache(new RocksdbMavenPomCache(Paths.get(System.getProperty("user.home"))));
+                    } else {
+                        mavenParserBuilder.cache(new RocksdbMavenPomCache(Paths.get(pomCacheDirectory)));
+                    }
+                } catch (Exception e) {
+                    logger.warn("Unable to initialize RocksdbMavenPomCache, falling back to InMemoryMavenPomCache");
+                    logger.debug(e);
+                    mavenParserBuilder.cache(new InMemoryMavenPomCache());
                 }
             }
-        }
 
-        Maven mavenSource = mavenParserBuilder
-                .build()
-                .parse(allPoms, baseDir, ctx)
-                .iterator()
-                .next();
-        for (Marker marker : projectProvenance) {
-            mavenSource = mavenSource.withMarkers(mavenSource.getMarkers().addIfAbsent(marker));
+            Path mavenSettings = Paths.get(System.getProperty("user.home")).resolve(".m2/settings.xml");
+            if (mavenSettings.toFile().exists()) {
+                MavenSettings settings = MavenSettings.parse(new Parser.Input(mavenSettings,
+                                () -> {
+                                    try {
+                                        return Files.newInputStream(mavenSettings);
+                                    } catch (IOException e) {
+                                        logger.warn("Unable to load Maven settings from user home directory. Skipping.", e);
+                                        return null;
+                                    }
+                                }),
+                        ctx);
+                if (settings != null) {
+                    new MavenExecutionContextView(ctx).setMavenSettings(settings);
+                    if (settings.getActiveProfiles() != null) {
+                        mavenParserBuilder.activeProfiles(settings.getActiveProfiles().getActiveProfiles().toArray(new String[]{}));
+                    }
+                }
+            }
+            poms = mavenParserBuilder
+                    .build()
+                    .parse(allPoms, baseDir, ctx);
         }
-        return mavenSource;
+        Maven pom = poms.stream()
+                .filter(it -> it.getModel().getGroupId().equals(mavenProject.getGroupId()) && it.getModel().getArtifactId().equals(mavenProject.getArtifactId()))
+                .findFirst()
+                .orElse(null);
+
+        if(pom != null) {
+            for (Marker marker : projectProvenance) {
+                pom = pom.withMarkers(pom.getMarkers().addIfAbsent(marker));
+            }
+        }
+        return pom;
     }
 
     public List<SourceFile> listSourceFiles(Iterable<NamedStyles> styles,
@@ -180,10 +191,14 @@ public class MavenMojoProjectParser {
 
         //Add provenance information to main source files
         JavaSourceSet mainProvenance = JavaSourceSet.build("main", dependencies, ctx);
-        List<SourceFile> sourceFiles = new ArrayList<>(
-                ListUtils.map(javaParser.parse(mainJavaSources, baseDir, ctx),
-                        addProvenance(baseDir, projectProvenance, mainProvenance, generatedSourcePaths))
-        );
+        List<SourceFile> sourceFiles = new ArrayList<>();
+        Maven maven = parseMaven(ctx);
+        if(maven != null) {
+            sourceFiles.add(maven);
+            alreadyParsed.add(maven.getSourcePath());
+        }
+        sourceFiles.addAll(ListUtils.map(javaParser.parse(mainJavaSources, baseDir, ctx),
+                addProvenance(baseDir, projectProvenance, mainProvenance, generatedSourcePaths)));
         ResourceParser rp = new ResourceParser(logger);
         sourceFiles.addAll(ListUtils.map(
                 rp.parse(baseDir, mavenProject.getBasedir().toPath().resolve("src/main/resources"), alreadyParsed),
