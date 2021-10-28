@@ -15,6 +15,7 @@ import java.io.IOException;
 import java.io.UncheckedIOException;
 import java.nio.file.Files;
 import java.nio.file.Path;
+import java.nio.file.PathMatcher;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.List;
@@ -23,9 +24,11 @@ import java.util.stream.Collectors;
 
 public class ResourceParser {
     private final Log logger;
+    private final Collection<String> exclusions;
 
-    public ResourceParser(Log logger) {
+    public ResourceParser(Log logger, Collection<String> exclusions) {
         this.logger = logger;
+        this.exclusions = exclusions;
     }
 
     public List<SourceFile> parse(Path baseDir, Path searchDir, Collection<Path> alreadyParsed) {
@@ -54,15 +57,18 @@ public class ResourceParser {
         try {
             List<Path> resourceFiles = Files.find(searchDir, 16, (path, attrs) -> {
                 try {
-                    if (path.toString().contains("/target/")) {
+                    if (path.toString().contains("/target/") || path.toString().contains("/build/")
+                            || path.toString().contains("/out/") || path.toString().contains("/node_modules/") || path.toString().contains("/.metadata/")) {
                         return false;
+                    }
+                    for (String exclusion : exclusions) {
+                        PathMatcher matcher = baseDir.getFileSystem().getPathMatcher("glob:" + exclusion);
+                        if(matcher.matches(baseDir.relativize(path))) {
+                            return false;
+                        }
                     }
 
                     if (alreadyParsed.contains(searchDir.relativize(path))) {
-                        return false;
-                    }
-
-                    if (path.toString().contains("/build/") || path.toString().contains("/out/")) {
                         return false;
                     }
 

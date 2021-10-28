@@ -20,9 +20,9 @@ import org.openrewrite.config.RecipeDescriptor;
 import org.openrewrite.config.YamlResourceLoader;
 import org.openrewrite.java.style.CheckstyleConfigLoader;
 import org.openrewrite.marker.Generated;
-import org.openrewrite.maven.tree.Maven;
 import org.openrewrite.style.NamedStyles;
 
+import javax.annotation.Nullable;
 import java.io.*;
 import java.net.MalformedURLException;
 import java.net.URL;
@@ -162,7 +162,7 @@ public abstract class AbstractRewriteMojo extends ConfigurableRewriteMojo {
                 }
             }
             ExecutionContext ctx = executionContext();
-            MavenMojoProjectParser projectParser = new MavenMojoProjectParser(getLog(), baseDir, pomCacheEnabled, pomCacheDirectory, project, runtime);
+            MavenMojoProjectParser projectParser = new MavenMojoProjectParser(getLog(), baseDir, pomCacheEnabled, pomCacheDirectory, project, runtime, getExclusions());
             List<SourceFile> sourceFiles = projectParser.listSourceFiles(styles, ctx);
 
             getLog().info("Running recipe(s)...");

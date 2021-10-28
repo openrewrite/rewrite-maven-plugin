@@ -53,6 +53,23 @@ public abstract class ConfigurableRewriteMojo extends AbstractMojo {
   @Parameter(property = "rewrite.checkstyleConfigFile", alias = "checkstyleConfigFile")
   protected String checkstyleConfigFile;
 
+  @Parameter(property="exclusions")
+  private Set<String> exclusions = Collections.emptySet();
+
+  @Nullable
+  @Parameter(property = "rewrite.exclusions")
+  private String rewriteExclusions;
+
+  protected Set<String> getExclusions() {
+    if(rewriteExclusions == null) {
+      return exclusions;
+    } else {
+      Set<String> allExclusions = toSet(rewriteExclusions);
+      allExclusions.addAll(exclusions);
+      return allExclusions;
+    }
+  }
+
   /**
    * Whether to throw an exception if an activeRecipe fails configuration validation.
    * This may happen if the activeRecipe is improperly configured, or any downstream recipes are improperly configured.

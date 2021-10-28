@@ -43,14 +43,15 @@ public class MavenMojoProjectParser {
     private final List<Marker> projectProvenance;
     private final boolean pomCacheEnabled;
     @Nullable private final String pomCacheDirectory;
-    @Nullable private List<Maven> poms = null;
+    private final Collection<String> exclusions;
 
-    public MavenMojoProjectParser(Log logger, Path baseDir, boolean pomCacheEnabled, @Nullable String pomCacheDirectory, MavenProject mavenProject, RuntimeInformation runtime) {
+    public MavenMojoProjectParser(Log logger, Path baseDir, boolean pomCacheEnabled, @Nullable String pomCacheDirectory, MavenProject mavenProject, RuntimeInformation runtime, Collection<String> exclusions) {
         this.logger = logger;
         this.baseDir = baseDir;
         this.mavenProject = mavenProject;
         this.pomCacheEnabled = pomCacheEnabled;
         this.pomCacheDirectory = pomCacheDirectory;
+        this.exclusions = exclusions;
 
         String javaRuntimeVersion = System.getProperty("java.runtime.version");
         String javaVendor = System.getProperty("java.vm.vendor");
@@ -94,74 +95,70 @@ public class MavenMojoProjectParser {
         if(System.getProperty("skipMavenParsing") != null) {
             return null;
         }
-        if(poms == null) {
-            List<Path> allPoms = new ArrayList<>();
-            allPoms.add(mavenProject.getFile().toPath());
 
-            // children
-            if (mavenProject.getCollectedProjects() != null) {
-                mavenProject.getCollectedProjects().stream()
-                        .filter(collectedProject -> collectedProject != mavenProject)
-                        .map(collectedProject -> collectedProject.getFile().toPath())
-                        .forEach(allPoms::add);
-            }
+        List<Path> allPoms = new ArrayList<>();
+        allPoms.add(mavenProject.getFile().toPath());
 
-            MavenProject parent = mavenProject.getParent();
-            while (parent != null && parent.getFile() != null) {
-                allPoms.add(parent.getFile().toPath());
-                parent = parent.getParent();
-            }
-            MavenParser.Builder mavenParserBuilder = MavenParser.builder()
-                    .mavenConfig(baseDir.resolve(".mvn/maven.config"));
-
-            if (pomCacheEnabled) {
-                try {
-                    if (pomCacheDirectory == null) {
-                        //Default directory in the RocksdbMavenPomCache is ".rewrite-cache"
-                        mavenParserBuilder.cache(new RocksdbMavenPomCache(Paths.get(System.getProperty("user.home"))));
-                    } else {
-                        mavenParserBuilder.cache(new RocksdbMavenPomCache(Paths.get(pomCacheDirectory)));
-                    }
-                } catch (Exception e) {
-                    logger.warn("Unable to initialize RocksdbMavenPomCache, falling back to InMemoryMavenPomCache");
-                    logger.debug(e);
-                    mavenParserBuilder.cache(new InMemoryMavenPomCache());
-                }
-            }
-
-            Path mavenSettings = Paths.get(System.getProperty("user.home")).resolve(".m2/settings.xml");
-            if (mavenSettings.toFile().exists()) {
-                MavenSettings settings = MavenSettings.parse(new Parser.Input(mavenSettings,
-                                () -> {
-                                    try {
-                                        return Files.newInputStream(mavenSettings);
-                                    } catch (IOException e) {
-                                        logger.warn("Unable to load Maven settings from user home directory. Skipping.", e);
-                                        return null;
-                                    }
-                                }),
-                        ctx);
-                if (settings != null) {
-                    new MavenExecutionContextView(ctx).setMavenSettings(settings);
-                    if (settings.getActiveProfiles() != null) {
-                        mavenParserBuilder.activeProfiles(settings.getActiveProfiles().getActiveProfiles().toArray(new String[]{}));
-                    }
-                }
-            }
-            poms = mavenParserBuilder
-                    .build()
-                    .parse(allPoms, baseDir, ctx);
+        // children
+        if (mavenProject.getCollectedProjects() != null) {
+            mavenProject.getCollectedProjects().stream()
+                    .filter(collectedProject -> collectedProject != mavenProject)
+                    .map(collectedProject -> collectedProject.getFile().toPath())
+                    .forEach(allPoms::add);
         }
-        Maven pom = poms.stream()
-                .filter(it -> it.getModel().getGroupId().equals(mavenProject.getGroupId()) && it.getModel().getArtifactId().equals(mavenProject.getArtifactId()))
-                .findFirst()
-                .orElse(null);
 
-        if(pom != null) {
-            for (Marker marker : projectProvenance) {
-                pom = pom.withMarkers(pom.getMarkers().addIfAbsent(marker));
+        MavenProject parent = mavenProject.getParent();
+        while (parent != null && parent.getFile() != null) {
+            allPoms.add(parent.getFile().toPath());
+            parent = parent.getParent();
+        }
+        MavenParser.Builder mavenParserBuilder = MavenParser.builder()
+                .mavenConfig(baseDir.resolve(".mvn/maven.config"));
+
+        if (pomCacheEnabled) {
+            try {
+                if (pomCacheDirectory == null) {
+                    //Default directory in the RocksdbMavenPomCache is ".rewrite-cache"
+                    mavenParserBuilder.cache(new RocksdbMavenPomCache(Paths.get(System.getProperty("user.home"))));
+                } else {
+                    mavenParserBuilder.cache(new RocksdbMavenPomCache(Paths.get(pomCacheDirectory)));
+                }
+            } catch (Exception e) {
+                logger.warn("Unable to initialize RocksdbMavenPomCache, falling back to InMemoryMavenPomCache");
+                logger.debug(e);
+                mavenParserBuilder.cache(new InMemoryMavenPomCache());
             }
         }
+
+        Path mavenSettings = Paths.get(System.getProperty("user.home")).resolve(".m2/settings.xml");
+        if (mavenSettings.toFile().exists()) {
+            MavenSettings settings = MavenSettings.parse(new Parser.Input(mavenSettings,
+                            () -> {
+                                try {
+                                    return Files.newInputStream(mavenSettings);
+                                } catch (IOException e) {
+                                    logger.warn("Unable to load Maven settings from user home directory. Skipping.", e);
+                                    return null;
+                                }
+                            }),
+                    ctx);
+            if (settings != null) {
+                new MavenExecutionContextView(ctx).setMavenSettings(settings);
+                if (settings.getActiveProfiles() != null) {
+                    mavenParserBuilder.activeProfiles(settings.getActiveProfiles().getActiveProfiles().toArray(new String[]{}));
+                }
+            }
+        }
+        Maven pom = mavenParserBuilder
+                .build()
+                .parse(allPoms, baseDir, ctx)
+                .iterator()
+                .next();
+
+        for (Marker marker : projectProvenance) {
+            pom = pom.withMarkers(pom.getMarkers().addIfAbsent(marker));
+        }
+
         return pom;
     }
 
@@ -199,7 +196,7 @@ public class MavenMojoProjectParser {
         }
         sourceFiles.addAll(ListUtils.map(javaParser.parse(mainJavaSources, baseDir, ctx),
                 addProvenance(baseDir, projectProvenance, mainProvenance, generatedSourcePaths)));
-        ResourceParser rp = new ResourceParser(logger);
+        ResourceParser rp = new ResourceParser(logger, exclusions);
         sourceFiles.addAll(ListUtils.map(
                 rp.parse(baseDir, mavenProject.getBasedir().toPath().resolve("src/main/resources"), alreadyParsed),
                 addProvenance(baseDir, projectProvenance, mainProvenance, null)));
