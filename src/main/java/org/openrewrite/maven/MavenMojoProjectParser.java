@@ -43,14 +43,16 @@ public class MavenMojoProjectParser {
     private final List<Marker> projectProvenance;
     private final boolean pomCacheEnabled;
     @Nullable private final String pomCacheDirectory;
+    private final boolean skipMavenParsing;
     private final Collection<String> exclusions;
 
-    public MavenMojoProjectParser(Log logger, Path baseDir, boolean pomCacheEnabled, @Nullable String pomCacheDirectory, MavenProject mavenProject, RuntimeInformation runtime, Collection<String> exclusions) {
+    public MavenMojoProjectParser(Log logger, Path baseDir, boolean pomCacheEnabled, @Nullable String pomCacheDirectory, MavenProject mavenProject, RuntimeInformation runtime, boolean skipMavenParsing, Collection<String> exclusions) {
         this.logger = logger;
         this.baseDir = baseDir;
         this.mavenProject = mavenProject;
         this.pomCacheEnabled = pomCacheEnabled;
         this.pomCacheDirectory = pomCacheDirectory;
+        this.skipMavenParsing = skipMavenParsing;
         this.exclusions = exclusions;
 
         String javaRuntimeVersion = System.getProperty("java.runtime.version");
@@ -92,7 +94,8 @@ public class MavenMojoProjectParser {
 
     @Nullable
     public Maven parseMaven(ExecutionContext ctx) {
-        if(System.getProperty("skipMavenParsing") != null) {
+        if(skipMavenParsing) {
+            logger.info("Skipping Maven parsing...");
             return null;
         }
 
