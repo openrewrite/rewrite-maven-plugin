@@ -45,6 +45,7 @@ public class RewriteDryRunMojo extends AbstractRewriteMojo {
 
     @Override
     public void execute() throws MojoExecutionException {
+        MavenOptsHelper.checkAndLogMissingJvmModuleExports(getLog());
         ResultsContainer results = listResults();
 
         if (results.isNotEmpty()) {
