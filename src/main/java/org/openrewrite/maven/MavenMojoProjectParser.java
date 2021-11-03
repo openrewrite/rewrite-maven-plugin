@@ -12,7 +12,9 @@ import org.openrewrite.internal.ListUtils;
 import org.openrewrite.internal.lang.Nullable;
 import org.openrewrite.java.JavaParser;
 import org.openrewrite.java.marker.JavaProject;
+import org.openrewrite.java.marker.JavaSourceSet;
 import org.openrewrite.java.marker.JavaVersion;
+import org.openrewrite.java.tree.J;
 import org.openrewrite.marker.BuildTool;
 import org.openrewrite.marker.Generated;
 import org.openrewrite.marker.GitProvenance;
@@ -35,6 +37,21 @@ import static java.util.Collections.emptyList;
 import static java.util.stream.Collectors.toList;
 import static org.openrewrite.Tree.randomId;
 
+// -----------------------------------------------------------------------------------------------------------------
+// Notes About Provenance Information:
+//
+// There are always three markers applied to each source file and there can potentially be up to five provenance markers
+// total:
+//
+// BuildTool     - What build tool was used to compile the source file (This will always be Maven)
+// JavaVersion   - What Java version/vendor was used when compiling the source file.
+// JavaProject   - For each maven module/sub-module, the same JavaProject will be associated with ALL source files belonging to that module.
+//
+// Optional:
+//
+// GitProvenance - If the entire project exists in the context of a git repository, all source files (for all modules) will have the same GitProvenance.
+// JavaSourceSet - All Java source files and all resource files that exist in src/main or src/test will have a JavaSourceSet marker assigned to them.
+// -----------------------------------------------------------------------------------------------------------------
 public class MavenMojoProjectParser {
     private final Log logger;
     private final Path baseDir;
@@ -186,8 +203,6 @@ public class MavenMojoProjectParser {
 
         javaParser.setClasspath(dependencies);
         javaParser.setSourceSet("main");
-        List<Marker> mainProvenance = new ArrayList<>(projectProvenance);
-        mainProvenance.add(javaParser.getSourceSet(ctx));
 
         List<SourceFile> sourceFiles = new ArrayList<>();
         Maven maven = parseMaven(ctx);
@@ -197,13 +212,26 @@ public class MavenMojoProjectParser {
         }
         // JavaParser will add SourceSet Markers to any Java SourceFile, so only adding the project provenance info to
         // java source.
-        sourceFiles.addAll(ListUtils.map(javaParser.parse(mainJavaSources, baseDir, ctx),
-                addProvenance(baseDir, projectProvenance, generatedSourcePaths)));
+        List<J.CompilationUnit> mainJavaSourceFiles = ListUtils.map(javaParser.parse(mainJavaSources, baseDir, ctx),
+                addProvenance(baseDir, projectProvenance, generatedSourcePaths));
+        sourceFiles.addAll(mainJavaSourceFiles);
+
         ResourceParser rp = new ResourceParser(logger, exclusions);
-        // Any resources parsed from "main/resources" should also have the main source set added to them.
+
+        // Any resources parsed from "main/resources" should also have the main source set added to them. Because the
+        // source set contains the classpath of the parser (including any source files that may have been compiled), it
+        // is preferable to use the SourceSet marker from the first java source file (if it exists), otherwise, get the
+        // source set from the parser.
+        Marker mainSourceSet = mainJavaSourceFiles.isEmpty() ?
+                javaParser.getSourceSet(ctx) :
+                mainJavaSourceFiles.get(0)
+                        .getMarkers()
+                        .findFirst(JavaSourceSet.class)
+                        .orElse(javaParser.getSourceSet(ctx));
+
         sourceFiles.addAll(ListUtils.map(
                 rp.parse(baseDir, mavenProject.getBasedir().toPath().resolve("src/main/resources"), alreadyParsed),
-                addProvenance(baseDir, mainProvenance, null)));
+                addProvenance(baseDir, ListUtils.concat(projectProvenance, mainSourceSet), null)));
 
         logger.info("Parsing Java test files...");
         List<Path> testDependencies = mavenProject.getTestClasspathElements().stream()
@@ -213,18 +241,24 @@ public class MavenMojoProjectParser {
 
         javaParser.setClasspath(testDependencies);
         javaParser.setSourceSet("test");
-        List<Marker> testProvenance = new ArrayList<>(projectProvenance);
-        testProvenance.add(javaParser.getSourceSet(ctx));
 
         // JavaParser will add SourceSet Markers to any Java SourceFile, so only adding the project provenance info to
         // java source.
-        sourceFiles.addAll(ListUtils.map(
+        List<J.CompilationUnit> testJavaSourceFiles = ListUtils.map(
                 javaParser.parse(listJavaSources(mavenProject.getBuild().getTestSourceDirectory()), baseDir, ctx),
-                addProvenance(baseDir, projectProvenance, null) ));
-        // Any resources parsed from "test/resources" should also have the test source set added to them.
+                addProvenance(baseDir, projectProvenance, null));
+        sourceFiles.addAll(testJavaSourceFiles);
+
+        // Any resources parsed from "test/resources" should also have the test source set added to them. Because the
+        // source set contains the classpath of the parser (including any source files that may have been compiled), it
+        // is preferable to use the SourceSet marker from the first java source file (if it exists), otherwise, get the
+        // source set from the parser.
+        Marker testSourceSet = testJavaSourceFiles.isEmpty() ?
+                javaParser.getSourceSet(ctx) : testJavaSourceFiles.get(0).getMarkers().findFirst(JavaSourceSet.class).orElse(javaParser.getSourceSet(ctx));
+
         sourceFiles.addAll(ListUtils.map(
                 rp.parse(baseDir, mavenProject.getBasedir().toPath().resolve("src/test/resources"), alreadyParsed),
-                addProvenance(baseDir, testProvenance, null)));
+                addProvenance(baseDir, ListUtils.concat(projectProvenance, testSourceSet), null)));
 
         // Parse non-java, non-resource files
         sourceFiles.addAll(ListUtils.map(
