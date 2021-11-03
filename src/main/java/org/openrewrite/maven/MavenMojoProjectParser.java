@@ -195,9 +195,12 @@ public class MavenMojoProjectParser {
             sourceFiles.add(maven);
             alreadyParsed.add(maven.getSourcePath());
         }
+        //JavaParser will add SourceSet Markers to any Java SourceFile, so only adding the project provenance info to
+        //java source.
         sourceFiles.addAll(ListUtils.map(javaParser.parse(mainJavaSources, baseDir, ctx),
-                addProvenance(baseDir, mainProvenance, generatedSourcePaths)));
+                addProvenance(baseDir, projectProvenance, generatedSourcePaths)));
         ResourceParser rp = new ResourceParser(logger, exclusions);
+        //Any resources parsed from "main/resources" should also have the main source set added to them.
         sourceFiles.addAll(ListUtils.map(
                 rp.parse(baseDir, mavenProject.getBasedir().toPath().resolve("src/main/resources"), alreadyParsed),
                 addProvenance(baseDir, mainProvenance,null)));
@@ -213,9 +216,12 @@ public class MavenMojoProjectParser {
         List<Marker> testProvenance = new ArrayList<>(projectProvenance);
         testProvenance.add(javaParser.getSourceSet(ctx));
 
+        //JavaParser will add SourceSet Markers to any Java SourceFile, so only adding the project provenance info to
+        //java source.
         sourceFiles.addAll(ListUtils.map(
                 javaParser.parse(listJavaSources(mavenProject.getBuild().getTestSourceDirectory()), baseDir, ctx),
-                addProvenance(baseDir, testProvenance, null) ));
+                addProvenance(baseDir, projectProvenance, null) ));
+        //Any resources parsed from "test/resources" should also have the test source set added to them.
         sourceFiles.addAll(ListUtils.map(
                 rp.parse(baseDir, mavenProject.getBasedir().toPath().resolve("src/test/resources"), alreadyParsed),
                 addProvenance(baseDir, testProvenance, null)));
