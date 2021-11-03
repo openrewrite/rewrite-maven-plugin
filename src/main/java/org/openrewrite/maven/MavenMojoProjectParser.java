@@ -14,6 +14,7 @@ import org.openrewrite.java.JavaParser;
 import org.openrewrite.java.marker.JavaProject;
 import org.openrewrite.java.marker.JavaSourceSet;
 import org.openrewrite.java.marker.JavaVersion;
+import org.openrewrite.java.tree.J;
 import org.openrewrite.marker.BuildTool;
 import org.openrewrite.marker.Generated;
 import org.openrewrite.marker.GitProvenance;
@@ -36,6 +37,21 @@ import static java.util.Collections.emptyList;
 import static java.util.stream.Collectors.toList;
 import static org.openrewrite.Tree.randomId;
 
+// -----------------------------------------------------------------------------------------------------------------
+// Notes About Provenance Information:
+//
+// There are always three markers applied to each source file and there can potentially be up to five provenance markers
+// total:
+//
+// BuildTool     - What build tool was used to compile the source file (This will always be Maven)
+// JavaVersion   - What Java version/vendor was used when compiling the source file.
+// JavaProject   - For each maven module/sub-module, the same JavaProject will be associated with ALL source files belonging to that module.
+//
+// Optional:
+//
+// GitProvenance - If the entire project exists in the context of a git repository, all source files (for all modules) will have the same GitProvenance.
+// JavaSourceSet - All Java source files and all resource files that exist in src/main or src/test will have a JavaSourceSet marker assigned to them.
+// -----------------------------------------------------------------------------------------------------------------
 public class MavenMojoProjectParser {
     private final Log logger;
     private final Path baseDir;
@@ -115,8 +131,7 @@ public class MavenMojoProjectParser {
             allPoms.add(parent.getFile().toPath());
             parent = parent.getParent();
         }
-        MavenParser.Builder mavenParserBuilder = MavenParser.builder()
-                .mavenConfig(baseDir.resolve(".mvn/maven.config"));
+        MavenParser.Builder mavenParserBuilder = MavenParser.builder().mavenConfig(baseDir.resolve(".mvn/maven.config"));
 
         if (pomCacheEnabled) {
             try {
@@ -169,7 +184,6 @@ public class MavenMojoProjectParser {
                                             ExecutionContext ctx) throws DependencyResolutionRequiredException, MojoExecutionException {
         Set<Path> alreadyParsed = new HashSet<>();
         JavaParser javaParser = JavaParser.fromJavaVersion()
-                .relaxedClassTypeMatching(true)
                 .styles(styles)
                 .logCompilationWarningsAndErrors(false)
                 .build();
@@ -188,21 +202,36 @@ public class MavenMojoProjectParser {
                 .collect(toList());
 
         javaParser.setClasspath(dependencies);
+        javaParser.setSourceSet("main");
 
-        //Add provenance information to main source files
-        JavaSourceSet mainProvenance = JavaSourceSet.build("main", dependencies, ctx);
         List<SourceFile> sourceFiles = new ArrayList<>();
         Maven maven = parseMaven(ctx);
         if(maven != null) {
             sourceFiles.add(maven);
             alreadyParsed.add(maven.getSourcePath());
         }
-        sourceFiles.addAll(ListUtils.map(javaParser.parse(mainJavaSources, baseDir, ctx),
-                addProvenance(baseDir, projectProvenance, mainProvenance, generatedSourcePaths)));
+        // JavaParser will add SourceSet Markers to any Java SourceFile, so only adding the project provenance info to
+        // java source.
+        List<J.CompilationUnit> mainJavaSourceFiles = ListUtils.map(javaParser.parse(mainJavaSources, baseDir, ctx),
+                addProvenance(baseDir, projectProvenance, generatedSourcePaths));
+        sourceFiles.addAll(mainJavaSourceFiles);
+
         ResourceParser rp = new ResourceParser(logger, exclusions);
+
+        // Any resources parsed from "main/resources" should also have the main source set added to them. Because the
+        // source set contains the classpath of the parser (including any source files that may have been compiled), it
+        // is preferable to use the SourceSet marker from the first java source file (if it exists), otherwise, get the
+        // source set from the parser.
+        Marker mainSourceSet = mainJavaSourceFiles.isEmpty() ?
+                javaParser.getSourceSet(ctx) :
+                mainJavaSourceFiles.get(0)
+                        .getMarkers()
+                        .findFirst(JavaSourceSet.class)
+                        .orElse(javaParser.getSourceSet(ctx));
+
         sourceFiles.addAll(ListUtils.map(
                 rp.parse(baseDir, mavenProject.getBasedir().toPath().resolve("src/main/resources"), alreadyParsed),
-                addProvenance(baseDir, projectProvenance, mainProvenance, null)));
+                addProvenance(baseDir, ListUtils.concat(projectProvenance, mainSourceSet), null)));
 
         logger.info("Parsing Java test files...");
         List<Path> testDependencies = mavenProject.getTestClasspathElements().stream()
@@ -211,31 +240,40 @@ public class MavenMojoProjectParser {
                 .collect(toList());
 
         javaParser.setClasspath(testDependencies);
-        JavaSourceSet testProvenance = JavaSourceSet.build("test", dependencies, ctx);
-        sourceFiles.addAll(ListUtils.map(
+        javaParser.setSourceSet("test");
+
+        // JavaParser will add SourceSet Markers to any Java SourceFile, so only adding the project provenance info to
+        // java source.
+        List<J.CompilationUnit> testJavaSourceFiles = ListUtils.map(
                 javaParser.parse(listJavaSources(mavenProject.getBuild().getTestSourceDirectory()), baseDir, ctx),
-                addProvenance(baseDir, projectProvenance, testProvenance, null) ));
+                addProvenance(baseDir, projectProvenance, null));
+        sourceFiles.addAll(testJavaSourceFiles);
+
+        // Any resources parsed from "test/resources" should also have the test source set added to them. Because the
+        // source set contains the classpath of the parser (including any source files that may have been compiled), it
+        // is preferable to use the SourceSet marker from the first java source file (if it exists), otherwise, get the
+        // source set from the parser.
+        Marker testSourceSet = testJavaSourceFiles.isEmpty() ?
+                javaParser.getSourceSet(ctx) : testJavaSourceFiles.get(0).getMarkers().findFirst(JavaSourceSet.class).orElse(javaParser.getSourceSet(ctx));
+
         sourceFiles.addAll(ListUtils.map(
                 rp.parse(baseDir, mavenProject.getBasedir().toPath().resolve("src/test/resources"), alreadyParsed),
-                addProvenance(baseDir, projectProvenance, testProvenance, null)));
+                addProvenance(baseDir, ListUtils.concat(projectProvenance, testSourceSet), null)));
 
         // Parse non-java, non-resource files
         sourceFiles.addAll(ListUtils.map(
                 rp.parse(baseDir, mavenProject.getBasedir().toPath(), alreadyParsed),
-                addProvenance(baseDir, projectProvenance, null, null)
+                addProvenance(baseDir, projectProvenance, null)
         ));
 
         return sourceFiles;
     }
 
     private <S extends SourceFile> UnaryOperator<S> addProvenance(Path baseDir,
-            List<Marker> provenance, @Nullable JavaSourceSet sourceSet, @Nullable Collection<Path> generatedSources) {
+            List<Marker> provenance, @Nullable Collection<Path> generatedSources) {
         return s -> {
             for (Marker marker : provenance) {
                 s = s.withMarkers(s.getMarkers().addIfAbsent(marker));
-            }
-            if (sourceSet != null) {
-                s = s.withMarkers(s.getMarkers().addIfAbsent(sourceSet));
             }
             if(generatedSources != null && generatedSources.contains(baseDir.resolve(s.getSourcePath()))) {
                 s = s.withMarkers(s.getMarkers().addIfAbsent(new Generated(randomId())));
