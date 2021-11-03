@@ -12,7 +12,6 @@ import org.openrewrite.internal.ListUtils;
 import org.openrewrite.internal.lang.Nullable;
 import org.openrewrite.java.JavaParser;
 import org.openrewrite.java.marker.JavaProject;
-import org.openrewrite.java.marker.JavaSourceSet;
 import org.openrewrite.java.marker.JavaVersion;
 import org.openrewrite.marker.BuildTool;
 import org.openrewrite.marker.Generated;
@@ -115,8 +114,7 @@ public class MavenMojoProjectParser {
             allPoms.add(parent.getFile().toPath());
             parent = parent.getParent();
         }
-        MavenParser.Builder mavenParserBuilder = MavenParser.builder()
-                .mavenConfig(baseDir.resolve(".mvn/maven.config"));
+        MavenParser.Builder mavenParserBuilder = MavenParser.builder().mavenConfig(baseDir.resolve(".mvn/maven.config"));
 
         if (pomCacheEnabled) {
             try {
@@ -169,7 +167,6 @@ public class MavenMojoProjectParser {
                                             ExecutionContext ctx) throws DependencyResolutionRequiredException, MojoExecutionException {
         Set<Path> alreadyParsed = new HashSet<>();
         JavaParser javaParser = JavaParser.fromJavaVersion()
-                .relaxedClassTypeMatching(true)
                 .styles(styles)
                 .logCompilationWarningsAndErrors(false)
                 .build();
@@ -188,9 +185,10 @@ public class MavenMojoProjectParser {
                 .collect(toList());
 
         javaParser.setClasspath(dependencies);
+        javaParser.setSourceSet("main");
+        List<Marker> mainProvenance = new ArrayList<>(projectProvenance);
+        mainProvenance.add(javaParser.getSourceSet(ctx));
 
-        //Add provenance information to main source files
-        JavaSourceSet mainProvenance = JavaSourceSet.build("main", dependencies, ctx);
         List<SourceFile> sourceFiles = new ArrayList<>();
         Maven maven = parseMaven(ctx);
         if(maven != null) {
@@ -198,11 +196,11 @@ public class MavenMojoProjectParser {
             alreadyParsed.add(maven.getSourcePath());
         }
         sourceFiles.addAll(ListUtils.map(javaParser.parse(mainJavaSources, baseDir, ctx),
-                addProvenance(baseDir, projectProvenance, mainProvenance, generatedSourcePaths)));
+                addProvenance(baseDir, mainProvenance, generatedSourcePaths)));
         ResourceParser rp = new ResourceParser(logger, exclusions);
         sourceFiles.addAll(ListUtils.map(
                 rp.parse(baseDir, mavenProject.getBasedir().toPath().resolve("src/main/resources"), alreadyParsed),
-                addProvenance(baseDir, projectProvenance, mainProvenance, null)));
+                addProvenance(baseDir, mainProvenance,null)));
 
         logger.info("Parsing Java test files...");
         List<Path> testDependencies = mavenProject.getTestClasspathElements().stream()
@@ -211,31 +209,31 @@ public class MavenMojoProjectParser {
                 .collect(toList());
 
         javaParser.setClasspath(testDependencies);
-        JavaSourceSet testProvenance = JavaSourceSet.build("test", dependencies, ctx);
+        javaParser.setSourceSet("test");
+        List<Marker> testProvenance = new ArrayList<>(projectProvenance);
+        testProvenance.add(javaParser.getSourceSet(ctx));
+
         sourceFiles.addAll(ListUtils.map(
                 javaParser.parse(listJavaSources(mavenProject.getBuild().getTestSourceDirectory()), baseDir, ctx),
-                addProvenance(baseDir, projectProvenance, testProvenance, null) ));
+                addProvenance(baseDir, testProvenance, null) ));
         sourceFiles.addAll(ListUtils.map(
                 rp.parse(baseDir, mavenProject.getBasedir().toPath().resolve("src/test/resources"), alreadyParsed),
-                addProvenance(baseDir, projectProvenance, testProvenance, null)));
+                addProvenance(baseDir, testProvenance, null)));
 
         // Parse non-java, non-resource files
         sourceFiles.addAll(ListUtils.map(
                 rp.parse(baseDir, mavenProject.getBasedir().toPath(), alreadyParsed),
-                addProvenance(baseDir, projectProvenance, null, null)
+                addProvenance(baseDir, projectProvenance, null)
         ));
 
         return sourceFiles;
     }
 
     private <S extends SourceFile> UnaryOperator<S> addProvenance(Path baseDir,
-            List<Marker> provenance, @Nullable JavaSourceSet sourceSet, @Nullable Collection<Path> generatedSources) {
+            List<Marker> provenance, @Nullable Collection<Path> generatedSources) {
         return s -> {
             for (Marker marker : provenance) {
                 s = s.withMarkers(s.getMarkers().addIfAbsent(marker));
-            }
-            if (sourceSet != null) {
-                s = s.withMarkers(s.getMarkers().addIfAbsent(sourceSet));
             }
             if(generatedSources != null && generatedSources.contains(baseDir.resolve(s.getSourcePath()))) {
                 s = s.withMarkers(s.getMarkers().addIfAbsent(new Generated(randomId())));
