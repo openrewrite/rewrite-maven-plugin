@@ -203,7 +203,7 @@ public class MavenMojoProjectParser {
         //Any resources parsed from "main/resources" should also have the main source set added to them.
         sourceFiles.addAll(ListUtils.map(
                 rp.parse(baseDir, mavenProject.getBasedir().toPath().resolve("src/main/resources"), alreadyParsed),
-                addProvenance(baseDir, mainProvenance,null)));
+                addProvenance(baseDir, mainProvenance, null)));
 
         logger.info("Parsing Java test files...");
         List<Path> testDependencies = mavenProject.getTestClasspathElements().stream()
