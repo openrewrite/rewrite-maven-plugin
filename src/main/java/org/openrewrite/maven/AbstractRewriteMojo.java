@@ -22,7 +22,6 @@ import org.openrewrite.java.style.CheckstyleConfigLoader;
 import org.openrewrite.marker.Generated;
 import org.openrewrite.style.NamedStyles;
 
-import javax.annotation.Nullable;
 import java.io.*;
 import java.net.MalformedURLException;
 import java.net.URL;
@@ -184,7 +183,7 @@ public abstract class AbstractRewriteMojo extends ConfigurableRewriteMojo {
         }
     }
 
-    private URLClassLoader getRecipeClassloader() throws MojoExecutionException {
+    protected URLClassLoader getRecipeClassloader() throws MojoExecutionException {
         ArtifactResolver resolver = new ArtifactResolver(repositorySystem, mavenSession);
 
         Set<Artifact> artifacts = new HashSet<>();
@@ -204,7 +203,6 @@ public abstract class AbstractRewriteMojo extends ConfigurableRewriteMojo {
 
         return new URLClassLoader(
             urls.toArray(new URL[0]),
-            // TODO - confirm this is always the correct classloader in this plexus context
             AbstractRewriteMojo.class.getClassLoader()
         );
     }
