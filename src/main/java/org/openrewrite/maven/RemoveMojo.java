@@ -34,7 +34,7 @@ public class RemoveMojo extends AbstractRewriteMojo {
                 .mavenConfig(baseDir.resolve(".mvn/maven.config"))
                 .build();
         List<Maven> pom = mp.parse(Collections.singleton(project.getFile().toPath()), baseDir, ctx);
-        Result result = new RemovePlugin(groupId, groupId)
+        Result result = new RemovePlugin(groupId, artifactId)
                 .run(pom)
                 .get(0);
 
@@ -46,6 +46,6 @@ public class RemoveMojo extends AbstractRewriteMojo {
         } catch (IOException e) {
             throw new RuntimeException(e);
         }
-        getLog().info("Added " + artifactId + " to " + project.getFile().getPath());
+        getLog().info("Removed " + artifactId + " from " + project.getFile().getPath());
     }
 }
