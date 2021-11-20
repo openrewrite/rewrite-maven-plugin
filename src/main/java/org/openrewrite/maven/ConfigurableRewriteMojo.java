@@ -77,6 +77,10 @@ public abstract class ConfigurableRewriteMojo extends AbstractMojo {
     }
   }
 
+  @Nullable
+  @Parameter(property = "sizeThresholdMb", defaultValue = "10")
+  protected int sizeThresholdMb;
+
   /**
    * Whether to throw an exception if an activeRecipe fails configuration validation.
    * This may happen if the activeRecipe is improperly configured, or any downstream recipes are improperly configured.

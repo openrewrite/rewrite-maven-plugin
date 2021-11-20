@@ -25,10 +25,12 @@ import java.util.stream.Collectors;
 public class ResourceParser {
     private final Log logger;
     private final Collection<String> exclusions;
+    private final int sizeThresholdMb;
 
-    public ResourceParser(Log logger, Collection<String> exclusions) {
+    public ResourceParser(Log logger, Collection<String> exclusions, int thresholdMb) {
         this.logger = logger;
         this.exclusions = exclusions;
+        sizeThresholdMb = thresholdMb;
     }
 
     public List<SourceFile> parse(Path baseDir, Path searchDir, Collection<Path> alreadyParsed) {
@@ -47,7 +49,6 @@ public class ResourceParser {
 
         return sourceFiles;
     }
-
 
     public <S extends SourceFile> List<S> parseSourceFiles(Path baseDir,
                                                            Parser<S> parser,
@@ -75,6 +76,14 @@ public class ResourceParser {
                     if (attrs.isDirectory() || Files.size(path) == 0) {
                         return false;
                     }
+                    long fileSize = Files.size(path);
+                    if(sizeThresholdMb > 0 && fileSize > sizeThresholdMb * 1024L * 1024L) {
+                        alreadyParsed.add(path);
+                        logger.info("Skipping parsing " + path + " as its size + "  + fileSize / (1024L * 1024L) +
+                                "Mb exceeds size threshold " + sizeThresholdMb + "Mb");
+                        return false;
+                    }
+
                 } catch (IOException e) {
                     logger.warn(e.getMessage(), e);
                 }

@@ -12,9 +12,7 @@ import org.openrewrite.internal.ListUtils;
 import org.openrewrite.internal.lang.Nullable;
 import org.openrewrite.java.JavaParser;
 import org.openrewrite.java.marker.JavaProject;
-import org.openrewrite.java.marker.JavaSourceSet;
 import org.openrewrite.java.marker.JavaVersion;
-import org.openrewrite.java.tree.J;
 import org.openrewrite.marker.BuildTool;
 import org.openrewrite.marker.Generated;
 import org.openrewrite.marker.GitProvenance;
@@ -61,8 +59,9 @@ public class MavenMojoProjectParser {
     @Nullable private final String pomCacheDirectory;
     private final boolean skipMavenParsing;
     private final Collection<String> exclusions;
+    private final int sizeThresholdMb;
 
-    public MavenMojoProjectParser(Log logger, Path baseDir, boolean pomCacheEnabled, @Nullable String pomCacheDirectory, MavenProject mavenProject, RuntimeInformation runtime, boolean skipMavenParsing, Collection<String> exclusions) {
+    public MavenMojoProjectParser(Log logger, Path baseDir, boolean pomCacheEnabled, @Nullable String pomCacheDirectory, MavenProject mavenProject, RuntimeInformation runtime, boolean skipMavenParsing, Collection<String> exclusions, int thresholdMb) {
         this.logger = logger;
         this.baseDir = baseDir;
         this.mavenProject = mavenProject;
@@ -70,6 +69,7 @@ public class MavenMojoProjectParser {
         this.pomCacheDirectory = pomCacheDirectory;
         this.skipMavenParsing = skipMavenParsing;
         this.exclusions = exclusions;
+        sizeThresholdMb = thresholdMb;
 
         String javaRuntimeVersion = System.getProperty("java.runtime.version");
         String javaVendor = System.getProperty("java.vm.vendor");
@@ -215,7 +215,7 @@ public class MavenMojoProjectParser {
         sourceFiles.addAll(ListUtils.map(javaParser.parse(mainJavaSources, baseDir, ctx),
                 addProvenance(baseDir, projectProvenance, generatedSourcePaths)));
 
-        ResourceParser rp = new ResourceParser(logger, exclusions);
+        ResourceParser rp = new ResourceParser(logger, exclusions, sizeThresholdMb);
 
         // Any resources parsed from "main/resources" should also have the main source set added to them.
         sourceFiles.addAll(ListUtils.map(
