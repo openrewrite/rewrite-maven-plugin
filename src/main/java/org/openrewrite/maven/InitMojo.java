@@ -13,7 +13,11 @@ import java.io.BufferedWriter;
 import java.io.IOException;
 import java.nio.file.Files;
 import java.nio.file.Path;
-import java.util.*;
+import java.util.Arrays;
+import java.util.Collections;
+import java.util.List;
+import java.util.Scanner;
+import java.util.Set;
 import java.util.stream.Collectors;
 
 @Mojo(name = "init", threadSafe = true)
@@ -53,6 +57,7 @@ public class InitMojo extends AbstractRewriteMojo {
     public void execute() throws MojoExecutionException {
         Path baseDir = getBaseDir();
         if(rootOnly && !project.getBasedir().toPath().equals(baseDir)) {
+            getLog().warn("Skipping non-root project " + project.getFile().getPath());
             return;
         }
         ExecutionContext ctx = executionContext();
