@@ -13,7 +13,7 @@ import static com.soebes.itf.extension.assertj.MavenITAssertions.assertThat;
 @MavenGoal("${project.groupId}:${project.artifactId}:${project.version}:init")
 @SystemProperties({
         @SystemProperty(value = "activeRecipes", content = "org.openrewrite.java.testing.junit5.ParameterizedRunnerToParameterized"),
-        @SystemProperty(value = "dependencies", content = "<dependencies><dependency><groupId>org.openrewrite.recipe</groupId><artifactId>rewrite-spring</artifactId><version>4.14.1</version></dependency></dependencies>"),
+        @SystemProperty(value = "dependencies", content = "org.openrewrite.recipe:rewrite-spring:4.14.1"),
         @SystemProperty(value = "rootOnly", content = "false")
 })
 public class InitMojoIT {
