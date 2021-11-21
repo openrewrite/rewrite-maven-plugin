@@ -306,7 +306,7 @@
                 </configuration>
                 <executions>
                     <execution>
-                        <phase>compile</phase>
+                        <phase>prepare-package</phase>
                         <goals>
                             <goal>javadoc</goal>
                             <goal>jar</goal>
@@ -320,7 +320,7 @@
                 <version>${maven-source-plugin.version}</version>
                 <executions>
                     <execution>
-                        <phase>compile</phase>
+                        <phase>prepare-package</phase>
                         <goals>
                             <goal>aggregate</goal>
                             <goal>jar</goal>
