@@ -43,7 +43,7 @@ public class MavenOptsHelper {
                     exportedPackages.remove(pkg);
                 }
                 if (!exportedPackages.isEmpty()) {
-                    StringBuilder errMessage = new StringBuilder( "Java ").append(version).append(" protected module access not exported for:");
+                    StringBuilder errMessage = new StringBuilder("Java ").append(version).append(" protected module access not exported for:");
                     for (String missingModuleExport : exportedPackages) {
                         errMessage.append("\n\tcom.sun.tools.javac.").append(missingModuleExport);
                     }

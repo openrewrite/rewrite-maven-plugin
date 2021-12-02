@@ -13,11 +13,7 @@ import java.io.BufferedWriter;
 import java.io.IOException;
 import java.nio.file.Files;
 import java.nio.file.Path;
-import java.util.Arrays;
-import java.util.Collections;
-import java.util.List;
-import java.util.Scanner;
-import java.util.Set;
+import java.util.*;
 import java.util.stream.Collectors;
 
 @Mojo(name = "init", threadSafe = true)
@@ -56,7 +52,7 @@ public class InitMojo extends AbstractRewriteMojo {
     @Override
     public void execute() throws MojoExecutionException {
         Path baseDir = getBaseDir();
-        if(rootOnly && !project.getBasedir().toPath().equals(baseDir)) {
+        if (rootOnly && !project.getBasedir().toPath().equals(baseDir)) {
             getLog().warn("Skipping non-root project " + project.getFile().getPath());
             return;
         }
@@ -68,7 +64,7 @@ public class InitMojo extends AbstractRewriteMojo {
         List<Result> results = new AddPlugin(groupId, artifactId, getVersion(), getConfiguration(), null, getExecutions())
                 .doNext(new ChangePluginDependencies(groupId, artifactId, dependencies))
                 .run(pom);
-        if(results.isEmpty()) {
+        if (results.isEmpty()) {
             getLog().warn("Plugin " + artifactId + " is already part of the build");
             return;
         }
@@ -86,7 +82,7 @@ public class InitMojo extends AbstractRewriteMojo {
     }
 
     protected String getVersion() {
-        if(version == null) {
+        if (version == null) {
             //noinspection ConstantConditions
             return new Scanner(InitMojo.class.getResourceAsStream("/version.txt"), "UTF-8").next().trim();
         }
@@ -96,10 +92,10 @@ public class InitMojo extends AbstractRewriteMojo {
     @Nullable
     protected String getConfiguration() {
         Set<String> activeRecipes = getActiveRecipes();
-        if(configuration == null && !activeRecipes.isEmpty()) {
+        if (configuration == null && !activeRecipes.isEmpty()) {
             configuration = "<configuration>\n<activeRecipes>\n" +
                     activeRecipes.stream()
-                            .map(it -> "<recipe>" + it +"</recipe>")
+                            .map(it -> "<recipe>" + it + "</recipe>")
                             .collect(Collectors.joining("\n"))
                     + "</activeRecipes>\n</configuration>";
         }
@@ -109,7 +105,7 @@ public class InitMojo extends AbstractRewriteMojo {
     @Nullable
     protected String getExecutions() {
         String executions = null;
-        if(executionPhase != null && executionGoals != null) {
+        if (executionPhase != null && executionGoals != null) {
             executions = "<executions>\n<execution>\n" +
                     "<phase>" + executionPhase + "</phase>\n"
                     + "<goals>\n"
