@@ -9,6 +9,7 @@ import com.soebes.itf.jupiter.maven.MavenExecutionResult;
 import static com.soebes.itf.extension.assertj.MavenITAssertions.assertThat;
 
 @MavenJupiterExtension
+@SuppressWarnings("NewClassNamingConvention")
 public class BasicIT {
 
     @MavenTest

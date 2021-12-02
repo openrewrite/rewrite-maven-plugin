@@ -9,6 +9,7 @@ import static com.soebes.itf.extension.assertj.MavenITAssertions.assertThat;
 
 @MavenJupiterExtension
 @MavenGoal("${project.groupId}:${project.artifactId}:${project.version}:dryRun")
+@SuppressWarnings("NewClassNamingConvention")
 public class RewriteDryRunIT {
 
     @MavenTest
