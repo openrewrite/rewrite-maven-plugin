@@ -35,7 +35,7 @@ public class ResourceParser {
 
     public List<SourceFile> parse(Path baseDir, Path searchDir, Collection<Path> alreadyParsed) {
         List<SourceFile> sourceFiles = new ArrayList<>();
-        if(!searchDir.toFile().exists()) {
+        if (!searchDir.toFile().exists()) {
             return sourceFiles;
         }
         Consumer<Throwable> errorConsumer = t -> logger.error("Error parsing", t);
@@ -64,7 +64,7 @@ public class ResourceParser {
                     }
                     for (String exclusion : exclusions) {
                         PathMatcher matcher = baseDir.getFileSystem().getPathMatcher("glob:" + exclusion);
-                        if(matcher.matches(baseDir.relativize(path))) {
+                        if (matcher.matches(baseDir.relativize(path))) {
                             return false;
                         }
                     }
@@ -77,9 +77,9 @@ public class ResourceParser {
                         return false;
                     }
                     long fileSize = Files.size(path);
-                    if(sizeThresholdMb > 0 && fileSize > sizeThresholdMb * 1024L * 1024L) {
+                    if (sizeThresholdMb > 0 && fileSize > sizeThresholdMb * 1024L * 1024L) {
                         alreadyParsed.add(path);
-                        logger.info("Skipping parsing " + path + " as its size + "  + fileSize / (1024L * 1024L) +
+                        logger.info("Skipping parsing " + path + " as its size + " + fileSize / (1024L * 1024L) +
                                 "Mb exceeds size threshold " + sizeThresholdMb + "Mb");
                         return false;
                     }

@@ -56,7 +56,8 @@ public class MavenMojoProjectParser {
     private final MavenProject mavenProject;
     private final List<Marker> projectProvenance;
     private final boolean pomCacheEnabled;
-    @Nullable private final String pomCacheDirectory;
+    @Nullable
+    private final String pomCacheDirectory;
     private final boolean skipMavenParsing;
     private final Collection<String> exclusions;
     private final int sizeThresholdMb;
@@ -101,7 +102,7 @@ public class MavenMojoProjectParser {
     private GitProvenance gitProvenance(Path baseDir) {
         try {
             return GitProvenance.fromProjectDirectory(baseDir);
-        } catch(Exception e) {
+        } catch (Exception e) {
             // Logging at a low level as this is unlikely to happen except in non-git projects, where it is expected
             logger.debug("Unable to determine git provenance", e);
         }
@@ -110,7 +111,7 @@ public class MavenMojoProjectParser {
 
     @Nullable
     public Maven parseMaven(ExecutionContext ctx) {
-        if(skipMavenParsing) {
+        if (skipMavenParsing) {
             logger.info("Skipping Maven parsing...");
             return null;
         }
@@ -193,11 +194,11 @@ public class MavenMojoProjectParser {
         List<Path> mainJavaSources = Stream.concat(
                 generatedSourcePaths.stream(),
                 listJavaSources(mavenProject.getBuild().getSourceDirectory()).stream()
-            ).collect(toList());
+        ).collect(toList());
 
         List<SourceFile> sourceFiles = new ArrayList<>();
         Maven maven = parseMaven(ctx);
-        if(maven != null) {
+        if (maven != null) {
             sourceFiles.add(maven);
             alreadyParsed.add(maven.getSourcePath());
         }
@@ -252,12 +253,12 @@ public class MavenMojoProjectParser {
     }
 
     private <S extends SourceFile> UnaryOperator<S> addProvenance(Path baseDir,
-            List<Marker> provenance, @Nullable Collection<Path> generatedSources) {
+                                                                  List<Marker> provenance, @Nullable Collection<Path> generatedSources) {
         return s -> {
             for (Marker marker : provenance) {
                 s = s.withMarkers(s.getMarkers().addIfAbsent(marker));
             }
-            if(generatedSources != null && generatedSources.contains(baseDir.resolve(s.getSourcePath()))) {
+            if (generatedSources != null && generatedSources.contains(baseDir.resolve(s.getSourcePath()))) {
                 s = s.withMarkers(s.getMarkers().addIfAbsent(new Generated(randomId())));
             }
             return s;

@@ -61,7 +61,7 @@ public class ConfigureMojo extends AbstractRewriteMojo {
                 .doNext(new ChangePluginDependencies(groupId, artifactId, dependencies))
                 .doNext(new ChangePluginExecutions(groupId, artifactId, getExecutions()))
                 .run(pom);
-        if(results.isEmpty()) {
+        if (results.isEmpty()) {
             getLog().warn("No changes made to plugin " + artifactId + " configuration");
             return;
         }
@@ -81,10 +81,10 @@ public class ConfigureMojo extends AbstractRewriteMojo {
     @Nullable
     protected String getConfiguration() {
         Set<String> activeRecipes = getActiveRecipes();
-        if(configuration == null && !activeRecipes.isEmpty()) {
+        if (configuration == null && !activeRecipes.isEmpty()) {
             configuration = "<activeRecipes>\n" +
                     activeRecipes.stream()
-                            .map(it -> "<recipe>" + it +"</recipe>")
+                            .map(it -> "<recipe>" + it + "</recipe>")
                             .collect(Collectors.joining("\n"))
                     + "\n</activeRecipes>";
         }
@@ -94,7 +94,7 @@ public class ConfigureMojo extends AbstractRewriteMojo {
     @Nullable
     protected String getExecutions() {
         String executions = null;
-        if(executionPhase != null && executionGoals != null) {
+        if (executionPhase != null && executionGoals != null) {
             executions = "<execution>\n" +
                     "<phase>" + executionPhase + "</phase>\n"
                     + "<goals>\n"

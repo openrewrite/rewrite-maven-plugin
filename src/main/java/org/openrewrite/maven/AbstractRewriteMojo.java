@@ -22,7 +22,10 @@ import org.openrewrite.java.style.CheckstyleConfigLoader;
 import org.openrewrite.marker.Generated;
 import org.openrewrite.style.NamedStyles;
 
-import java.io.*;
+import java.io.File;
+import java.io.FileInputStream;
+import java.io.IOException;
+import java.io.InputStream;
 import java.net.MalformedURLException;
 import java.net.URL;
 import java.net.URLClassLoader;
@@ -56,7 +59,7 @@ public abstract class AbstractRewriteMojo extends ConfigurableRewriteMojo {
         Environment.Builder env = Environment.builder(project.getProperties());
         if (getRecipeArtifactCoordinates().isEmpty()) {
             env.scanRuntimeClasspath()
-                .scanUserHome();
+                    .scanUserHome();
         } else {
             env.load(new ClasspathScanningLoader(project.getProperties(), getRecipeClassloader()));
         }
@@ -168,7 +171,7 @@ public abstract class AbstractRewriteMojo extends ConfigurableRewriteMojo {
             List<Result> results = recipe.run(sourceFiles, ctx).stream()
                     .filter(source -> {
                         // Remove ASTs originating from generated files
-                        if(source.getBefore() != null) {
+                        if (source.getBefore() != null) {
                             return !source.getBefore().getMarkers().findFirst(Generated.class).isPresent();
                         }
                         return true;
@@ -202,8 +205,8 @@ public abstract class AbstractRewriteMojo extends ConfigurableRewriteMojo {
         }
 
         return new URLClassLoader(
-            urls.toArray(new URL[0]),
-            AbstractRewriteMojo.class.getClassLoader()
+                urls.toArray(new URL[0]),
+                AbstractRewriteMojo.class.getClassLoader()
         );
     }
 
