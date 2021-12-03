@@ -21,9 +21,7 @@ public class RewriteRunIT {
                 .isSuccessful()
                 .out()
                 .warn()
-                .matches(logLines ->
-                        logLines.stream().anyMatch(logLine -> logLine.contains("org.openrewrite.java.cleanup.FinalizeLocalVariables"))
-                );
+                .anySatisfy(line -> assertThat(line).contains("org.openrewrite.java.cleanup.FinalizeLocalVariables"));
     }
 
     @MavenTest
@@ -32,9 +30,7 @@ public class RewriteRunIT {
                 .isSuccessful()
                 .out()
                 .warn()
-                .matches(logLines ->
-                        logLines.stream().anyMatch(logLine -> logLine.contains("org.openrewrite.java.format.AutoFormat"))
-                );
+                .anySatisfy(line -> assertThat(line).contains("org.openrewrite.java.format.AutoFormat"));
     }
 
 }

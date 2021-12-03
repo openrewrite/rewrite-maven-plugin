@@ -18,9 +18,7 @@ public class RewriteDryRunIT {
                 .isFailure()
                 .out()
                 .error()
-                .matches(logLines ->
-                        logLines.stream().anyMatch(logLine -> logLine.contains("Applying recipes would make changes"))
-                );
+                .anySatisfy(line -> assertThat(line).contains("Applying recipes would make changes"));
     }
 
     @MavenTest
@@ -29,9 +27,7 @@ public class RewriteDryRunIT {
                 .isSuccessful()
                 .out()
                 .warn()
-                .matches(logLines ->
-                        logLines.stream().anyMatch(logLine -> logLine.contains("org.openrewrite.java.cleanup.FinalizeLocalVariables"))
-                );
+                .anySatisfy(line -> assertThat(line).contains("org.openrewrite.java.cleanup.FinalizeLocalVariables"));
     }
 
     @MavenTest
@@ -40,9 +36,7 @@ public class RewriteDryRunIT {
                 .isSuccessful()
                 .out()
                 .warn()
-                .matches(logLines ->
-                        logLines.stream().anyMatch(logLine -> logLine.contains("org.openrewrite.java.format.AutoFormat"))
-                );
+                .anySatisfy(line -> assertThat(line).contains("org.openrewrite.java.format.AutoFormat"));
     }
 
 }

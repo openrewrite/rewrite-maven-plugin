@@ -18,9 +18,7 @@ public class RemoveMojoIT {
                 .isSuccessful()
                 .out()
                 .info()
-                .matches(logLines ->
-                        logLines.stream().anyMatch(logLine -> logLine.contains("Removed rewrite-maven-plugin from"))
-                );
+                .anySatisfy(line -> assertThat(line).contains("Removed rewrite-maven-plugin from"));
     }
 
 }

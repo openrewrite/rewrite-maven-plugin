@@ -25,8 +25,4 @@ jobs:
           java-version: 11
           cache: maven
       - name: build
-        if: github.event_name != 'workflow_dispatch'
-        run: ./mvnw --no-transfer-progress -B clean verify -DskipITs --file pom.xml
-      - name: verify
-        if: github.event_name != 'push'
-        run: ./mvnw --no-transfer-progress -B clean verify --file pom.xml
+        run: ./mvnw --show-version --no-transfer-progress clean verify --file=pom.xml --fail-at-end --batch-mode
