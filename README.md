@@ -39,6 +39,42 @@ To configure, add the plugin to your POM:
 </project>
 ```
 
+If wanting to leverage recipes from other dependencies:
+
+```xml
+<?xml version="1.0" encoding="UTF-8"?>
+<project>
+    ...
+    <build>
+        <plugins>
+            <plugin>
+                <groupId>org.openrewrite.maven</groupId>
+                <artifactId>rewrite-maven-plugin</artifactId>
+                <version><!-- latest version here --></version>
+                <configuration>
+                    <activeRecipes>
+                        <recipe>org.openrewrite.java.testing.junit5.JUnit5BestPractices</recipe>
+                        <recipe>org.openrewrite.github.ActionsSetupJavaAdoptOpenJDKToTemurin</recipe>
+                    </activeRecipes>
+                </configuration>
+                <dependencies>
+                    <dependency>
+                        <groupId>org.openrewrite.recipe</groupId>
+                        <artifactId>rewrite-testing-frameworks</artifactId>
+                        <version><!-- latest dependency version here --></version>
+                    </dependency>
+                    <dependency>
+                        <groupId>org.openrewrite.recipe</groupId>
+                        <artifactId>rewrite-github-actions</artifactId>
+                        <version><!-- latest dependency version here --></version>
+                    </dependency>
+                </dependencies>
+            </plugin>
+        </plugins>
+    </build>
+</project>
+```
+
 To get started, try `mvn rewrite:help`, `mvn rewrite:discover`, `mvn rewrite:dryRun`, `mvn rewrite:run`, among other plugin goals.
 
 See the [Maven Plugin Configuration](https://docs.openrewrite.org/reference/rewrite-maven-plugin) documentation for full configuration and usage options.
@@ -65,6 +101,7 @@ The `pom.xml` has the a `profile` for using the `rewrite-maven-plugin` applied t
 
 ### Resource guides
 
+- https://blog.soebes.de/blog/2020/08/18/itf-part-i/
 - https://carlosvin.github.io/posts/creating-custom-maven-plugin/en/#_dependency_injection
 - https://developer.okta.com/blog/2019/09/23/tutorial-build-a-maven-plugin
 - https://medium.com/swlh/step-by-step-guide-to-developing-a-custom-maven-plugin-b6e3a0e09966

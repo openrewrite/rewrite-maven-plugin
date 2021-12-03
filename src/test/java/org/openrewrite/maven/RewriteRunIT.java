@@ -12,6 +12,7 @@ import static com.soebes.itf.extension.assertj.MavenITAssertions.assertThat;
 @MavenJupiterExtension
 @DisabledOnOs(OS.WINDOWS)
 @MavenGoal("${project.groupId}:${project.artifactId}:${project.version}:run")
+@SuppressWarnings("NewClassNamingConvention")
 public class RewriteRunIT {
 
     @MavenTest

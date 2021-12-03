@@ -46,24 +46,13 @@
         <developerConnectionUrl>scm:git:ssh://git@github.com/openrewrite/rewrite-maven-plugin.git</developerConnectionUrl>
         <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
         <java.version>1.8</java.version>
-        <rocksdbjni.version>6.26.1</rocksdbjni.version>
-        <maven-dependencies.version>3.8.4</maven-dependencies.version>
-        <itf-maven.version>0.11.0</itf-maven.version>
 
-        <!-- Plugins -->
-        <maven-surefire-plugin.version>3.0.0-M5</maven-surefire-plugin.version>
-        <maven-invoker-plugin.version>3.2.2</maven-invoker-plugin.version>
-        <maven-assembly-plugin.version>2.6</maven-assembly-plugin.version>
-        <!-- All from https://github.com/apache/maven-plugin-tools -->
-        <maven-plugin-tools.version>3.6.2</maven-plugin-tools.version>
-        <maven-compiler-plugin.version>3.8.1</maven-compiler-plugin.version>
+        <!-- dependencies and plugins -->
+        <itf-maven.version>0.11.0</itf-maven.version>
         <junit-jupiter.version>5.8.2</junit-jupiter.version>
-        <maven-javadoc-plugin.version>3.3.1</maven-javadoc-plugin.version>
-        <maven-source-plugin.version>3.2.1</maven-source-plugin.version>
-        <nexus-staging-maven-plugin.version>1.6.8</nexus-staging-maven-plugin.version>
-        <maven-gpg-plugin.version>3.0.1</maven-gpg-plugin.version>
+        <maven-dependencies.version>3.8.4</maven-dependencies.version>
         <maven-release-plugin.version>3.0.0-M4</maven-release-plugin.version>
-        <maven-failsafe-plugin.version>2.22.2</maven-failsafe-plugin.version>
+        <maven-plugin-tools.version>3.6.2</maven-plugin-tools.version>
     </properties>
 
     <dependencies>
@@ -141,7 +130,7 @@
         <dependency>
             <groupId>org.rocksdb</groupId>
             <artifactId>rocksdbjni</artifactId>
-            <version>${rocksdbjni.version}</version>
+            <version>6.26.1</version>
         </dependency>
         <dependency>
             <groupId>org.eclipse.aether</groupId>
@@ -200,6 +189,7 @@
             <scope>provided</scope>
         </dependency>
 
+        <!-- JUnit Jupiter, and using itf-jupiter-extension to get itf support for executing everything as Maven tests -->
         <dependency>
             <groupId>org.junit.jupiter</groupId>
             <artifactId>junit-jupiter-api</artifactId>
@@ -216,6 +206,14 @@
             <groupId>com.soebes.itf.jupiter.extension</groupId>
             <artifactId>itf-jupiter-extension</artifactId>
             <version>${itf-maven.version}</version>
+            <scope>test</scope>
+        </dependency>
+        <!-- Using assertj as well as custom assertions of AssertJ provided by itf-assertj -->
+        <!-- If you don’t want to use AssertJ as assertion framework you can omit them both -->
+        <dependency>
+            <groupId>org.assertj</groupId>
+            <artifactId>assertj-core</artifactId>
+            <version>3.21.0</version>
             <scope>test</scope>
         </dependency>
         <dependency>
@@ -262,12 +260,6 @@
             <scope>test</scope>
         </dependency>
         <dependency>
-            <groupId>org.assertj</groupId>
-            <artifactId>assertj-core</artifactId>
-            <version>3.21.0</version>
-            <scope>test</scope>
-        </dependency>
-        <dependency>
             <groupId>org.eclipse.aether</groupId>
             <artifactId>aether-transport-file</artifactId>
             <version>1.1.0</version>
@@ -282,7 +274,74 @@
     </dependencies>
 
     <build>
+        <resources>
+            <resource>
+                <directory>src/main/resources</directory>
+                <filtering>true</filtering>
+                <includes>
+                    <include>**/version.txt</include>
+                </includes>
+            </resource>
+            <resource>
+                <directory>src/main/resources</directory>
+                <filtering>false</filtering>
+                <excludes>
+                    <exclude>**/version.txt</exclude>
+                </excludes>
+            </resource>
+        </resources>
+        <testResources>
+            <testResource>
+                <directory>src/test/resources</directory>
+                <filtering>false</filtering>
+            </testResource>
+            <testResource>
+                <directory>src/test/resources-its</directory>
+                <filtering>true</filtering>
+            </testResource>
+        </testResources>
+
         <plugins>
+            <!-- testing-related plugins -->
+            <plugin>
+                <groupId>com.soebes.itf.jupiter.extension</groupId>
+                <artifactId>itf-maven-plugin</artifactId>
+                <version>${itf-maven.version}</version>
+                <configuration>
+                    <!-- Prevents adding files like .DS_Store during resource-its filtering -->
+                    <addDefaultExcludes>true</addDefaultExcludes>
+                </configuration>
+                <executions>
+                    <execution>
+                        <id>installing</id>
+                        <phase>pre-integration-test</phase>
+                        <goals>
+                            <goal>install</goal>
+                            <goal>resources-its</goal>
+                        </goals>
+                    </execution>
+                </executions>
+            </plugin>
+            <plugin>
+                <groupId>org.apache.maven.plugins</groupId>
+                <artifactId>maven-failsafe-plugin</artifactId>
+                <version>2.22.2</version>
+                <configuration>
+                    <systemProperties>
+                        <maven.version>${maven.version}</maven.version>
+                        <maven.home>${maven.home}</maven.home>
+                    </systemProperties>
+                </configuration>
+                <executions>
+                    <execution>
+                        <goals>
+                            <goal>integration-test</goal>
+                            <goal>verify</goal>
+                        </goals>
+                    </execution>
+                </executions>
+            </plugin>
+
             <!-- essential "core" plugins -->
             <plugin>
                 <groupId>org.apache.maven.plugins</groupId>
@@ -290,10 +349,8 @@
                 <version>${maven-plugin-tools.version}</version>
                 <executions>
                     <execution>
-                        <id>generate-descriptor</id>
-                        <goals>
-                            <goal>descriptor</goal>
-                        </goals>
+                        <id>default-descriptor</id>
+                        <phase>process-classes</phase>
                     </execution>
                     <execution>
                         <id>generate-helpmojo</id>
@@ -306,8 +363,12 @@
             <plugin>
                 <groupId>org.apache.maven.plugins</groupId>
                 <artifactId>maven-compiler-plugin</artifactId>
-                <version>${maven-compiler-plugin.version}</version>
+                <version>3.8.1</version>
                 <configuration>
+                    <compilerArgs>
+                        <arg>-Xlint:deprecation</arg>
+                        <arg>-Xlint:unchecked</arg>
+                    </compilerArgs>
                     <source>${java.version}</source>
                     <target>${java.version}</target>
                 </configuration>
@@ -315,7 +376,7 @@
             <plugin>
                 <groupId>org.apache.maven.plugins</groupId>
                 <artifactId>maven-javadoc-plugin</artifactId>
-                <version>${maven-javadoc-plugin.version}</version>
+                <version>3.3.1</version>
                 <configuration>
                     <source>${java.version}</source>
                 </configuration>
@@ -332,7 +393,7 @@
             <plugin>
                 <groupId>org.apache.maven.plugins</groupId>
                 <artifactId>maven-source-plugin</artifactId>
-                <version>${maven-source-plugin.version}</version>
+                <version>3.2.1</version>
                 <executions>
                     <execution>
                         <phase>prepare-package</phase>
@@ -366,107 +427,7 @@
                     </dependency>
                 </dependencies>
             </plugin>
-
-            <!-- testing-related plugins -->
-            <plugin>
-                <groupId>org.apache.maven.plugins</groupId>
-                <artifactId>maven-surefire-plugin</artifactId>
-                <version>${maven-surefire-plugin.version}</version>
-            </plugin>
-            <plugin>
-                <groupId>org.apache.maven.plugins</groupId>
-                <artifactId>maven-invoker-plugin</artifactId>
-                <version>${maven-invoker-plugin.version}</version>
-                <configuration>
-                    <postBuildHookScript>verify</postBuildHookScript>
-                    <showVersion>true</showVersion>
-                    <streamLogs>true</streamLogs>
-                    <noLog>false</noLog>
-                    <showErrors>true</showErrors>
-                </configuration>
-                <executions>
-                    <execution>
-                        <id>integration-test</id>
-                        <goals>
-                            <goal>install</goal>
-                            <goal>run</goal>
-                        </goals>
-                    </execution>
-                </executions>
-            </plugin>
-            <plugin>
-                <!-- specifically for integration tests -->
-                <groupId>com.soebes.itf.jupiter.extension</groupId>
-                <artifactId>itf-maven-plugin</artifactId>
-                <version>${itf-maven.version}</version>
-                <executions>
-                    <execution>
-                        <id>installing</id>
-                        <phase>pre-integration-test</phase>
-                        <goals>
-                            <goal>install</goal>
-                        </goals>
-                    </execution>
-                </executions>
-            </plugin>
-            <plugin>
-                <!-- specifically for integration tests -->
-                <groupId>org.apache.maven.plugins</groupId>
-                <artifactId>maven-failsafe-plugin</artifactId>
-                <version>${maven-failsafe-plugin.version}</version>
-                <configuration>
-                    <!-- https://github.com/khmarbaise/maven-it-extension/blob/6c6c2311c4eab43aa037b4a86327f62f35bb4b11/itf-maven-plugin/pom.xml#L144 -->
-                    <forkCount>5</forkCount>
-                    <reuseForks>true</reuseForks>
-                    <includes>
-                        <include>**/*IT.java</include>
-                    </includes>
-                    <systemProperties>
-                        <maven.version>${maven.version}</maven.version>
-                        <maven.home>${maven.home}</maven.home>
-                    </systemProperties>
-                    <properties>
-                        <configurationParameters>
-                            junit.jupiter.execution.parallel.enabled = true
-                            junit.jupiter.execution.parallel.mode.default = concurrent
-                        </configurationParameters>
-                    </properties>
-                </configuration>
-                <executions>
-                    <execution>
-                        <goals>
-                            <goal>integration-test</goal>
-                            <goal>verify</goal>
-                        </goals>
-                    </execution>
-                </executions>
-            </plugin>
         </plugins>
-
-        <resources>
-            <resource>
-                <directory>src/main/resources</directory>
-                <filtering>true</filtering>
-                <includes>
-                    <include>**/version.txt</include>
-                </includes>
-            </resource>
-            <resource>
-                <directory>src/main/resources</directory>
-                <filtering>false</filtering>
-                <excludes>
-                    <exclude>**/version.txt</exclude>
-                </excludes>
-            </resource>
-        </resources>
-
-        <testResources>
-            <!-- specifically for integration tests -->
-            <testResource>
-                <directory>src/test/resources-its</directory>
-                <filtering>true</filtering>
-            </testResource>
-        </testResources>
     </build>
 
     <profiles>
@@ -477,7 +438,7 @@
                     <plugin>
                         <groupId>org.apache.maven.plugins</groupId>
                         <artifactId>maven-gpg-plugin</artifactId>
-                        <version>${maven-gpg-plugin.version}</version>
+                        <version>3.0.1</version>
                         <executions>
                             <execution>
                                 <id>sign-artifacts</id>
@@ -498,7 +459,7 @@
                     <plugin>
                         <groupId>org.sonatype.plugins</groupId>
                         <artifactId>nexus-staging-maven-plugin</artifactId>
-                        <version>${nexus-staging-maven-plugin.version}</version>
+                        <version>1.6.8</version>
                         <extensions>true</extensions>
                         <configuration>
                             <!-- https://help.sonatype.com/repomanager2/staging-releases/configuring-your-project-for-deployment -->
@@ -539,16 +500,8 @@
                         <configuration>
                             <activeRecipes>
                                 <recipe>org.openrewrite.java.format.AutoFormat</recipe>
-                                <recipe>org.openrewrite.java.testing.junit5.JUnit5BestPractices</recipe>
                             </activeRecipes>
                         </configuration>
-                        <dependencies>
-                            <dependency>
-                                <groupId>org.openrewrite.recipe</groupId>
-                                <artifactId>rewrite-testing-frameworks</artifactId>
-                                <version>1.15.1</version>
-                            </dependency>
-                        </dependencies>
                     </plugin>
                 </plugins>
             </build>

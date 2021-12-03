@@ -16,6 +16,7 @@ import static com.soebes.itf.extension.assertj.MavenITAssertions.assertThat;
         @SystemProperty(value = "dependencies", content = "org.openrewrite.recipe:rewrite-spring:4.14.1"),
         @SystemProperty(value = "rootOnly", content = "false")
 })
+@SuppressWarnings("NewClassNamingConvention")
 public class InitMojoIT {
 
     @MavenTest
