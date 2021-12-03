@@ -25,9 +25,7 @@ public class RewriteDiscoverIT {
                     .isSuccessful()
                     .out()
                     .info()
-                    .matches(logLines ->
-                            logLines.stream().anyMatch(logLine -> logLine.contains("options"))
-                    );
+                    .anySatisfy(line -> assertThat(line).contains("options"));
 
             assertThat(result).out().warn().isEmpty();
         }
@@ -39,9 +37,7 @@ public class RewriteDiscoverIT {
                     .isSuccessful()
                     .out()
                     .info()
-                    .matches(logLines ->
-                            logLines.stream().anyMatch(logLine -> logLine.contains("org.openrewrite.java.format.AutoFormat"))
-                    );
+                    .anySatisfy(line -> assertThat(line).contains("org.openrewrite.java.format.AutoFormat"));
         }
 
         @MavenTest
@@ -51,9 +47,7 @@ public class RewriteDiscoverIT {
                     .isSuccessful()
                     .out()
                     .info()
-                    .matches(logLines ->
-                            logLines.stream().anyMatch(logLine -> logLine.contains("recipeList"))
-                    );
+                    .anySatisfy(line -> assertThat(line).contains("recipeList"));
 
             assertThat(result).out().warn().isEmpty();
         }
@@ -81,9 +75,7 @@ public class RewriteDiscoverIT {
                 .isSuccessful()
                 .out()
                 .info()
-                .matches(logLines ->
-                        logLines.stream().anyMatch(logLine -> logLine.contains("com.example.RewriteDiscoverIT.CodeCleanup"))
-                );
+                .anySatisfy(line -> assertThat(line).contains("com.example.RewriteDiscoverIT.CodeCleanup"));
 
         assertThat(result).out().warn().isEmpty();
     }

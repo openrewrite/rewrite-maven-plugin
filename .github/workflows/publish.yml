@@ -28,7 +28,7 @@ jobs:
           git config user.name "github-actions[bot]"
 
       - name: publish-release
-        run: ./mvnw --settings=${{ github.workspace }}/settings.xml --file=pom.xml --activate-profiles=release,release-automation --batch-mode help:active-profiles release:prepare release:perform
+        run: ./mvnw --show-version --settings=${{ github.workspace }}/settings.xml --file=pom.xml --activate-profiles=release,release-automation help:active-profiles release:prepare release:perform --batch-mode
         env:
           GITHUB_TOKEN: ${{ github.token }}
           SONATYPE_USERNAME: ${{ secrets.OSSRH_USERNAME }}
@@ -37,6 +37,6 @@ jobs:
 
       - name: rollback
         if: ${{ failure() }}
-        run: ./mvnw --settings=${{github.workspace}}/settings.xml --file=pom.xml --activate-profiles=release,release-automation --batch-mode help:active-profiles release:rollback
+        run: ./mvnw --show-version --settings=${{github.workspace}}/settings.xml --file=pom.xml --activate-profiles=release,release-automation help:active-profiles release:rollback --batch-mode
         env:
           GITHUB_TOKEN: ${{ github.token }}

@@ -25,9 +25,7 @@ public class InitMojoIT {
                 .isSuccessful()
                 .out()
                 .info()
-                .matches(logLines -> logLines.stream()
-                        .anyMatch(logLine -> logLine.contains("Added rewrite-maven-plugin to")),
-                        "Logs success message");
+                .anySatisfy(line -> assertThat(line).contains("Added rewrite-maven-plugin to"));
     }
 
 }
