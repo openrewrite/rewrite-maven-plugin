@@ -33,6 +33,7 @@ import java.nio.file.Path;
  */
 @Mojo(name = "run", requiresDependencyResolution = ResolutionScope.TEST, threadSafe = true)
 @Execute(phase = LifecyclePhase.PROCESS_TEST_CLASSES)
+@SuppressWarnings("unused")
 public class RewriteRunMojo extends AbstractRewriteMojo {
     @Override
     public void execute() throws MojoExecutionException {

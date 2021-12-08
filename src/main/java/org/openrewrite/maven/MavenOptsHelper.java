@@ -29,7 +29,7 @@ public class MavenOptsHelper {
     public static void checkAndLogMissingJvmModuleExports(Log log) {
         try {
             String version = System.getProperty("java.version");
-            int dot = version.indexOf(".");
+            int dot = version.indexOf('.');
             String majorVersionString = dot > 0 ? version.substring(0, dot) : version;
             int majorVersion = Integer.parseInt(majorVersionString);
             if (majorVersion > 15) {

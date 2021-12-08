@@ -21,6 +21,7 @@ import java.nio.file.Path;
  */
 @Mojo(name = "cyclonedx", requiresDependencyResolution = ResolutionScope.TEST, threadSafe = true,
         defaultPhase = LifecyclePhase.PACKAGE)
+@SuppressWarnings("unused")
 public class CycloneDxBomMojo extends AbstractRewriteMojo {
 
     @SuppressWarnings("NotNullFieldNotInitialized")

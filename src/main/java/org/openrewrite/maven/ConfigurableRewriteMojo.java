@@ -141,7 +141,7 @@ public abstract class ConfigurableRewriteMojo extends AbstractMojo {
         return computedRecipeArtifactCoordinates;
     }
 
-    private Set<String> toSet(@Nullable String propertyValue) {
+    private static Set<String> toSet(@Nullable String propertyValue) {
         return Optional.ofNullable(propertyValue)
                 .filter(s -> !s.isEmpty())
                 .map(s -> new HashSet<>(Arrays.asList(s.split(","))))

@@ -22,6 +22,7 @@ import java.util.stream.Collectors;
 
 @Mojo(name = "configure", threadSafe = true)
 @Execute
+@SuppressWarnings("unused")
 public class ConfigureMojo extends AbstractRewriteMojo {
 
     @SuppressWarnings("NotNullFieldNotInitialized")

@@ -18,11 +18,14 @@ import java.util.stream.Collectors;
 
 @Mojo(name = "init", threadSafe = true)
 @Execute
+@SuppressWarnings("unused")
 public class InitMojo extends AbstractRewriteMojo {
 
+    @SuppressWarnings("NotNullFieldNotInitialized")
     @Parameter(property = "groupId", defaultValue = "org.openrewrite.maven")
     protected String groupId;
 
+    @SuppressWarnings("NotNullFieldNotInitialized")
     @Parameter(property = "artifactId", defaultValue = "rewrite-maven-plugin")
     protected String artifactId;
 

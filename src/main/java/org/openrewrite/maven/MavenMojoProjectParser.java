@@ -306,8 +306,7 @@ public class MavenMojoProjectParser {
         return sourceFiles;
     }
 
-    private <S extends SourceFile> UnaryOperator<S> addProvenance(Path baseDir,
-                                                                  List<Marker> provenance, @Nullable Collection<Path> generatedSources) {
+    private static <S extends SourceFile> UnaryOperator<S> addProvenance(Path baseDir, List<Marker> provenance, @Nullable Collection<Path> generatedSources) {
         return s -> {
             for (Marker marker : provenance) {
                 s = s.withMarkers(s.getMarkers().addIfAbsent(marker));

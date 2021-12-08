@@ -47,9 +47,11 @@ public abstract class AbstractRewriteMojo extends ConfigurableRewriteMojo {
     @Component
     protected RuntimeInformation runtime;
 
+    @SuppressWarnings("NotNullFieldNotInitialized")
     @Component
     protected RepositorySystem repositorySystem;
 
+    @SuppressWarnings("NotNullFieldNotInitialized")
     @Parameter(defaultValue = "${session}", readonly = true)
     protected MavenSession mavenSession;
 

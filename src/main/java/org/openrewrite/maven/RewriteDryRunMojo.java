@@ -32,8 +32,10 @@ import java.util.stream.Stream;
 @Mojo(name = "dryRun", requiresDependencyResolution = ResolutionScope.TEST, threadSafe = true,
         defaultPhase = LifecyclePhase.PROCESS_TEST_CLASSES)
 @Execute(phase = LifecyclePhase.PROCESS_TEST_CLASSES)
+@SuppressWarnings("unused")
 public class RewriteDryRunMojo extends AbstractRewriteMojo {
 
+    @SuppressWarnings("NotNullFieldNotInitialized")
     @Parameter(property = "reportOutputDirectory", defaultValue = "${project.reporting.outputDirectory}/rewrite")
     private File reportOutputDirectory;
 
@@ -101,7 +103,7 @@ public class RewriteDryRunMojo extends AbstractRewriteMojo {
                 throw new MojoExecutionException("Unable to generate rewrite result.", e);
             }
             getLog().warn("Patch file available:");
-            getLog().warn("    " + patchFile.normalize().toString());
+            getLog().warn("    " + patchFile.normalize());
             getLog().warn("Run 'mvn rewrite:run' to apply the recipes.");
 
             if (failOnDryRunResults) {

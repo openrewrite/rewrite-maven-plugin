@@ -55,7 +55,7 @@ public class MeterRegistryProvider implements AutoCloseable {
         } else {
             try {
                 URI uri = URI.create(uriString);
-                PrometheusMeterRegistry registry = new PrometheusMeterRegistry(PrometheusConfig.DEFAULT, new CollectorRegistry(), Clock.SYSTEM);
+                PrometheusMeterRegistry meterRegistry = new PrometheusMeterRegistry(PrometheusConfig.DEFAULT, new CollectorRegistry(), Clock.SYSTEM);
 
                 ClientTransport clientTransport;
                 switch (uri.getScheme()) {
@@ -81,11 +81,11 @@ public class MeterRegistryProvider implements AutoCloseable {
                 }
 
                 metricsClient = PrometheusRSocketClient
-                        .build(registry, registry::scrape, clientTransport)
+                        .build(meterRegistry, meterRegistry::scrape, clientTransport)
                         .retry(Retry.backoff(Long.MAX_VALUE, Duration.ofSeconds(1)).maxBackoff(Duration.ofSeconds(3)))
                         .connect();
 
-                return registry;
+                return meterRegistry;
             } catch (Throwable t) {
                 log.warn("Unable to publish metrics", t);
             }

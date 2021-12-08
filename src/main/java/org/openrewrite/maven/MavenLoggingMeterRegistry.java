@@ -201,6 +201,7 @@ public class MavenLoggingMeterRegistry extends MeterRegistry {
         }
 
         // see https://stackoverflow.com/a/3758880/510017
+        @SuppressWarnings("StringConcatenationMissingWhitespace")
         String humanReadableByteCount(double bytes) {
             int unit = 1024;
             if (bytes < unit || Double.isNaN(bytes)) return decimalOrNan(bytes) + " B";

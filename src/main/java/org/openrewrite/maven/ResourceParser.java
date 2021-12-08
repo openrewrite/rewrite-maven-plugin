@@ -79,6 +79,7 @@ public class ResourceParser {
                     long fileSize = Files.size(path);
                     if (sizeThresholdMb > 0 && fileSize > sizeThresholdMb * 1024L * 1024L) {
                         alreadyParsed.add(path);
+                        //noinspection StringConcatenationMissingWhitespace
                         logger.info("Skipping parsing " + path + " as its size + " + fileSize / (1024L * 1024L) +
                                 "Mb exceeds size threshold " + sizeThresholdMb + "Mb");
                         return false;

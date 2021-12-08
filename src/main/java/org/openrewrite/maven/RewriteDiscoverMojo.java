@@ -22,6 +22,7 @@ import java.util.HashSet;
  * {@code ./mvnw rewrite:discover -Ddetail=true -Drecipe=org.openrewrite.java.format.AutoFormat}
  */
 @Mojo(name = "discover", threadSafe = true)
+@SuppressWarnings("unused")
 public class RewriteDiscoverMojo extends AbstractRewriteMojo {
 
     /**
@@ -51,6 +52,7 @@ public class RewriteDiscoverMojo extends AbstractRewriteMojo {
     @Parameter(property = "interactive", defaultValue = "false")
     boolean interactive;
 
+    @SuppressWarnings("NotNullFieldNotInitialized")
     @Component
     private Prompter prompter;
 
