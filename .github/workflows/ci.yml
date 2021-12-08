@@ -25,4 +25,4 @@ jobs:
           java-version: 11
           cache: maven
       - name: build
-        run: ./mvnw --show-version --no-transfer-progress clean verify --file=pom.xml --fail-at-end --batch-mode
+        run: ./mvnw --show-version --no-transfer-progress --update-snapshots clean verify --file=pom.xml --fail-at-end --batch-mode
