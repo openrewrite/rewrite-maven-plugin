@@ -1,12 +1,13 @@
 package org.openrewrite.maven;
 
 import org.apache.maven.artifact.DependencyResolutionRequiredException;
+import org.apache.maven.execution.MavenExecutionRequest;
+import org.apache.maven.execution.MavenSession;
 import org.apache.maven.plugin.MojoExecutionException;
 import org.apache.maven.plugin.logging.Log;
 import org.apache.maven.project.MavenProject;
 import org.apache.maven.rtinfo.RuntimeInformation;
 import org.openrewrite.ExecutionContext;
-import org.openrewrite.Parser;
 import org.openrewrite.SourceFile;
 import org.openrewrite.internal.ListUtils;
 import org.openrewrite.internal.lang.Nullable;
@@ -19,6 +20,8 @@ import org.openrewrite.marker.GitProvenance;
 import org.openrewrite.marker.Marker;
 import org.openrewrite.maven.cache.InMemoryMavenPomCache;
 import org.openrewrite.maven.cache.RocksdbMavenPomCache;
+import org.openrewrite.maven.internal.ProfileActivation;
+import org.openrewrite.maven.internal.RawRepositories;
 import org.openrewrite.maven.tree.Maven;
 import org.openrewrite.style.NamedStyles;
 
@@ -61,8 +64,9 @@ public class MavenMojoProjectParser {
     private final boolean skipMavenParsing;
     private final Collection<String> exclusions;
     private final int sizeThresholdMb;
+    private final MavenSession mavenSession;
 
-    public MavenMojoProjectParser(Log logger, Path baseDir, boolean pomCacheEnabled, @Nullable String pomCacheDirectory, MavenProject mavenProject, RuntimeInformation runtime, boolean skipMavenParsing, Collection<String> exclusions, int thresholdMb) {
+    public MavenMojoProjectParser(Log logger, Path baseDir, boolean pomCacheEnabled, @Nullable String pomCacheDirectory, MavenProject mavenProject, RuntimeInformation runtime, boolean skipMavenParsing, Collection<String> exclusions, int thresholdMb, MavenSession session) {
         this.logger = logger;
         this.baseDir = baseDir;
         this.mavenProject = mavenProject;
@@ -71,6 +75,7 @@ public class MavenMojoProjectParser {
         this.skipMavenParsing = skipMavenParsing;
         this.exclusions = exclusions;
         sizeThresholdMb = thresholdMb;
+        this.mavenSession = session;
 
         String javaRuntimeVersion = System.getProperty("java.runtime.version");
         String javaVendor = System.getProperty("java.vm.vendor");
@@ -149,25 +154,53 @@ public class MavenMojoProjectParser {
             }
         }
 
-        Path mavenSettings = Paths.get(System.getProperty("user.home")).resolve(".m2/settings.xml");
-        if (mavenSettings.toFile().exists()) {
-            MavenSettings settings = MavenSettings.parse(new Parser.Input(mavenSettings,
-                            () -> {
-                                try {
-                                    return Files.newInputStream(mavenSettings);
-                                } catch (IOException e) {
-                                    logger.warn("Unable to load Maven settings from user home directory. Skipping.", e);
-                                    return null;
-                                }
-                            }),
-                    ctx);
-            if (settings != null) {
-                new MavenExecutionContextView(ctx).setMavenSettings(settings);
-                if (settings.getActiveProfiles() != null) {
-                    mavenParserBuilder.activeProfiles(settings.getActiveProfiles().getActiveProfiles().toArray(new String[]{}));
-                }
-            }
+        MavenExecutionRequest mer = mavenSession.getRequest();
+        MavenSettings settings = new MavenSettings(
+                new MavenSettings.Profiles(
+                        mer.getProfiles().stream().map(p -> new MavenSettings.Profile(
+                                p.getId(),
+                                p.getActivation() == null ? null : new ProfileActivation(
+                                        p.getActivation().isActiveByDefault(),
+                                        p.getActivation().getJdk(),
+                                        new ProfileActivation.Property(
+                                                p.getActivation().getProperty().getName(),
+                                                p.getActivation().getProperty().getValue()
+                                        )
+                                ),
+                                p.getRepositories() == null ? null : new RawRepositories(
+                                        p.getRepositories().stream().map(r -> new RawRepositories.Repository(
+                                                r.getId(),
+                                                r.getUrl(),
+                                                r.getReleases() == null ? null : new RawRepositories.ArtifactPolicy(r.getReleases().isEnabled()),
+                                                r.getSnapshots() == null ? null : new RawRepositories.ArtifactPolicy(r.getSnapshots().isEnabled())
+                                        )).collect(toList())
+                                )
+                        )).collect(toList())
+                ),
+                new MavenSettings.ActiveProfiles(mer.getActiveProfiles()),
+                new MavenSettings.Mirrors(
+                        mer.getMirrors().stream().map(m -> new MavenSettings.Mirror(
+                                m.getId(),
+                                m.getUrl(),
+                                m.getMirrorOf(),
+                                null,
+                                null
+                        )).collect(toList())
+                ),
+                new MavenSettings.Servers(
+                        mer.getServers().stream().map(s -> new MavenSettings.Server(
+                                s.getId(),
+                                s.getUsername(),
+                                s.getPassword()
+                        )).collect(toList())
+                )
+        );
+
+        new MavenExecutionContextView(ctx).setMavenSettings(settings);
+        if (settings.getActiveProfiles() != null) {
+            mavenParserBuilder.activeProfiles(settings.getActiveProfiles().getActiveProfiles().toArray(new String[]{}));
         }
+
         Maven pom = mavenParserBuilder
                 .build()
                 .parse(allPoms, baseDir, ctx)

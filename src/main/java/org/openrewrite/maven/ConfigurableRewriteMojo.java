@@ -6,6 +6,7 @@ import org.openrewrite.internal.lang.Nullable;
 
 import java.util.*;
 
+@SuppressWarnings("FieldMayBeFinal")
 public abstract class ConfigurableRewriteMojo extends AbstractMojo {
 
     @SuppressWarnings("NotNullFieldNotInitialized")
