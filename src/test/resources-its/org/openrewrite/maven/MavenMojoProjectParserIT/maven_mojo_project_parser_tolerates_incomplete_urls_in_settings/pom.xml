@@ -4,10 +4,10 @@
     <modelVersion>4.0.0</modelVersion>
 
     <groupId>org.openrewrite.maven</groupId>
-    <artifactId>maven_mojo_project_parser_resolves_settings</artifactId>
+    <artifactId>maven_mojo_project_parser_tolerates_incomplete_urls_in_settings</artifactId>
     <version>1.0</version>
     <packaging>jar</packaging>
-    <name>MavenMojoProjectParserIT#maven_mojo_project_parser_resolves_settings</name>
+    <name>MavenMojoProjectParserIT#maven_mojo_project_parser_tolerates_incomplete_urls_in_settings</name>
 
     <properties>
         <maven.compiler.source>1.8</maven.compiler.source>
