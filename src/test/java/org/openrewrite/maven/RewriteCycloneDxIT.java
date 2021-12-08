@@ -1,14 +1,13 @@
 package org.openrewrite.maven;
 
-import com.soebes.itf.jupiter.extension.MavenGoal;
-import com.soebes.itf.jupiter.extension.MavenJupiterExtension;
-import com.soebes.itf.jupiter.extension.MavenTest;
+import com.soebes.itf.jupiter.extension.*;
 import com.soebes.itf.jupiter.maven.MavenExecutionResult;
 import org.junit.jupiter.api.Disabled;
 
 import static com.soebes.itf.extension.assertj.MavenITAssertions.assertThat;
 
 @MavenJupiterExtension
+@MavenOption(MavenCLIOptions.NO_TRANSFER_PROGRESS)
 @MavenGoal("${project.groupId}:${project.artifactId}:${project.version}:cyclonedx")
 @SuppressWarnings("NewClassNamingConvention")
 public class RewriteCycloneDxIT {

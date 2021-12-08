@@ -6,17 +6,29 @@ import com.soebes.itf.jupiter.maven.MavenExecutionResult;
 import static com.soebes.itf.extension.assertj.MavenITAssertions.assertThat;
 
 @MavenJupiterExtension
+@MavenOption(MavenCLIOptions.NO_TRANSFER_PROGRESS)
 @SuppressWarnings("NewClassNamingConvention")
 public class BasicIT {
 
     @MavenTest
-    @MavenOption(MavenCLIOptions.NO_TRANSFER_PROGRESS)
     void groupid_artifactid_should_be_ok(MavenExecutionResult result) {
         assertThat(result)
                 .isSuccessful()
                 .out()
                 .warn()
                 .containsOnly("JAR will be empty - no content was marked for inclusion!");
+    }
+
+    @MavenTest
+    @SystemProperty(value = "ossrh_snapshots_url", content = "https://oss.sonatype.org/content/repositories/snapshots")
+    @MavenGoal("${project.groupId}:${project.artifactId}:${project.version}:dryRun")
+    void resolves_maven_properties_from_user_provided_system_properties(MavenExecutionResult result) {
+        assertThat(result)
+                .isSuccessful()
+                .out()
+                .warn()
+                .allSatisfy(line -> assertThat(line).doesNotContain("Invalid repository URL ${ossrh_snapshots_url}"))
+                .allSatisfy(line -> assertThat(line).doesNotContain("Unable to resolve property ${ossrh_snapshots_url}"));
     }
 
     @MavenTest
