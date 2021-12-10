@@ -39,6 +39,41 @@ To configure, add the plugin to your POM:
 </project>
 ```
 
+To use the latest `-SNAPSHOT` version, add a `<pluginRepositories>` entry for OSSRH snapshots. For example:
+
+```xml
+<?xml version="1.0" encoding="UTF-8"?>
+<project>
+    ...
+    <build>
+        <plugins>
+            <plugin>
+                <groupId>org.openrewrite.maven</groupId>
+                <artifactId>rewrite-maven-plugin</artifactId>
+                <!-- Use whichever version is latest at the time of reading. This number is a placeholder: -->
+                <version>4.17.0-SNAPSHOT</version>
+                <configuration>
+                    <activeRecipes>
+                        <recipe>org.openrewrite.java.format.AutoFormat</recipe>
+                    </activeRecipes>
+                </configuration>
+            </plugin>
+        </plugins>
+    </build>
+
+    <pluginRepositories>
+        <pluginRepository>
+            <id>ossrh-snapshots</id>
+            <url>https://oss.sonatype.org/content/repositories/snapshots</url>
+            <snapshots>
+                <enabled>true</enabled>
+            </snapshots>
+        </pluginRepository>
+    </pluginRepositories>
+</project>
+
+```
+
 If wanting to leverage recipes from other dependencies:
 
 ```xml
