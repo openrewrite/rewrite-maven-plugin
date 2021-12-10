@@ -39,41 +39,6 @@ To configure, add the plugin to your POM:
 </project>
 ```
 
-To use the latest `-SNAPSHOT` version, add a `<pluginRepositories>` entry for OSSRH snapshots. For example:
-
-```xml
-<?xml version="1.0" encoding="UTF-8"?>
-<project>
-    ...
-    <build>
-        <plugins>
-            <plugin>
-                <groupId>org.openrewrite.maven</groupId>
-                <artifactId>rewrite-maven-plugin</artifactId>
-                <!-- Use whichever version is latest at the time of reading. This number is a placeholder: -->
-                <version>4.17.0-SNAPSHOT</version>
-                <configuration>
-                    <activeRecipes>
-                        <recipe>org.openrewrite.java.format.AutoFormat</recipe>
-                    </activeRecipes>
-                </configuration>
-            </plugin>
-        </plugins>
-    </build>
-
-    <pluginRepositories>
-        <pluginRepository>
-            <id>ossrh-snapshots</id>
-            <url>https://oss.sonatype.org/content/repositories/snapshots</url>
-            <snapshots>
-                <enabled>true</enabled>
-            </snapshots>
-        </pluginRepository>
-    </pluginRepositories>
-</project>
-
-```
-
 If wanting to leverage recipes from other dependencies:
 
 ```xml
@@ -113,6 +78,48 @@ If wanting to leverage recipes from other dependencies:
 To get started, try `mvn rewrite:help`, `mvn rewrite:discover`, `mvn rewrite:dryRun`, `mvn rewrite:run`, among other plugin goals.
 
 See the [Maven Plugin Configuration](https://docs.openrewrite.org/reference/rewrite-maven-plugin) documentation for full configuration and usage options.
+
+### Snapshots
+
+To use the latest `-SNAPSHOT` version, add a `<pluginRepositories>` entry for OSSRH snapshots. For example:
+
+```xml
+<?xml version="1.0" encoding="UTF-8"?>
+<project>
+    ...
+    <build>
+        <plugins>
+            <plugin>
+                <groupId>org.openrewrite.maven</groupId>
+                <artifactId>rewrite-maven-plugin</artifactId>
+                <!-- Use whichever version is latest at the time of reading. This number is a placeholder. -->
+                <version>4.17.0-SNAPSHOT</version>
+                <configuration>
+                    <activeRecipes>
+                        <recipe>org.openrewrite.java.logging.slf4j.Log4j2ToSlf4j</recipe>
+                    </activeRecipes>
+                </configuration>
+                <dependencies>
+                    <dependency>
+                        <groupId>org.openrewrite.recipe</groupId>
+                        <artifactId>rewrite-testing-frameworks</artifactId>
+                        <!-- Use whichever version is latest at the time of reading. This number is a placeholder. -->
+                        <version>1.1.0-SNAPSHOT</version>
+                    </dependency>
+                </dependencies>
+            </plugin>
+        </plugins>
+    </build>
+
+    <pluginRepositories>
+        <pluginRepository>
+            <id>ossrh-snapshots</id>
+            <url>https://oss.sonatype.org/content/repositories/snapshots</url>
+        </pluginRepository>
+    </pluginRepositories>
+
+</project>
+```
 
 ## Notes for developing and testing this plugin
 
