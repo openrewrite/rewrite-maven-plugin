@@ -24,5 +24,19 @@ jobs:
           distribution: temurin
           java-version: 11
           cache: maven
+          server-id: ossrh
+          settings-path: ${{ github.workspace }}
+          server-username: SONATYPE_USERNAME
+          server-password: SONATYPE_PASSWORD
+          gpg-private-key: ${{ secrets.OSSRH_SIGNING_KEY }}
+          gpg-passphrase: SONATYPE_SIGNING_PASSWORD
       - name: build
         run: ./mvnw --show-version --no-transfer-progress --update-snapshots clean verify --file=pom.xml --fail-at-end --batch-mode
+      - name: publish-snapshots
+        if: github.event_name != 'pull_request'
+        run: ./mvnw --show-version --no-transfer-progress --settings=${{ github.workspace }}/settings.xml --file=pom.xml --batch-mode --activate-profiles=sign-artifacts clean deploy -DskipTests
+        env:
+          GITHUB_TOKEN: ${{ github.token }}
+          SONATYPE_USERNAME: ${{ secrets.OSSRH_USERNAME }}
+          SONATYPE_PASSWORD: ${{ secrets.OSSRH_TOKEN }}
+          SONATYPE_SIGNING_PASSWORD: ${{ secrets.OSSRH_SIGNING_PASSWORD }}
