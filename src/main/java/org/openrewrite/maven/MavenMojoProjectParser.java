@@ -191,7 +191,7 @@ public class MavenMojoProjectParser {
                                 p.getActivation() == null ? null : new ProfileActivation(
                                         p.getActivation().isActiveByDefault(),
                                         p.getActivation().getJdk(),
-                                        new ProfileActivation.Property(
+                                        p.getActivation().getProperty() == null ? null : new ProfileActivation.Property(
                                                 p.getActivation().getProperty().getName(),
                                                 p.getActivation().getProperty().getValue()
                                         )

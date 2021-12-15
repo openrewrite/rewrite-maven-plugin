@@ -20,6 +20,23 @@ public class BasicIT {
     }
 
     @MavenTest
+    @MavenOption(value = MavenCLIOptions.SETTINGS, parameter = "settings.xml")
+    @MavenGoal("${project.groupId}:${project.artifactId}:${project.version}:dryRun")
+    void null_check_profile_activation(MavenExecutionResult result) {
+        assertThat(result)
+                .isSuccessful()
+                .out()
+                .info()
+                .anySatisfy(line -> assertThat(line).contains("Applying recipes would make no changes. No patch file generated."));
+
+        assertThat(result)
+                .isSuccessful()
+                .out()
+                .warn()
+                .isEmpty();
+    }
+
+    @MavenTest
     @SystemProperty(value = "ossrh_snapshots_url", content = "https://oss.sonatype.org/content/repositories/snapshots")
     @MavenGoal("${project.groupId}:${project.artifactId}:${project.version}:dryRun")
     void resolves_maven_properties_from_user_provided_system_properties(MavenExecutionResult result) {
