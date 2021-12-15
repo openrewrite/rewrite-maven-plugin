@@ -6,8 +6,13 @@ import org.apache.maven.execution.MavenSession;
 import org.apache.maven.model.Repository;
 import org.apache.maven.plugin.MojoExecutionException;
 import org.apache.maven.plugin.logging.Log;
+import org.apache.maven.plugins.annotations.Component;
 import org.apache.maven.project.MavenProject;
 import org.apache.maven.rtinfo.RuntimeInformation;
+import org.apache.maven.settings.crypto.DefaultSettingsDecryptionRequest;
+import org.apache.maven.settings.crypto.SettingsDecrypter;
+import org.apache.maven.settings.crypto.SettingsDecryptionRequest;
+import org.apache.maven.settings.crypto.SettingsDecryptionResult;
 import org.openrewrite.ExecutionContext;
 import org.openrewrite.SourceFile;
 import org.openrewrite.internal.ListUtils;
@@ -66,9 +71,10 @@ public class MavenMojoProjectParser {
     private final Collection<String> exclusions;
     private final int sizeThresholdMb;
     private final MavenSession mavenSession;
+    private final SettingsDecrypter settingsDecrypter;
 
     @SuppressWarnings("BooleanParameter")
-    public MavenMojoProjectParser(Log logger, Path baseDir, boolean pomCacheEnabled, @Nullable String pomCacheDirectory, MavenProject mavenProject, RuntimeInformation runtime, boolean skipMavenParsing, Collection<String> exclusions, int thresholdMb, MavenSession session) {
+    public MavenMojoProjectParser(Log logger, Path baseDir, boolean pomCacheEnabled, @Nullable String pomCacheDirectory, MavenProject mavenProject, RuntimeInformation runtime, boolean skipMavenParsing, Collection<String> exclusions, int thresholdMb, MavenSession session, SettingsDecrypter settingsDecrypter) {
         this.logger = logger;
         this.baseDir = baseDir;
         this.mavenProject = mavenProject;
@@ -78,6 +84,7 @@ public class MavenMojoProjectParser {
         this.exclusions = exclusions;
         sizeThresholdMb = thresholdMb;
         this.mavenSession = session;
+        this.settingsDecrypter = settingsDecrypter;
 
         String javaRuntimeVersion = System.getProperty("java.runtime.version");
         String javaVendor = System.getProperty("java.vm.vendor");
@@ -209,11 +216,15 @@ public class MavenMojoProjectParser {
         );
 
         MavenSettings.Servers servers = new MavenSettings.Servers();
-        servers.setServers(mer.getServers().stream().map(s -> new MavenSettings.Server(
-                s.getId(),
-                s.getUsername(),
-                s.getPassword()
-        )).collect(toList()));
+        servers.setServers(mer.getServers().stream().map(s -> {
+            SettingsDecryptionRequest decryptionRequest = new DefaultSettingsDecryptionRequest(s);
+            SettingsDecryptionResult decryptionResult = settingsDecrypter.decrypt(decryptionRequest);
+            return new MavenSettings.Server(
+                    s.getId(),
+                    s.getUsername(),
+                    decryptionResult.getServer().getPassword()
+            );
+        }).collect(toList()));
 
         return new MavenSettings(profiles, activeProfiles, mirrors, servers);
     }
