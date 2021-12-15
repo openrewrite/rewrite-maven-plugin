@@ -12,6 +12,7 @@ import org.apache.maven.plugins.annotations.Parameter;
 import org.apache.maven.project.MavenProject;
 import org.apache.maven.repository.RepositorySystem;
 import org.apache.maven.rtinfo.RuntimeInformation;
+import org.apache.maven.settings.crypto.SettingsDecrypter;
 import org.codehaus.plexus.util.xml.Xpp3Dom;
 import org.openrewrite.*;
 import org.openrewrite.config.ClasspathScanningLoader;
@@ -46,6 +47,10 @@ public abstract class AbstractRewriteMojo extends ConfigurableRewriteMojo {
     @SuppressWarnings("NotNullFieldNotInitialized")
     @Component
     protected RuntimeInformation runtime;
+
+    @SuppressWarnings("NotNullFieldNotInitialized")
+    @Component
+    protected SettingsDecrypter settingsDecrypter;
 
     @SuppressWarnings("NotNullFieldNotInitialized")
     @Component
@@ -166,7 +171,7 @@ public abstract class AbstractRewriteMojo extends ConfigurableRewriteMojo {
                 }
             }
             ExecutionContext ctx = executionContext();
-            MavenMojoProjectParser projectParser = new MavenMojoProjectParser(getLog(), baseDir, pomCacheEnabled, pomCacheDirectory, project, runtime, skipMavenParsing, getExclusions(), sizeThresholdMb, mavenSession);
+            MavenMojoProjectParser projectParser = new MavenMojoProjectParser(getLog(), baseDir, pomCacheEnabled, pomCacheDirectory, project, runtime, skipMavenParsing, getExclusions(), sizeThresholdMb, mavenSession, settingsDecrypter);
             List<SourceFile> sourceFiles = projectParser.listSourceFiles(styles, ctx);
 
             getLog().info("Running recipe(s)...");
