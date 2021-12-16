@@ -19,11 +19,13 @@ import org.openrewrite.internal.lang.Nullable;
 import org.openrewrite.java.JavaParser;
 import org.openrewrite.java.marker.JavaProject;
 import org.openrewrite.java.marker.JavaVersion;
+import org.openrewrite.java.tree.J;
 import org.openrewrite.marker.BuildTool;
 import org.openrewrite.marker.Generated;
 import org.openrewrite.marker.GitProvenance;
 import org.openrewrite.marker.Marker;
 import org.openrewrite.maven.cache.InMemoryMavenPomCache;
+import org.openrewrite.maven.cache.MavenPomCache;
 import org.openrewrite.maven.cache.RocksdbMavenPomCache;
 import org.openrewrite.maven.internal.ProfileActivation;
 import org.openrewrite.maven.internal.RawRepositories;
@@ -59,6 +61,10 @@ import static org.openrewrite.Tree.randomId;
 // JavaSourceSet - All Java source files and all resource files that exist in src/main or src/test will have a JavaSourceSet marker assigned to them.
 // -----------------------------------------------------------------------------------------------------------------
 public class MavenMojoProjectParser {
+
+    @Nullable
+    static MavenPomCache pomCache;
+
     private final Log logger;
     private final Path baseDir;
     private final MavenProject mavenProject;
@@ -124,6 +130,7 @@ public class MavenMojoProjectParser {
 
     @Nullable
     public Maven parseMaven(ExecutionContext ctx) {
+        J.clearCaches();
         if (skipMavenParsing) {
             logger.info("Skipping Maven parsing...");
             return null;
@@ -148,18 +155,7 @@ public class MavenMojoProjectParser {
         MavenParser.Builder mavenParserBuilder = MavenParser.builder().mavenConfig(baseDir.resolve(".mvn/maven.config"));
 
         if (pomCacheEnabled) {
-            try {
-                if (pomCacheDirectory == null) {
-                    //Default directory in the RocksdbMavenPomCache is ".rewrite-cache"
-                    mavenParserBuilder.cache(new RocksdbMavenPomCache(Paths.get(System.getProperty("user.home"))));
-                } else {
-                    mavenParserBuilder.cache(new RocksdbMavenPomCache(Paths.get(pomCacheDirectory)));
-                }
-            } catch (Exception e) {
-                logger.warn("Unable to initialize RocksdbMavenPomCache, falling back to InMemoryMavenPomCache");
-                logger.debug(e);
-                mavenParserBuilder.cache(new InMemoryMavenPomCache());
-            }
+            mavenParserBuilder.cache(getPomCache(pomCacheDirectory, logger));
         }
 
         MavenSettings settings = buildSettings();
@@ -179,6 +175,24 @@ public class MavenMojoProjectParser {
         }
 
         return pom;
+    }
+
+    private static MavenPomCache getPomCache(@Nullable String pomCacheDirectory, Log logger) {
+        if (pomCache == null) {
+            try {
+                if (pomCacheDirectory == null) {
+                    //Default directory in the RocksdbMavenPomCache is ".rewrite-cache"
+                    pomCache = new RocksdbMavenPomCache(Paths.get(System.getProperty("user.home")));
+                } else {
+                    pomCache = new RocksdbMavenPomCache(Paths.get(pomCacheDirectory));
+                }
+            } catch (Exception e) {
+                pomCache = new InMemoryMavenPomCache();
+                logger.warn("Unable to initialize RocksdbMavenPomCache, falling back to InMemoryMavenPomCache");
+                logger.debug(e);
+            }
+        }
+        return pomCache;
     }
 
     private MavenSettings buildSettings() {
