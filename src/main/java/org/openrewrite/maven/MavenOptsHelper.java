@@ -51,7 +51,7 @@ public class MavenOptsHelper {
                     log.warn("The following exports should be added to your MAVEN_OPTS environment variable.");
                     StringBuilder infoMessage = new StringBuilder();
                     for (String exp : requiredExportPackages) {
-                        infoMessage.append("--add-exports jdk.compiler/com.sun.tools.javac.").append(exp).append("=ALL-UNNAMED");
+                        infoMessage.append("--add-exports jdk.compiler/com.sun.tools.javac.").append(exp).append("=ALL-UNNAMED ");
                     }
                     log.info(infoMessage);
                     log.info("");
