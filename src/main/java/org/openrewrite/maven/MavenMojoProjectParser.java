@@ -349,10 +349,8 @@ public class MavenMojoProjectParser {
         }
 
         Path sourceRoot = sourceDirectoryFile.toPath();
-        try {
-            return Files.walk(sourceRoot)
-                    .filter(f -> !Files.isDirectory(f) && f.toFile().getName().endsWith(".java"))
-                    .collect(toList());
+        try (Stream<Path> files = Files.walk(sourceRoot).filter(f -> !Files.isDirectory(f) && f.toFile().getName().endsWith(".java"))) {
+            return files.collect(toList());
         } catch (IOException e) {
             throw new MojoExecutionException("Unable to list Java source files", e);
         }

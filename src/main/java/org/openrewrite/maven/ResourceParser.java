@@ -16,11 +16,14 @@ import java.io.UncheckedIOException;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.PathMatcher;
+import java.nio.file.attribute.BasicFileAttributes;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.List;
+import java.util.function.BiPredicate;
 import java.util.function.Consumer;
 import java.util.stream.Collectors;
+import java.util.stream.Stream;
 
 public class ResourceParser {
     private final Log logger;
@@ -55,46 +58,47 @@ public class ResourceParser {
                                                            Path searchDir,
                                                            Collection<Path> alreadyParsed,
                                                            ExecutionContext ctx) {
-        try {
-            List<Path> resourceFiles = Files.find(searchDir, 16, (path, attrs) -> {
-                try {
-                    if (path.toString().contains("/target/") || path.toString().contains("/build/")
-                            || path.toString().contains("/out/") || path.toString().contains("/node_modules/") || path.toString().contains("/.metadata/")) {
-                        return false;
-                    }
-                    for (String exclusion : exclusions) {
-                        PathMatcher matcher = baseDir.getFileSystem().getPathMatcher("glob:" + exclusion);
-                        if (matcher.matches(baseDir.relativize(path))) {
-                            return false;
-                        }
-                    }
 
-                    if (alreadyParsed.contains(searchDir.relativize(path))) {
-                        return false;
-                    }
-
-                    if (attrs.isDirectory() || Files.size(path) == 0) {
-                        return false;
-                    }
-                    long fileSize = Files.size(path);
-                    if (sizeThresholdMb > 0 && fileSize > sizeThresholdMb * 1024L * 1024L) {
-                        alreadyParsed.add(path);
-                        //noinspection StringConcatenationMissingWhitespace
-                        logger.info("Skipping parsing " + path + " as its size + " + fileSize / (1024L * 1024L) +
-                                "Mb exceeds size threshold " + sizeThresholdMb + "Mb");
-                        return false;
-                    }
-
-                } catch (IOException e) {
-                    logger.warn(e.getMessage(), e);
+        BiPredicate<Path, BasicFileAttributes> sourceMatcher = (path, attrs) -> {
+            try {
+                if (path.toString().contains("/target/") || path.toString().contains("/build/")
+                        || path.toString().contains("/out/") || path.toString().contains("/node_modules/") || path.toString().contains("/.metadata/")) {
+                    return false;
                 }
-                return parser.accept(path);
-            }).collect(Collectors.toList());
+                for (String exclusion : exclusions) {
+                    PathMatcher matcher = baseDir.getFileSystem().getPathMatcher("glob:" + exclusion);
+                    if (matcher.matches(baseDir.relativize(path))) {
+                        return false;
+                    }
+                }
 
-            return parser.parse(resourceFiles, baseDir, ctx);
+                if (alreadyParsed.contains(searchDir.relativize(path))) {
+                    return false;
+                }
+
+                if (attrs.isDirectory() || Files.size(path) == 0) {
+                    return false;
+                }
+                long fileSize = Files.size(path);
+                if (sizeThresholdMb > 0 && fileSize > sizeThresholdMb * 1024L * 1024L) {
+                    alreadyParsed.add(path);
+                    //noinspection StringConcatenationMissingWhitespace
+                    logger.info("Skipping parsing " + path + " as its size + " + fileSize / (1024L * 1024L) +
+                            "Mb exceeds size threshold " + sizeThresholdMb + "Mb");
+                    return false;
+                }
+            } catch (IOException e) {
+                logger.warn(e.getMessage(), e);
+            }
+            return parser.accept(path);
+        };
+        List<Path> sources;
+        try (Stream<Path> files = Files.find(searchDir, 16, sourceMatcher)) {
+            sources = files.collect(Collectors.toList());
         } catch (IOException e) {
             logger.error(e.getMessage(), e);
             throw new UncheckedIOException(e);
         }
+        return parser.parse(sources, baseDir, ctx);
     }
 }
