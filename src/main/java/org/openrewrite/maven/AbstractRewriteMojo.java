@@ -21,6 +21,7 @@ import org.openrewrite.config.RecipeDescriptor;
 import org.openrewrite.config.YamlResourceLoader;
 import org.openrewrite.java.style.CheckstyleConfigLoader;
 import org.openrewrite.marker.Generated;
+import org.openrewrite.maven.internal.MavenParsingException;
 import org.openrewrite.style.NamedStyles;
 
 import java.io.File;
@@ -90,7 +91,11 @@ public abstract class AbstractRewriteMojo extends ConfigurableRewriteMojo {
 
     protected ExecutionContext executionContext() {
         return new InMemoryExecutionContext(t -> {
-            getLog().warn(t.getMessage());
+            if (t instanceof MavenParsingException && ((MavenParsingException) t).getSeverity() == MavenParsingException.Severity.Info) {
+                getLog().debug(t.getMessage());
+            } else {
+                getLog().warn(t.getMessage());
+            }
             getLog().debug(t);
         });
     }
