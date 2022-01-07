@@ -24,12 +24,16 @@ import org.openrewrite.marker.BuildTool;
 import org.openrewrite.marker.Generated;
 import org.openrewrite.marker.GitProvenance;
 import org.openrewrite.marker.Marker;
+import org.openrewrite.maven.cache.CacheResult;
 import org.openrewrite.maven.cache.InMemoryMavenPomCache;
 import org.openrewrite.maven.cache.MavenPomCache;
 import org.openrewrite.maven.cache.RocksdbMavenPomCache;
+import org.openrewrite.maven.internal.MavenMetadata;
 import org.openrewrite.maven.internal.ProfileActivation;
+import org.openrewrite.maven.internal.RawMaven;
 import org.openrewrite.maven.internal.RawRepositories;
 import org.openrewrite.maven.tree.Maven;
+import org.openrewrite.maven.tree.MavenRepository;
 import org.openrewrite.style.NamedStyles;
 
 import java.io.File;
@@ -182,17 +186,75 @@ public class MavenMojoProjectParser {
             try {
                 if (pomCacheDirectory == null) {
                     //Default directory in the RocksdbMavenPomCache is ".rewrite-cache"
-                    pomCache = new RocksdbMavenPomCache(Paths.get(System.getProperty("user.home")));
+                    pomCache = new StatusReportingCache(new RocksdbMavenPomCache(Paths.get(System.getProperty("user.home"))), logger);
                 } else {
-                    pomCache = new RocksdbMavenPomCache(Paths.get(pomCacheDirectory));
+                    pomCache = new StatusReportingCache(new RocksdbMavenPomCache(Paths.get(pomCacheDirectory)), logger);
                 }
             } catch (Exception e) {
-                pomCache = new InMemoryMavenPomCache();
+                pomCache = new StatusReportingCache(new InMemoryMavenPomCache(), logger);
                 logger.warn("Unable to initialize RocksdbMavenPomCache, falling back to InMemoryMavenPomCache");
                 logger.debug(e);
             }
         }
         return pomCache;
+    }
+
+    private static class StatusReportingCache implements MavenPomCache {
+        private final MavenPomCache cache;
+        private final Log logger;
+        private int getCount = 0;
+
+        private StatusReportingCache(MavenPomCache cache, Log logger) {
+            this.cache = cache;
+            this.logger = logger;
+        }
+
+        @Override
+        public CacheResult<MavenMetadata> getMavenMetadata(MetadataKey key) {
+            return cache.getMavenMetadata(key);
+        }
+
+        @Override
+        public CacheResult<MavenMetadata> setMavenMetadata(MetadataKey key, MavenMetadata metadata, boolean isSnapshot) {
+            return cache.setMavenMetadata(key, metadata, isSnapshot);
+        }
+
+        @Override
+        public CacheResult<RawMaven> getMaven(PomKey key) {
+            getCount++;
+            if (getCount == 1) {
+                logger.info("Rewrite has its own pom cache, parsing maven files may take a while.");
+            }
+            if (getCount % 2000 == 0) {
+                logger.info("Parsing Maven Files...");
+            }
+            return cache.getMaven(key);
+        }
+
+        @Override
+        public CacheResult<RawMaven> setMaven(PomKey key, RawMaven maven, boolean isSnapshot) {
+            return cache.setMaven(key, maven, isSnapshot);
+        }
+
+        @Override
+        public CacheResult<MavenRepository> getNormalizedRepository(MavenRepository repository) {
+            return cache.getNormalizedRepository(repository);
+        }
+
+        @Override
+        public CacheResult<MavenRepository> setNormalizedRepository(MavenRepository repository, MavenRepository normalized) {
+            return cache.setNormalizedRepository(repository, normalized);
+        }
+
+        @Override
+        public void clear() {
+            cache.clear();
+        }
+
+        @Override
+        public void close() throws Exception {
+            cache.close();
+        }
     }
 
     private MavenSettings buildSettings() {
