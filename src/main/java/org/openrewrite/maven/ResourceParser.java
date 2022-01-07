@@ -60,38 +60,34 @@ public class ResourceParser {
                                                            ExecutionContext ctx) {
 
         BiPredicate<Path, BasicFileAttributes> sourceMatcher = (path, attrs) -> {
-            try {
-                if (path.toString().contains("/target/") || path.toString().contains("/build/")
-                        || path.toString().contains("/out/") || path.toString().contains("/node_modules/") || path.toString().contains("/.metadata/")) {
+            if (path.toString().contains("/target/") || path.toString().contains("/build/")
+                    || path.toString().contains("/out/") || path.toString().contains("/node_modules/") || path.toString().contains("/.metadata/")) {
+                return false;
+            }
+            for (String exclusion : exclusions) {
+                PathMatcher matcher = baseDir.getFileSystem().getPathMatcher("glob:" + exclusion);
+                if (matcher.matches(baseDir.relativize(path))) {
                     return false;
                 }
-                for (String exclusion : exclusions) {
-                    PathMatcher matcher = baseDir.getFileSystem().getPathMatcher("glob:" + exclusion);
-                    if (matcher.matches(baseDir.relativize(path))) {
-                        return false;
-                    }
-                }
+            }
 
-                if (alreadyParsed.contains(searchDir.relativize(path))) {
-                    return false;
-                }
+            if (alreadyParsed.contains(searchDir.relativize(path))) {
+                return false;
+            }
 
-                if (attrs.isDirectory() || Files.size(path) == 0) {
-                    return false;
-                }
-                long fileSize = Files.size(path);
-                if (sizeThresholdMb > 0 && fileSize > sizeThresholdMb * 1024L * 1024L) {
-                    alreadyParsed.add(path);
-                    //noinspection StringConcatenationMissingWhitespace
-                    logger.info("Skipping parsing " + path + " as its size + " + fileSize / (1024L * 1024L) +
-                            "Mb exceeds size threshold " + sizeThresholdMb + "Mb");
-                    return false;
-                }
-            } catch (IOException e) {
-                logger.warn(e.getMessage(), e);
+            if (attrs.isDirectory() || attrs.size() == 0) {
+                return false;
+            }
+            if (sizeThresholdMb > 0 && attrs.size() > sizeThresholdMb * 1024L * 1024L) {
+                alreadyParsed.add(path);
+                //noinspection StringConcatenationMissingWhitespace
+                logger.info("Skipping parsing " + path + " as its size + " + attrs.size() / (1024L * 1024L) +
+                        "Mb exceeds size threshold " + sizeThresholdMb + "Mb");
+                return false;
             }
             return parser.accept(path);
         };
+
         List<Path> sources;
         try (Stream<Path> files = Files.find(searchDir, 16, sourceMatcher)) {
             sources = files.collect(Collectors.toList());
