@@ -21,6 +21,7 @@ import java.util.Collection;
 import java.util.List;
 import java.util.function.Consumer;
 import java.util.stream.Collectors;
+import java.util.stream.Stream;
 
 public class ResourceParser {
     private final Log logger;
@@ -56,46 +57,45 @@ public class ResourceParser {
             Path searchDir,
             Collection<Path> alreadyParsed,
             ExecutionContext ctx) {
-        try {
-            List<Path> resourceFiles = Files.find(searchDir, 16, (path, attrs) -> {
-                if (!parser.accept(path)) {
-                    return false;
-                }
+        try (Stream<Path> resources = Files.find(searchDir, 16, (path, attrs) -> {
+            if (!parser.accept(path)) {
+                return false;
+            }
 
-                String pathStr = path.toString();
-                if (pathStr.contains("/target/") || pathStr.contains("/build/") || pathStr.contains("/out/") ||
-                        pathStr.contains("/.gradle/") || pathStr.contains("/node_modules/") || pathStr.contains("/.metadata/")) {
-                    return false;
-                }
+            String pathStr = path.toString();
+            if (pathStr.contains("/target/") || pathStr.contains("/build/") || pathStr.contains("/out/") ||
+                    pathStr.contains("/.gradle/") || pathStr.contains("/node_modules/") || pathStr.contains("/.metadata/")) {
+                return false;
+            }
 
-                if (attrs.isDirectory() || attrs.size() == 0) {
-                    return false;
-                }
+            if (attrs.isDirectory() || attrs.size() == 0) {
+                return false;
+            }
 
-                if(alreadyParsed.contains(path)) {
-                    return false;
-                }
+            if (alreadyParsed.contains(path)) {
+                return false;
+            }
 
-                for (String exclusion : exclusions) {
-                    PathMatcher matcher = baseDir.getFileSystem().getPathMatcher("glob:" + exclusion);
-                    if (matcher.matches(baseDir.relativize(path))) {
-                        alreadyParsed.add(path);
-                        return false;
-                    }
-                }
-
-                long fileSize = attrs.size();
-                if ((sizeThresholdMb > 0 && fileSize > sizeThresholdMb * 1024L * 1024L)) {
+            for (String exclusion : exclusions) {
+                PathMatcher matcher = baseDir.getFileSystem().getPathMatcher("glob:" + exclusion);
+                if (matcher.matches(baseDir.relativize(path))) {
                     alreadyParsed.add(path);
-                    logger.info("Skipping parsing " + path + " as its size + " + fileSize / (1024L * 1024L) +
-                            "Mb exceeds size threshold " + sizeThresholdMb + "Mb");
                     return false;
                 }
+            }
 
-                return true;
-            }).collect(Collectors.toList());
+            long fileSize = attrs.size();
+            if ((sizeThresholdMb > 0 && fileSize > sizeThresholdMb * 1024L * 1024L)) {
+                alreadyParsed.add(path);
+                logger.info("Skipping parsing " + path + " as its size + " + fileSize / (1024L * 1024L) +
+                        "Mb exceeds size threshold " + sizeThresholdMb + "Mb");
+                return false;
+            }
+
+            return true;
+        })) {
+            List<Path> resourceFiles = resources.collect(Collectors.toList());
             alreadyParsed.addAll(resourceFiles);
-
             return parser.parse(resourceFiles, baseDir, ctx);
         } catch (IOException e) {
             logger.error(e.getMessage(), e);
