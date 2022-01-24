@@ -52,7 +52,7 @@
         <junit-jupiter.version>5.8.2</junit-jupiter.version>
         <maven-dependencies.version>3.8.4</maven-dependencies.version>
         <maven-release-plugin.version>3.0.0-M5</maven-release-plugin.version>
-        <maven-plugin-tools.version>3.6.2</maven-plugin-tools.version>
+        <maven-plugin-tools.version>3.6.4</maven-plugin-tools.version>
     </properties>
 
     <dependencies>
