@@ -26,6 +26,7 @@ import org.openrewrite.marker.BuildTool;
 import org.openrewrite.marker.Generated;
 import org.openrewrite.marker.GitProvenance;
 import org.openrewrite.marker.Marker;
+import org.openrewrite.maven.cache.CompositeMavenPomCache;
 import org.openrewrite.maven.cache.InMemoryMavenPomCache;
 import org.openrewrite.maven.cache.MavenPomCache;
 import org.openrewrite.maven.cache.RocksdbMavenPomCache;
@@ -191,9 +192,15 @@ public class MavenMojoProjectParser {
             try {
                 if (pomCacheDirectory == null) {
                     //Default directory in the RocksdbMavenPomCache is ".rewrite-cache"
-                    pomCache = new RocksdbMavenPomCache(Paths.get(System.getProperty("user.home")));
+                    pomCache = new CompositeMavenPomCache(
+                            new InMemoryMavenPomCache(),
+                            new RocksdbMavenPomCache(Paths.get(System.getProperty("user.home")))
+                    );
                 } else {
-                    pomCache = new RocksdbMavenPomCache(Paths.get(pomCacheDirectory));
+                    pomCache = new CompositeMavenPomCache(
+                            new InMemoryMavenPomCache(),
+                            new RocksdbMavenPomCache(Paths.get(pomCacheDirectory))
+                    );
                 }
             } catch (Exception e) {
                 pomCache = new InMemoryMavenPomCache();
