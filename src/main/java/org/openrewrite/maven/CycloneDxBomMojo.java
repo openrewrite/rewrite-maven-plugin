@@ -8,8 +8,8 @@ import org.apache.maven.plugins.annotations.ResolutionScope;
 import org.apache.maven.project.MavenProjectHelper;
 import org.openrewrite.ExecutionContext;
 import org.openrewrite.internal.lang.Nullable;
-import org.openrewrite.maven.tree.Maven;
 import org.openrewrite.maven.utilities.PrintMavenAsCycloneDxBom;
+import org.openrewrite.xml.tree.Xml;
 
 import java.io.File;
 import java.nio.charset.StandardCharsets;
@@ -32,7 +32,7 @@ public class CycloneDxBomMojo extends AbstractRewriteMojo {
     public void execute() throws MojoExecutionException {
         ExecutionContext ctx = executionContext();
         Path baseDir = getBaseDir();
-        Maven maven = new MavenMojoProjectParser(getLog(), baseDir, pomCacheEnabled, pomCacheDirectory, project, runtime, skipMavenParsing, getExclusions(), sizeThresholdMb, mavenSession, settingsDecrypter).parseMaven(ctx);
+        Xml.Document maven = new MavenMojoProjectParser(getLog(), baseDir, pomCacheEnabled, pomCacheDirectory, project, runtime, skipMavenParsing, getExclusions(), sizeThresholdMb, mavenSession, settingsDecrypter).parseMaven(ctx);
         if (maven != null) {
             File cycloneDxBom = buildCycloneDxBom(maven);
             projectHelper.attachArtifact(project, "xml", "cyclonedx", cycloneDxBom);
@@ -42,7 +42,7 @@ public class CycloneDxBomMojo extends AbstractRewriteMojo {
     }
 
     @Nullable
-    private File buildCycloneDxBom(Maven pomAst) {
+    private File buildCycloneDxBom(Xml.Document pomAst) {
         try {
             File cycloneDxBom = new File(project.getBuild().getDirectory(),
                     project.getArtifactId() + "-" + project.getVersion() + "-cyclonedx.xml");
@@ -55,7 +55,6 @@ public class CycloneDxBomMojo extends AbstractRewriteMojo {
 
             return cycloneDxBom;
         } catch (Throwable t) {
-            // TODO we aren't yet confident enough in this to not squash exceptions
             getLog().warn("Unable to produce CycloneDX BOM", t);
             return null;
         }

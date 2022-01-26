@@ -91,11 +91,7 @@ public abstract class AbstractRewriteMojo extends ConfigurableRewriteMojo {
 
     protected ExecutionContext executionContext() {
         return new InMemoryExecutionContext(t -> {
-            if (t instanceof MavenParsingException && ((MavenParsingException) t).getSeverity() == MavenParsingException.Severity.Info) {
-                getLog().debug(t.getMessage());
-            } else {
-                getLog().warn(t.getMessage());
-            }
+            getLog().warn(t.getMessage());
             getLog().debug(t);
         });
     }
