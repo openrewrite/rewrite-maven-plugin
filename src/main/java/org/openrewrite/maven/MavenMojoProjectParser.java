@@ -323,6 +323,9 @@ public class MavenMojoProjectParser {
 
     public List<SourceFile> listSourceFiles(Iterable<NamedStyles> styles,
                                             ExecutionContext ctx) throws DependencyResolutionRequiredException, MojoExecutionException {
+        // Disable classpath type scanning until we can do it more efficiently
+        ctx.putMessage(JavaParser.SKIP_SOURCE_SET_MARKER, true);
+
         Set<Path> alreadyParsed = new HashSet<>();
         JavaParser javaParser = JavaParser.fromJavaVersion()
                 .styles(styles)
