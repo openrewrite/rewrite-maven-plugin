@@ -7,7 +7,7 @@ import org.apache.maven.plugins.annotations.Mojo;
 import org.apache.maven.plugins.annotations.Parameter;
 import org.openrewrite.ExecutionContext;
 import org.openrewrite.Result;
-import org.openrewrite.maven.tree.Maven;
+import org.openrewrite.xml.tree.Xml;
 
 import javax.annotation.Nullable;
 import java.io.BufferedWriter;
@@ -57,7 +57,7 @@ public class ConfigureMojo extends AbstractRewriteMojo {
         MavenParser mp = MavenParser.builder()
                 .mavenConfig(baseDir.resolve(".mvn/maven.config"))
                 .build();
-        List<Maven> pom = mp.parse(Collections.singleton(project.getFile().toPath()), baseDir, ctx);
+        List<Xml.Document> pom = mp.parse(Collections.singleton(project.getFile().toPath()), baseDir, ctx);
         List<Result> results = new ChangePluginConfiguration(groupId, artifactId, getConfiguration())
                 .doNext(new ChangePluginDependencies(groupId, artifactId, dependencies))
                 .doNext(new ChangePluginExecutions(groupId, artifactId, getExecutions()))

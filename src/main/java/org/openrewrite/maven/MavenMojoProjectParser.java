@@ -1,8 +1,10 @@
 package org.openrewrite.maven;
 
+import org.apache.maven.Maven;
 import org.apache.maven.artifact.DependencyResolutionRequiredException;
 import org.apache.maven.execution.MavenExecutionRequest;
 import org.apache.maven.execution.MavenSession;
+import org.apache.maven.model.Profile;
 import org.apache.maven.model.Repository;
 import org.apache.maven.plugin.MojoExecutionException;
 import org.apache.maven.plugin.logging.Log;
@@ -24,17 +26,14 @@ import org.openrewrite.marker.BuildTool;
 import org.openrewrite.marker.Generated;
 import org.openrewrite.marker.GitProvenance;
 import org.openrewrite.marker.Marker;
-import org.openrewrite.maven.cache.CacheResult;
+import org.openrewrite.maven.cache.CompositeMavenPomCache;
 import org.openrewrite.maven.cache.InMemoryMavenPomCache;
 import org.openrewrite.maven.cache.MavenPomCache;
 import org.openrewrite.maven.cache.RocksdbMavenPomCache;
-import org.openrewrite.maven.internal.MavenMetadata;
-import org.openrewrite.maven.internal.ProfileActivation;
-import org.openrewrite.maven.internal.RawMaven;
 import org.openrewrite.maven.internal.RawRepositories;
-import org.openrewrite.maven.tree.Maven;
-import org.openrewrite.maven.tree.MavenRepository;
+import org.openrewrite.maven.tree.ProfileActivation;
 import org.openrewrite.style.NamedStyles;
+import org.openrewrite.xml.tree.Xml;
 
 import java.io.File;
 import java.io.IOException;
@@ -43,6 +42,7 @@ import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.util.*;
 import java.util.function.UnaryOperator;
+import java.util.stream.Collectors;
 import java.util.stream.Stream;
 
 import static java.util.Collections.emptyList;
@@ -61,7 +61,7 @@ import static org.openrewrite.Tree.randomId;
 //
 // Optional:
 //
-// GitProvenance - If the entire project exists in the context of a git repository, all source files (for all modules) will have the same GitProvenance.
+// GitProvenance - If the project exists in the context of a git repository, all source files (for all modules) will have the same GitProvenance.
 // JavaSourceSet - All Java source files and all resource files that exist in src/main or src/test will have a JavaSourceSet marker assigned to them.
 // -----------------------------------------------------------------------------------------------------------------
 public class MavenMojoProjectParser {
@@ -133,7 +133,7 @@ public class MavenMojoProjectParser {
     }
 
     @Nullable
-    public Maven parseMaven(ExecutionContext ctx) {
+    public Xml.Document parseMaven(ExecutionContext ctx) {
         J.clearCaches();
         if (skipMavenParsing) {
             logger.info("Skipping Maven parsing...");
@@ -158,27 +158,31 @@ public class MavenMojoProjectParser {
         }
         MavenParser.Builder mavenParserBuilder = MavenParser.builder().mavenConfig(baseDir.resolve(".mvn/maven.config"));
 
-        if (pomCacheEnabled) {
-            mavenParserBuilder.cache(getPomCache(pomCacheDirectory, logger));
-        }
-
         MavenSettings settings = buildSettings();
-        new MavenExecutionContextView(ctx).setMavenSettings(settings);
-        if (settings.getActiveProfiles() != null) {
-            mavenParserBuilder.activeProfiles(settings.getActiveProfiles().getActiveProfiles().toArray(new String[]{}));
+        MavenExecutionContextView mavenExecutionContext = MavenExecutionContextView.view(ctx);
+        mavenExecutionContext.setMavenSettings(settings);
+
+        if (pomCacheEnabled) {
+            //The default pom cache is enabled as a two-layer cache L1 == in-memory and L2 == RocksDb
+            //If the flag is set to false, only the default, in-memory cache is used.
+            mavenExecutionContext.setPomCache(getPomCache(pomCacheDirectory, logger));
+        }
+        List<String> activeProfiles = mavenProject.getActiveProfiles().stream().map(Profile::getId).collect(Collectors.toList());
+        if (!activeProfiles.isEmpty()) {
+            mavenParserBuilder.activeProfiles(activeProfiles.toArray(new String[]{}));
         }
 
-        Maven pom = mavenParserBuilder
+        Xml.Document maven = mavenParserBuilder
                 .build()
                 .parse(allPoms, baseDir, ctx)
                 .iterator()
                 .next();
 
         for (Marker marker : projectProvenance) {
-            pom = pom.withMarkers(pom.getMarkers().addIfAbsent(marker));
+            maven = maven.withMarkers(maven.getMarkers().addIfAbsent(marker));
         }
 
-        return pom;
+        return maven;
     }
 
     private static MavenPomCache getPomCache(@Nullable String pomCacheDirectory, Log logger) {
@@ -186,75 +190,23 @@ public class MavenMojoProjectParser {
             try {
                 if (pomCacheDirectory == null) {
                     //Default directory in the RocksdbMavenPomCache is ".rewrite-cache"
-                    pomCache = new StatusReportingCache(new RocksdbMavenPomCache(Paths.get(System.getProperty("user.home"))), logger);
+                    pomCache = new CompositeMavenPomCache(
+                            new InMemoryMavenPomCache(),
+                            new RocksdbMavenPomCache(Paths.get(System.getProperty("user.home")))
+                    );
                 } else {
-                    pomCache = new StatusReportingCache(new RocksdbMavenPomCache(Paths.get(pomCacheDirectory)), logger);
+                    pomCache = new CompositeMavenPomCache(
+                            new InMemoryMavenPomCache(),
+                            new RocksdbMavenPomCache(Paths.get(pomCacheDirectory))
+                    );
                 }
             } catch (Exception e) {
-                pomCache = new StatusReportingCache(new InMemoryMavenPomCache(), logger);
+                pomCache = new InMemoryMavenPomCache();
                 logger.warn("Unable to initialize RocksdbMavenPomCache, falling back to InMemoryMavenPomCache");
                 logger.debug(e);
             }
         }
         return pomCache;
-    }
-
-    private static class StatusReportingCache implements MavenPomCache {
-        private final MavenPomCache cache;
-        private final Log logger;
-        private int getCount = 0;
-
-        private StatusReportingCache(MavenPomCache cache, Log logger) {
-            this.cache = cache;
-            this.logger = logger;
-        }
-
-        @Override
-        public CacheResult<MavenMetadata> getMavenMetadata(MetadataKey key) {
-            return cache.getMavenMetadata(key);
-        }
-
-        @Override
-        public CacheResult<MavenMetadata> setMavenMetadata(MetadataKey key, MavenMetadata metadata, boolean isSnapshot) {
-            return cache.setMavenMetadata(key, metadata, isSnapshot);
-        }
-
-        @Override
-        public CacheResult<RawMaven> getMaven(PomKey key) {
-            getCount++;
-            if (getCount == 1) {
-                logger.info("Rewrite has its own pom cache, parsing maven files may take a while.");
-            }
-            if (getCount % 2000 == 0) {
-                logger.info("Parsing Maven Files...");
-            }
-            return cache.getMaven(key);
-        }
-
-        @Override
-        public CacheResult<RawMaven> setMaven(PomKey key, RawMaven maven, boolean isSnapshot) {
-            return cache.setMaven(key, maven, isSnapshot);
-        }
-
-        @Override
-        public CacheResult<MavenRepository> getNormalizedRepository(MavenRepository repository) {
-            return cache.getNormalizedRepository(repository);
-        }
-
-        @Override
-        public CacheResult<MavenRepository> setNormalizedRepository(MavenRepository repository, MavenRepository normalized) {
-            return cache.setNormalizedRepository(repository, normalized);
-        }
-
-        @Override
-        public void clear() {
-            cache.clear();
-        }
-
-        @Override
-        public void close() throws Exception {
-            cache.close();
-        }
     }
 
     private MavenSettings buildSettings() {
@@ -340,7 +292,7 @@ public class MavenMojoProjectParser {
         ).collect(toList());
 
         List<SourceFile> sourceFiles = new ArrayList<>();
-        Maven maven = parseMaven(ctx);
+        Xml.Document maven = parseMaven(ctx);
         if (maven != null) {
             sourceFiles.add(maven);
             alreadyParsed.add(maven.getSourcePath());
