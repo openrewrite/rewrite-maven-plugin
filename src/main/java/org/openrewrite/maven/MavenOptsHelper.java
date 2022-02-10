@@ -17,10 +17,8 @@ package org.openrewrite.maven;
 
 import org.apache.maven.plugin.logging.Log;
 
-import java.util.Arrays;
-import java.util.HashSet;
-import java.util.List;
-import java.util.Set;
+import java.lang.management.ManagementFactory;
+import java.util.*;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
@@ -33,9 +31,10 @@ public class MavenOptsHelper {
             String majorVersionString = dot > 0 ? version.substring(0, dot) : version;
             int majorVersion = Integer.parseInt(majorVersionString);
             if (majorVersion > 15) {
-                String mavenOpts = System.getenv().getOrDefault("MAVEN_OPTS", "");
-                Pattern pattern = Pattern.compile("--add-exports\\sjdk\\.compiler/com\\.sun\\.tools\\.javac\\.(\\w+)=ALL-UNNAMED");
-                Matcher matcher = pattern.matcher(mavenOpts);
+                List<String> inputArgs = ManagementFactory.getRuntimeMXBean().getInputArguments();
+                String inputArgsString = String.join(" ",  inputArgs != null ? inputArgs : Collections.emptyList());
+                Pattern pattern = Pattern.compile("--add-exports=jdk\\.compiler/com\\.sun\\.tools\\.javac\\.(\\w+)=ALL-UNNAMED");
+                Matcher matcher = pattern.matcher(inputArgsString);
                 List<String> requiredExportPackages = Arrays.asList("code", "comp", "file", "jvm", "main", "model", "processing", "tree", "util");
                 Set<String> exportedPackages = new HashSet<>(requiredExportPackages);
                 while (matcher.find()) {
@@ -58,7 +57,7 @@ public class MavenOptsHelper {
                 }
             }
         } catch (Exception e) {
-            log.error(e);
+            log.error("Error checking JVM Module export arguments", e);
         }
     }
 }
