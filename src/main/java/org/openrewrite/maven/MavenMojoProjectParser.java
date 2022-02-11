@@ -21,6 +21,10 @@ import org.openrewrite.internal.lang.Nullable;
 import org.openrewrite.java.JavaParser;
 import org.openrewrite.java.marker.JavaProject;
 import org.openrewrite.java.marker.JavaVersion;
+import org.openrewrite.java.style.Autodetect;
+import org.openrewrite.java.style.ImportLayoutStyle;
+import org.openrewrite.java.style.SpacesStyle;
+import org.openrewrite.java.style.TabsAndIndentsStyle;
 import org.openrewrite.java.tree.J;
 import org.openrewrite.marker.BuildTool;
 import org.openrewrite.marker.Generated;
@@ -48,6 +52,7 @@ import java.util.stream.Stream;
 import static java.util.Collections.emptyList;
 import static java.util.stream.Collectors.toList;
 import static org.openrewrite.Tree.randomId;
+import static org.openrewrite.internal.ListUtils.map;
 
 // -----------------------------------------------------------------------------------------------------------------
 // Notes About Provenance Information:
@@ -308,7 +313,7 @@ public class MavenMojoProjectParser {
 
         // JavaParser will add SourceSet Markers to any Java SourceFile, so only adding the project provenance info to
         // java source.
-        sourceFiles.addAll(ListUtils.map(javaParser.parse(mainJavaSources, baseDir, ctx),
+        sourceFiles.addAll(ListUtils.map(maybeAutodetectStyles(javaParser.parse(mainJavaSources, baseDir, ctx), styles),
                 addProvenance(baseDir, projectProvenance, generatedSourcePaths)));
 
         ResourceParser rp = new ResourceParser(logger, exclusions, sizeThresholdMb);
@@ -330,7 +335,7 @@ public class MavenMojoProjectParser {
         // JavaParser will add SourceSet Markers to any Java SourceFile, so only adding the project provenance info to
         // java source.
         sourceFiles.addAll(ListUtils.map(
-                javaParser.parse(listJavaSources(mavenProject.getBuild().getTestSourceDirectory()), baseDir, ctx),
+                maybeAutodetectStyles(javaParser.parse(listJavaSources(mavenProject.getBuild().getTestSourceDirectory()), baseDir, ctx), styles),
                 addProvenance(baseDir, projectProvenance, null)));
 
         // Any resources parsed from "test/resources" should also have the test source set added to them.
@@ -345,6 +350,24 @@ public class MavenMojoProjectParser {
         ));
 
         return sourceFiles;
+    }
+
+    private List<J.CompilationUnit> maybeAutodetectStyles(List<J.CompilationUnit> sourceFiles, @Nullable Iterable<NamedStyles> styles) {
+        if (styles != null) {
+            return sourceFiles;
+        }
+        Autodetect autodetect = Autodetect.detect(sourceFiles);
+
+        Collection<NamedStyles> namedStyles = Collections.singletonList(autodetect);
+
+        ImportLayoutStyle importLayout = NamedStyles.merge(ImportLayoutStyle.class, namedStyles);
+        SpacesStyle spacesStyle = NamedStyles.merge(SpacesStyle.class, namedStyles);
+        TabsAndIndentsStyle tabsStyle = NamedStyles.merge(TabsAndIndentsStyle.class, namedStyles);
+
+        return map(sourceFiles, cu -> {
+            List<Marker> markers = ListUtils.concat(map(cu.getMarkers().getMarkers(), m -> m instanceof NamedStyles ? null : m), autodetect);
+            return cu.withMarkers(cu.getMarkers().withMarkers(markers));
+        });
     }
 
     private static <S extends SourceFile> UnaryOperator<S> addProvenance(Path baseDir, List<Marker> provenance, @Nullable Collection<Path> generatedSources) {
