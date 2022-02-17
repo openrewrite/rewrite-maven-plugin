@@ -192,28 +192,39 @@ public class MavenMojoProjectParser {
 
     private static MavenPomCache getPomCache(@Nullable String pomCacheDirectory, Log logger) {
         if (pomCache == null) {
-            try {
-                if (pomCacheDirectory == null) {
-                    //Default directory in the RocksdbMavenPomCache is ".rewrite-cache"
-                    pomCache = new CompositeMavenPomCache(
-                            new InMemoryMavenPomCache(),
-                            new RocksdbMavenPomCache(Paths.get(System.getProperty("user.home")))
-                    );
-                } else {
-                    pomCache = new CompositeMavenPomCache(
-                            new InMemoryMavenPomCache(),
-                            new RocksdbMavenPomCache(Paths.get(pomCacheDirectory))
-                    );
+            if (isJvm64Bit()) {
+                try {
+                    if (pomCacheDirectory == null) {
+                        //Default directory in the RocksdbMavenPomCache is ".rewrite-cache"
+                        pomCache = new CompositeMavenPomCache(
+                                new InMemoryMavenPomCache(),
+                                new RocksdbMavenPomCache(Paths.get(System.getProperty("user.home")))
+                        );
+                    } else {
+                        pomCache = new CompositeMavenPomCache(
+                                new InMemoryMavenPomCache(),
+                                new RocksdbMavenPomCache(Paths.get(pomCacheDirectory))
+                        );
+                    }
+                } catch (Exception e) {
+                    logger.warn("Unable to initialize RocksdbMavenPomCache, falling back to InMemoryMavenPomCache");
+                    logger.debug(e);
                 }
-            } catch (Exception e) {
-                pomCache = new InMemoryMavenPomCache();
-                logger.warn("Unable to initialize RocksdbMavenPomCache, falling back to InMemoryMavenPomCache");
-                logger.debug(e);
+            } else {
+                logger.warn("RocksdbMavenPomCache is not supported on 32-bit JVM. falling back to InMemoryMavenPomCache");
             }
+        }
+        if (pomCache == null) {
+            pomCache = new InMemoryMavenPomCache();
         }
         return pomCache;
     }
 
+    private static boolean isJvm64Bit() {
+        //It appears most JVM vendors set this property. Only return false if the
+        //property has been set AND it is set to 32.
+        return !System.getProperty("sun.arch.data.model", "64").equals("32");
+    }
     private MavenSettings buildSettings() {
         MavenExecutionRequest mer = mavenSession.getRequest();
 
