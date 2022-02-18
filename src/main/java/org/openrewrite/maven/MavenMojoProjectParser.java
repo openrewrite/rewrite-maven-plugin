@@ -311,8 +311,7 @@ public class MavenMojoProjectParser {
         Xml.Document maven = parseMaven(ctx);
         if (maven != null) {
             sourceFiles.add(maven);
-            Path mavenPath = "pom.xml".equals(maven.getSourcePath().toString()) ? Paths.get(baseDir + File.separator + maven.getSourcePath()) : maven.getSourcePath();
-            alreadyParsed.add(mavenPath);
+            alreadyParsed.add(baseDir.resolve(maven.getSourcePath()));
         }
 
         logger.info("Parsing Java main files...");
