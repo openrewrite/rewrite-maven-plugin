@@ -93,6 +93,7 @@ public class RewriteRunMojo extends AbstractRewriteMojo {
                     // Should we try to use git to move the file first, and only if that fails fall back to this?
                     assert result.getBefore() != null;
                     Path originalLocation = results.getProjectRoot().resolve(result.getBefore().getSourcePath());
+                    File originalParentDir = originalLocation.toFile().getParentFile();
                     boolean deleteSucceeded = originalLocation.toFile().delete();
                     if (!deleteSucceeded) {
                         throw new IOException("Unable to delete file " + originalLocation.toAbsolutePath());
@@ -100,9 +101,16 @@ public class RewriteRunMojo extends AbstractRewriteMojo {
                     assert result.getAfter() != null;
                     // Ensure directories exist in case something was moved into a hitherto non-existent package
                     Path afterLocation = results.getProjectRoot().resolve(result.getAfter().getSourcePath());
-                    File parentDir = afterLocation.toFile().getParentFile();
-                    //noinspection ResultOfMethodCallIgnored
-                    parentDir.mkdirs();
+                    File afterParentDir = afterLocation.toFile().getParentFile();
+                    // Rename the directory if its name case has been changed, e.g. camel case to lower case.
+                    if (afterParentDir.exists() && afterParentDir.getAbsolutePath().equalsIgnoreCase((originalParentDir.getAbsolutePath()))
+                        && !afterParentDir.getAbsolutePath().equals(originalParentDir.getAbsolutePath())) {
+                        if (!originalParentDir.renameTo(afterParentDir)) {
+                            throw new RuntimeException("Unable to rename directory from " + originalParentDir.getAbsolutePath() + " To: " + afterParentDir.getAbsolutePath());
+                        }
+                    } else if (!afterParentDir.exists() && !afterParentDir.mkdirs()) {
+                        throw new RuntimeException("Unable to create directory " + afterParentDir.getAbsolutePath());
+                    }
                     try (BufferedWriter sourceFileWriter = Files.newBufferedWriter(afterLocation)) {
                         sourceFileWriter.write(result.getAfter().printAll());
                     }
