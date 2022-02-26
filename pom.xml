@@ -40,7 +40,7 @@
     </scm>
 
     <properties>
-        <rewrite.version>7.19.0-SNAPSHOT</rewrite.version>
+        <rewrite.version>7.19.0</rewrite.version>
 
         <!-- using 'ssh' url scheme by default, which assumes a human is performing git operations leveraging an ssh key -->
         <developerConnectionUrl>scm:git:ssh://git@github.com/openrewrite/rewrite-maven-plugin.git</developerConnectionUrl>
@@ -466,7 +466,7 @@
                     <plugin>
                         <groupId>org.sonatype.plugins</groupId>
                         <artifactId>nexus-staging-maven-plugin</artifactId>
-                        <version>1.6.8</version>
+                        <version>1.6.12</version>
                         <extensions>true</extensions>
                         <configuration>
                             <!-- https://help.sonatype.com/repomanager2/staging-releases/configuring-your-project-for-deployment -->
