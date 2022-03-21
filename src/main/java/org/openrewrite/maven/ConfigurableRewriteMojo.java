@@ -106,7 +106,9 @@ public abstract class ConfigurableRewriteMojo extends AbstractMojo {
             synchronized (this) {
                 if (computedRecipes == null) {
                     Set<String> res = toSet(rewriteActiveRecipes);
-                    res.addAll(activeRecipes);
+                    if (res.isEmpty()) {
+                        res.addAll(activeRecipes);
+                    }
                     computedRecipes = Collections.unmodifiableSet(res);
                 }
             }
@@ -120,7 +122,9 @@ public abstract class ConfigurableRewriteMojo extends AbstractMojo {
             synchronized (this) {
                 if (computedStyles == null) {
                     Set<String> res = toSet(rewriteActiveStyles);
-                    res.addAll(activeStyles);
+                    if (res.isEmpty()){
+                        res.addAll(activeStyles);
+                    }
                     computedStyles = Collections.unmodifiableSet(res);
                 }
             }
