@@ -5,3 +5,6 @@ release.properties
 pom.xml.releaseBackup
 .idea/
 *.iml
+.classpath
+.project
+.settings
