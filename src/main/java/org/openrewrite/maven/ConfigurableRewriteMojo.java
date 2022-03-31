@@ -14,7 +14,7 @@ public abstract class ConfigurableRewriteMojo extends AbstractMojo {
     String configLocation;
 
     @Parameter(property = "activeRecipes")
-    private Set<String> activeRecipes = Collections.emptySet();
+    private List<String> activeRecipes = Collections.emptyList();
 
     @Nullable
     @Parameter(property = "rewrite.activeRecipes")
@@ -105,7 +105,7 @@ public abstract class ConfigurableRewriteMojo extends AbstractMojo {
         if (computedRecipes == null) {
             synchronized (this) {
                 if (computedRecipes == null) {
-                    Set<String> res = toSet(rewriteActiveRecipes);
+                    Set<String> res = toLinkedHashSet(rewriteActiveRecipes);
                     if (res.isEmpty()) {
                         res.addAll(activeRecipes);
                     }
@@ -150,5 +150,12 @@ public abstract class ConfigurableRewriteMojo extends AbstractMojo {
                 .filter(s -> !s.isEmpty())
                 .map(s -> new HashSet<>(Arrays.asList(s.split(","))))
                 .orElseGet(HashSet::new);
+    }
+
+    private static Set<String> toLinkedHashSet(@Nullable String propertyValue) {
+        return Optional.ofNullable(propertyValue)
+                .filter(s -> !s.isEmpty())
+                .map(s -> new LinkedHashSet<>(Arrays.asList(s.split(","))))
+                .orElseGet(LinkedHashSet::new);
     }
 }
