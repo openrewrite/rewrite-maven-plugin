@@ -1,6 +1,5 @@
 package org.openrewrite.maven;
 
-import org.apache.maven.Maven;
 import org.apache.maven.artifact.DependencyResolutionRequiredException;
 import org.apache.maven.execution.MavenExecutionRequest;
 import org.apache.maven.execution.MavenSession;
@@ -22,9 +21,6 @@ import org.openrewrite.java.JavaParser;
 import org.openrewrite.java.marker.JavaProject;
 import org.openrewrite.java.marker.JavaVersion;
 import org.openrewrite.java.style.Autodetect;
-import org.openrewrite.java.style.ImportLayoutStyle;
-import org.openrewrite.java.style.SpacesStyle;
-import org.openrewrite.java.style.TabsAndIndentsStyle;
 import org.openrewrite.java.tree.J;
 import org.openrewrite.marker.BuildTool;
 import org.openrewrite.marker.Generated;
@@ -366,12 +362,6 @@ public class MavenMojoProjectParser {
             return sourceFiles;
         }
         Autodetect autodetect = Autodetect.detect(sourceFiles);
-
-        Collection<NamedStyles> namedStyles = Collections.singletonList(autodetect);
-
-        ImportLayoutStyle importLayout = NamedStyles.merge(ImportLayoutStyle.class, namedStyles);
-        SpacesStyle spacesStyle = NamedStyles.merge(SpacesStyle.class, namedStyles);
-        TabsAndIndentsStyle tabsStyle = NamedStyles.merge(TabsAndIndentsStyle.class, namedStyles);
 
         return map(sourceFiles, cu -> {
             List<Marker> markers = ListUtils.concat(map(cu.getMarkers().getMarkers(), m -> m instanceof NamedStyles ? null : m), autodetect);
