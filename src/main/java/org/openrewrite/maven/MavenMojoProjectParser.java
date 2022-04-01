@@ -26,6 +26,7 @@ import org.openrewrite.marker.BuildTool;
 import org.openrewrite.marker.Generated;
 import org.openrewrite.marker.GitProvenance;
 import org.openrewrite.marker.Marker;
+import org.openrewrite.marker.ci.BuildEnvironment;
 import org.openrewrite.maven.cache.CompositeMavenPomCache;
 import org.openrewrite.maven.cache.InMemoryMavenPomCache;
 import org.openrewrite.maven.cache.MavenPomCache;
@@ -110,7 +111,10 @@ public class MavenMojoProjectParser {
             targetCompatibility = propertiesTargetCompatibility;
         }
 
-        projectProvenance = Stream.of(gitProvenance(baseDir),
+        BuildEnvironment buildEnvironment = BuildEnvironment.build(System::getenv);
+        projectProvenance = Stream.of(
+                        buildEnvironment,
+                        gitProvenance(baseDir, buildEnvironment),
                         new BuildTool(randomId(), BuildTool.Type.Maven, runtime.getMavenVersion()),
                         new JavaVersion(randomId(), javaRuntimeVersion, javaVendor, sourceCompatibility, targetCompatibility),
                         new JavaProject(randomId(), mavenProject.getName(), new JavaProject.Publication(
@@ -123,9 +127,9 @@ public class MavenMojoProjectParser {
     }
 
     @Nullable
-    private GitProvenance gitProvenance(Path baseDir) {
+    private GitProvenance gitProvenance(Path baseDir, BuildEnvironment buildEnvironment) {
         try {
-            return GitProvenance.fromProjectDirectory(baseDir);
+            return GitProvenance.fromProjectDirectory(baseDir, buildEnvironment);
         } catch (Exception e) {
             // Logging at a low level as this is unlikely to happen except in non-git projects, where it is expected
             logger.debug("Unable to determine git provenance", e);
