@@ -104,7 +104,7 @@ public class RewriteDiscoverMojo extends AbstractRewriteMojo {
 
         getLog().info("");
         getLog().info("Found " + availableRecipeDescriptors.size() + " available recipes and " + availableStyles.size() + " available styles.");
-        getLog().info("Configured with " + activeRecipeDescriptors.size() + " active recipes and " + getActiveRecipes().size() + " active styles.");
+        getLog().info("Configured with " + activeRecipeDescriptors.size() + " active recipes and " + getActiveStyles().size() + " active styles.");
     }
 
     private void writeRecipeDescriptor(RecipeDescriptor rd, boolean verbose, int currentRecursionLevel, int indentLevel) {

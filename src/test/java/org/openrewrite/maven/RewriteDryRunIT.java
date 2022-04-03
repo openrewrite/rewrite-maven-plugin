@@ -30,6 +30,15 @@ public class RewriteDryRunIT {
     }
 
     @MavenTest
+    void recipe_order(MavenExecutionResult result) {
+        assertThat(result)
+                .isSuccessful()
+                .out()
+                .info()
+                .anySatisfy(line -> assertThat(line).contains("Using active recipe(s) [com.example.RewriteDryRunIT.CodeCleanup, org.openrewrite.java.format.AutoFormat, org.openrewrite.java.cleanup.FinalizeLocalVariables]"));
+    }
+
+    @MavenTest
     void single_project(MavenExecutionResult result) {
         assertThat(result)
                 .isSuccessful()

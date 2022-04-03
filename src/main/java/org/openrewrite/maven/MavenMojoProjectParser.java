@@ -1,6 +1,5 @@
 package org.openrewrite.maven;
 
-import org.apache.maven.Maven;
 import org.apache.maven.artifact.DependencyResolutionRequiredException;
 import org.apache.maven.execution.MavenExecutionRequest;
 import org.apache.maven.execution.MavenSession;
@@ -22,14 +21,12 @@ import org.openrewrite.java.JavaParser;
 import org.openrewrite.java.marker.JavaProject;
 import org.openrewrite.java.marker.JavaVersion;
 import org.openrewrite.java.style.Autodetect;
-import org.openrewrite.java.style.ImportLayoutStyle;
-import org.openrewrite.java.style.SpacesStyle;
-import org.openrewrite.java.style.TabsAndIndentsStyle;
 import org.openrewrite.java.tree.J;
 import org.openrewrite.marker.BuildTool;
 import org.openrewrite.marker.Generated;
 import org.openrewrite.marker.GitProvenance;
 import org.openrewrite.marker.Marker;
+import org.openrewrite.marker.ci.BuildEnvironment;
 import org.openrewrite.maven.cache.CompositeMavenPomCache;
 import org.openrewrite.maven.cache.InMemoryMavenPomCache;
 import org.openrewrite.maven.cache.MavenPomCache;
@@ -114,7 +111,10 @@ public class MavenMojoProjectParser {
             targetCompatibility = propertiesTargetCompatibility;
         }
 
-        projectProvenance = Stream.of(gitProvenance(baseDir),
+        BuildEnvironment buildEnvironment = BuildEnvironment.build(System::getenv);
+        projectProvenance = Stream.of(
+                        buildEnvironment,
+                        gitProvenance(baseDir, buildEnvironment),
                         new BuildTool(randomId(), BuildTool.Type.Maven, runtime.getMavenVersion()),
                         new JavaVersion(randomId(), javaRuntimeVersion, javaVendor, sourceCompatibility, targetCompatibility),
                         new JavaProject(randomId(), mavenProject.getName(), new JavaProject.Publication(
@@ -127,9 +127,9 @@ public class MavenMojoProjectParser {
     }
 
     @Nullable
-    private GitProvenance gitProvenance(Path baseDir) {
+    private GitProvenance gitProvenance(Path baseDir, BuildEnvironment buildEnvironment) {
         try {
-            return GitProvenance.fromProjectDirectory(baseDir);
+            return GitProvenance.fromProjectDirectory(baseDir, buildEnvironment);
         } catch (Exception e) {
             // Logging at a low level as this is unlikely to happen except in non-git projects, where it is expected
             logger.debug("Unable to determine git provenance", e);
@@ -366,12 +366,6 @@ public class MavenMojoProjectParser {
             return sourceFiles;
         }
         Autodetect autodetect = Autodetect.detect(sourceFiles);
-
-        Collection<NamedStyles> namedStyles = Collections.singletonList(autodetect);
-
-        ImportLayoutStyle importLayout = NamedStyles.merge(ImportLayoutStyle.class, namedStyles);
-        SpacesStyle spacesStyle = NamedStyles.merge(SpacesStyle.class, namedStyles);
-        TabsAndIndentsStyle tabsStyle = NamedStyles.merge(TabsAndIndentsStyle.class, namedStyles);
 
         return map(sourceFiles, cu -> {
             List<Marker> markers = ListUtils.concat(map(cu.getMarkers().getMarkers(), m -> m instanceof NamedStyles ? null : m), autodetect);
