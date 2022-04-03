@@ -108,7 +108,7 @@ public class MeterRegistryProvider implements AutoCloseable {
         if (metricsClient != null) {
             try {
                 // Don't bother blocking long here. If the build ends before the dying push can happen, so be it.
-                metricsClient.pushAndClose().block(Duration.ofSeconds(3));
+                metricsClient.pushAndClose();
             } catch (Throwable ignore) {
                 // sometimes fails when connection already closed, e.g. due to flaky internet connection
             }

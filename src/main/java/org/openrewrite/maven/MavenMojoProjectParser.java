@@ -127,7 +127,7 @@ public class MavenMojoProjectParser {
     }
 
     @Nullable
-    private GitProvenance gitProvenance(Path baseDir, BuildEnvironment buildEnvironment) {
+    private GitProvenance gitProvenance(Path baseDir, @Nullable BuildEnvironment buildEnvironment) {
         try {
             return GitProvenance.fromProjectDirectory(baseDir, buildEnvironment);
         } catch (Exception e) {
