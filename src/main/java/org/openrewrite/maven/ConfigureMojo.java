@@ -20,6 +20,11 @@ import java.util.List;
 import java.util.Set;
 import java.util.stream.Collectors;
 
+/**
+ * Configure rewrite-maven-plugin (or any other plugin) in the project.<br>
+ * For example:<br>
+ * {@code ./mvnw rewrite:configure -DactiveRecipes=org.openrewrite.java.spring.boot2.SpringBoot1To2Migration -Ddependencies=org.openrewrite.recipe:rewrite-spring:4.17.0}
+ */
 @Mojo(name = "configure", threadSafe = true)
 @Execute
 @SuppressWarnings("unused")
@@ -76,7 +81,7 @@ public class ConfigureMojo extends AbstractRewriteMojo {
         } catch (IOException e) {
             throw new RuntimeException(e);
         }
-        getLog().info("Added " + artifactId + " to " + project.getFile().getPath());
+        getLog().info("Changed " + artifactId + " in " + project.getFile().getPath());
     }
 
     @Nullable

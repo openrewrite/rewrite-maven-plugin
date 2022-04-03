@@ -21,7 +21,7 @@ public class ConfigureMojoIT {
                 .isSuccessful()
                 .out()
                 .info()
-                .anySatisfy(line -> assertThat(line).contains("Added rewrite-maven-plugin to"));
+                .anySatisfy(line -> assertThat(line).contains("Changed rewrite-maven-plugin in"));
     }
 
 }

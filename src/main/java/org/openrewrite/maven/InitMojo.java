@@ -16,6 +16,11 @@ import java.nio.file.Path;
 import java.util.*;
 import java.util.stream.Collectors;
 
+/**
+ * Add rewrite-maven-plugin (or any other plugin) to the project.<br>
+ * For example:<br>
+ * {@code ./mvnw rewrite:init -DactiveRecipes=org.openrewrite.java.spring.boot2.SpringBoot1To2Migration -Ddependencies=org.openrewrite.recipe:rewrite-spring:4.17.0}
+ */
 @Mojo(name = "init", threadSafe = true)
 @Execute
 @SuppressWarnings("unused")

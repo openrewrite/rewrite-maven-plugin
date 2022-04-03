@@ -17,6 +17,11 @@ import java.nio.file.Path;
 import java.util.Collections;
 import java.util.List;
 
+/**
+ * Remove rewrite-maven-plugin (or any other plugin) from the project.<br>
+ * For example:<br>
+ * {@code ./mvnw rewrite:remove}
+ */
 @Mojo(name = "remove", threadSafe = true)
 @Execute
 @SuppressWarnings("unused")
