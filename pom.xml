@@ -40,7 +40,7 @@
     </scm>
 
     <properties>
-        <rewrite.version>7.21.3</rewrite.version>
+        <rewrite.version>7.22.0-SNAPSHOT</rewrite.version>
 
         <!-- using 'ssh' url scheme by default, which assumes a human is performing git operations leveraging an ssh key -->
         <developerConnectionUrl>scm:git:ssh://git@github.com/openrewrite/rewrite-maven-plugin.git</developerConnectionUrl>
@@ -48,6 +48,7 @@
         <java.version>1.8</java.version>
 
         <!-- dependencies and plugins -->
+        <rocksdbjni.version>7.0.4</rocksdbjni.version>
         <itf-maven.version>0.11.0</itf-maven.version>
         <junit-jupiter.version>5.8.2</junit-jupiter.version>
         <maven-dependencies.version>3.8.5</maven-dependencies.version>
@@ -135,7 +136,7 @@
         <dependency>
             <groupId>org.rocksdb</groupId>
             <artifactId>rocksdbjni</artifactId>
-            <version>7.0.4</version>
+            <version>${rocksdbjni.version}</version>
         </dependency>
         <dependency>
             <groupId>org.eclipse.aether</groupId>
