@@ -30,101 +30,12 @@ import java.nio.file.Path;
 
 /**
  * Run the configured recipes and apply the changes locally.
+ *
+ * This variant of rewrite:run will fork the maven life cycle and can be run as a "stand-alone" goal. It will
+ * execute the maven build up to the process-test-classes phase.
  */
-@Mojo(name = "run", requiresDependencyResolution = ResolutionScope.TEST, threadSafe = true)
-@SuppressWarnings("unused")
-public class RewriteRunMojo extends AbstractRewriteMojo {
-    @Override
-    public void execute() throws MojoExecutionException {
-        MavenOptsHelper.checkAndLogMissingJvmModuleExports(getLog());
-        ResultsContainer results = listResults();
-
-        if (results.isNotEmpty()) {
-            for (Result result : results.generated) {
-                assert result.getAfter() != null;
-                getLog().warn("Generated new file " +
-                        result.getAfter().getSourcePath().normalize() +
-                        " by:");
-                logRecipesThatMadeChanges(result);
-            }
-            for (Result result : results.deleted) {
-                assert result.getBefore() != null;
-                getLog().warn("Deleted file " +
-                        result.getBefore().getSourcePath().normalize() +
-                        " by:");
-                logRecipesThatMadeChanges(result);
-            }
-            for (Result result : results.moved) {
-                assert result.getAfter() != null;
-                assert result.getBefore() != null;
-                getLog().warn("File has been moved from " +
-                        result.getBefore().getSourcePath().normalize() + " to " +
-                        result.getAfter().getSourcePath().normalize() + " by:");
-                logRecipesThatMadeChanges(result);
-            }
-            for (Result result : results.refactoredInPlace) {
-                assert result.getBefore() != null;
-                getLog().warn("Changes have been made to " +
-                        result.getBefore().getSourcePath().normalize() +
-                        " by:");
-                logRecipesThatMadeChanges(result);
-            }
-
-            getLog().warn("Please review and commit the results.");
-
-            try {
-                for (Result result : results.generated) {
-                    assert result.getAfter() != null;
-                    try (BufferedWriter sourceFileWriter = Files.newBufferedWriter(
-                            results.getProjectRoot().resolve(result.getAfter().getSourcePath()))) {
-                        sourceFileWriter.write(result.getAfter().printAll());
-                    }
-                }
-                for (Result result : results.deleted) {
-                    assert result.getBefore() != null;
-                    Path originalLocation = results.getProjectRoot().resolve(result.getBefore().getSourcePath()).normalize();
-                    boolean deleteSucceeded = originalLocation.toFile().delete();
-                    if (!deleteSucceeded) {
-                        throw new IOException("Unable to delete file " + originalLocation.toAbsolutePath());
-                    }
-                }
-                for (Result result : results.moved) {
-                    // Should we try to use git to move the file first, and only if that fails fall back to this?
-                    assert result.getBefore() != null;
-                    Path originalLocation = results.getProjectRoot().resolve(result.getBefore().getSourcePath());
-                    File originalParentDir = originalLocation.toFile().getParentFile();
-                    boolean deleteSucceeded = originalLocation.toFile().delete();
-                    if (!deleteSucceeded) {
-                        throw new IOException("Unable to delete file " + originalLocation.toAbsolutePath());
-                    }
-                    assert result.getAfter() != null;
-                    // Ensure directories exist in case something was moved into a hitherto non-existent package
-                    Path afterLocation = results.getProjectRoot().resolve(result.getAfter().getSourcePath());
-                    File afterParentDir = afterLocation.toFile().getParentFile();
-                    // Rename the directory if its name case has been changed, e.g. camel case to lower case.
-                    if (afterParentDir.exists() && afterParentDir.getAbsolutePath().equalsIgnoreCase((originalParentDir.getAbsolutePath()))
-                        && !afterParentDir.getAbsolutePath().equals(originalParentDir.getAbsolutePath())) {
-                        if (!originalParentDir.renameTo(afterParentDir)) {
-                            throw new RuntimeException("Unable to rename directory from " + originalParentDir.getAbsolutePath() + " To: " + afterParentDir.getAbsolutePath());
-                        }
-                    } else if (!afterParentDir.exists() && !afterParentDir.mkdirs()) {
-                        throw new RuntimeException("Unable to create directory " + afterParentDir.getAbsolutePath());
-                    }
-                    try (BufferedWriter sourceFileWriter = Files.newBufferedWriter(afterLocation)) {
-                        sourceFileWriter.write(result.getAfter().printAll());
-                    }
-                }
-                for (Result result : results.refactoredInPlace) {
-                    assert result.getBefore() != null;
-                    try (BufferedWriter sourceFileWriter = Files.newBufferedWriter(
-                            results.getProjectRoot().resolve(result.getBefore().getSourcePath()))) {
-                        assert result.getAfter() != null;
-                        sourceFileWriter.write(result.getAfter().printAll());
-                    }
-                }
-            } catch (IOException e) {
-                throw new RuntimeException("Unable to rewrite source files", e);
-            }
-        }
-    }
+@Mojo(name = "run", requiresDependencyResolution = ResolutionScope.TEST, threadSafe = true,
+        defaultPhase = LifecyclePhase.COMPILE)
+@Execute(phase = LifecyclePhase.COMPILE)
+public class RewriteRunMojo extends AbstractRewriteRunMojo {
 }

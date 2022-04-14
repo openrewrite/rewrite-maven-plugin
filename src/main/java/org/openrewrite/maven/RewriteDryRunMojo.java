@@ -28,87 +28,12 @@ import java.util.stream.Stream;
 
 /**
  * Generate warnings to the console for any recipe that would make changes, but do not make changes.
+ *
+ * This variant of rewrite:dryRun will fork the maven life cycle and can be run as a "stand-alone" goal. It will
+ * execute the maven build up to the process-test-classes phase.
  */
 @Mojo(name = "dryRun", requiresDependencyResolution = ResolutionScope.TEST, threadSafe = true,
         defaultPhase = LifecyclePhase.PROCESS_TEST_CLASSES)
-public class RewriteDryRunMojo extends AbstractRewriteMojo {
-
-    @SuppressWarnings("NotNullFieldNotInitialized")
-    @Parameter(property = "reportOutputDirectory", defaultValue = "${project.reporting.outputDirectory}/rewrite")
-    private File reportOutputDirectory;
-
-    /**
-     * Whether to throw an exception if there are any result changes produced.
-     */
-    @Parameter(property = "failOnDryRunResults", defaultValue = "false")
-    private boolean failOnDryRunResults;
-
-    @Override
-    public void execute() throws MojoExecutionException {
-        MavenOptsHelper.checkAndLogMissingJvmModuleExports(getLog());
-        ResultsContainer results = listResults();
-
-        if (results.isNotEmpty()) {
-            for (Result result : results.generated) {
-                assert result.getAfter() != null;
-                getLog().warn("These recipes would generate new file " +
-                        result.getAfter().getSourcePath() +
-                        ":");
-                logRecipesThatMadeChanges(result);
-            }
-            for (Result result : results.deleted) {
-                assert result.getBefore() != null;
-                getLog().warn("These recipes would delete file " +
-                        result.getBefore().getSourcePath() +
-                        ":");
-                logRecipesThatMadeChanges(result);
-            }
-            for (Result result : results.moved) {
-                assert result.getBefore() != null;
-                assert result.getAfter() != null;
-                getLog().warn("These recipes would move file from " +
-                        result.getBefore().getSourcePath() + " to " +
-                        result.getAfter().getSourcePath() + ":");
-                logRecipesThatMadeChanges(result);
-            }
-            for (Result result : results.refactoredInPlace) {
-                assert result.getBefore() != null;
-                getLog().warn("These recipes would make changes to " +
-                        result.getBefore().getSourcePath() +
-                        ":");
-                logRecipesThatMadeChanges(result);
-            }
-
-            //noinspection ResultOfMethodCallIgnored
-            reportOutputDirectory.mkdirs();
-
-            Path patchFile = reportOutputDirectory.toPath().resolve("rewrite.patch");
-            try (BufferedWriter writer = Files.newBufferedWriter(patchFile)) {
-                Stream.concat(
-                                Stream.concat(results.generated.stream(), results.deleted.stream()),
-                                Stream.concat(results.moved.stream(), results.refactoredInPlace.stream())
-                        )
-                        .map(Result::diff)
-                        .forEach(diff -> {
-                            try {
-                                writer.write(diff + "\n");
-                            } catch (IOException e) {
-                                throw new RuntimeException(e);
-                            }
-                        });
-
-            } catch (Exception e) {
-                throw new MojoExecutionException("Unable to generate rewrite result.", e);
-            }
-            getLog().warn("Patch file available:");
-            getLog().warn("    " + patchFile.normalize());
-            getLog().warn("Run 'mvn rewrite:run' to apply the recipes.");
-
-            if (failOnDryRunResults) {
-                throw new MojoExecutionException("Applying recipes would make changes. See logs for more details.");
-            }
-        } else {
-            getLog().info("Applying recipes would make no changes. No patch file generated.");
-        }
-    }
+@Execute(phase = LifecyclePhase.PROCESS_TEST_CLASSES)
+public class RewriteDryRunMojo extends AbstractRewriteDryRunMojo {
 }
