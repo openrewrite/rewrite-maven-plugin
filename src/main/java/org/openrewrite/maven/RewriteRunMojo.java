@@ -32,7 +32,6 @@ import java.nio.file.Path;
  * Run the configured recipes and apply the changes locally.
  */
 @Mojo(name = "run", requiresDependencyResolution = ResolutionScope.TEST, threadSafe = true)
-@Execute(phase = LifecyclePhase.PROCESS_TEST_CLASSES)
 @SuppressWarnings("unused")
 public class RewriteRunMojo extends AbstractRewriteMojo {
     @Override

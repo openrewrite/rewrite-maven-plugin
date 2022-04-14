@@ -31,8 +31,6 @@ import java.util.stream.Stream;
  */
 @Mojo(name = "dryRun", requiresDependencyResolution = ResolutionScope.TEST, threadSafe = true,
         defaultPhase = LifecyclePhase.PROCESS_TEST_CLASSES)
-@Execute(phase = LifecyclePhase.PROCESS_TEST_CLASSES)
-@SuppressWarnings("unused")
 public class RewriteDryRunMojo extends AbstractRewriteMojo {
 
     @SuppressWarnings("NotNullFieldNotInitialized")
