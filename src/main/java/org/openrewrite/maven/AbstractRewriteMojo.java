@@ -37,6 +37,7 @@ import java.util.*;
 
 import static java.util.Collections.emptyList;
 import static java.util.Collections.emptyMap;
+import static java.util.stream.Collectors.joining;
 import static java.util.stream.Collectors.toList;
 
 public abstract class AbstractRewriteMojo extends ConfigurableRewriteMojo {
@@ -254,8 +255,31 @@ public abstract class AbstractRewriteMojo extends ConfigurableRewriteMojo {
     }
 
     protected void logRecipesThatMadeChanges(Result result) {
-        for (Recipe recipe : result.getRecipesThatMadeChanges()) {
-            getLog().warn("    " + recipe.getName());
+        String indent = "    ";
+        String prefix = "    ";
+        for (RecipeDescriptor recipeDescriptor : result.getRecipeDescriptorsThatMadeChanges()) {
+            logRecipe(recipeDescriptor, prefix);
+            prefix = prefix + indent;
+        }
+    }
+
+    private void logRecipe(RecipeDescriptor rd, String prefix) {
+        StringBuilder recipeString = new StringBuilder(prefix + rd.getName());
+        if (!rd.getOptions().isEmpty()) {
+            String opts = rd.getOptions().stream().map(option -> {
+                        if (option.getValue() != null) {
+                            return option.getName() + "=" + option.getValue();
+                        }
+                        return null;
+                    }
+            ).filter(Objects::nonNull).collect(joining(", "));
+            if (!opts.isEmpty()) {
+                recipeString.append(": {").append(opts).append("}");
+            }
+        }
+        getLog().warn(recipeString.toString());
+        for (RecipeDescriptor rchild : rd.getRecipeList()) {
+            logRecipe(rchild, prefix + "    ");
         }
     }
 
