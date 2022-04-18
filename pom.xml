@@ -48,7 +48,7 @@
         <java.version>1.8</java.version>
 
         <!-- dependencies and plugins -->
-        <rocksdbjni.version>7.0.4</rocksdbjni.version>
+        <rocksdbjni.version>7.1.1</rocksdbjni.version>
         <itf-maven.version>0.11.0</itf-maven.version>
         <junit-jupiter.version>5.8.2</junit-jupiter.version>
         <maven-dependencies.version>3.8.5</maven-dependencies.version>
