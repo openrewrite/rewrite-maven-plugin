@@ -1,6 +1,5 @@
 package org.openrewrite.maven;
 
-import org.apache.maven.Maven;
 import org.apache.maven.plugin.MojoExecutionException;
 import org.apache.maven.plugin.MojoFailureException;
 import org.apache.maven.plugins.annotations.Execute;
@@ -12,6 +11,7 @@ import org.openrewrite.xml.tree.Xml;
 
 import java.io.BufferedWriter;
 import java.io.IOException;
+import java.nio.charset.Charset;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.util.Collections;
@@ -51,7 +51,8 @@ public class RemoveMojo extends AbstractRewriteMojo {
         assert result.getAfter() != null;
         try (BufferedWriter sourceFileWriter = Files.newBufferedWriter(
                 baseDir.resolve(result.getBefore().getSourcePath()))) {
-            sourceFileWriter.write(result.getAfter().printAll());
+            Charset charset = result.getAfter().getCharset();
+            sourceFileWriter.write(new String(result.getAfter().printAll().getBytes(charset), charset));
         } catch (IOException e) {
             throw new RuntimeException(e);
         }

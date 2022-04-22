@@ -12,7 +12,6 @@ import org.openrewrite.maven.utilities.PrintMavenAsCycloneDxBom;
 import org.openrewrite.xml.tree.Xml;
 
 import java.io.File;
-import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
 import java.nio.file.Path;
 
@@ -51,7 +50,7 @@ public class CycloneDxBomMojo extends AbstractRewriteMojo {
             cycloneDxBom.getParentFile().mkdirs();
 
             Files.write(cycloneDxBom.toPath(), PrintMavenAsCycloneDxBom.print(pomAst)
-                    .getBytes(StandardCharsets.UTF_8));
+                    .getBytes(pomAst.getCharset()));
 
             return cycloneDxBom;
         } catch (Throwable t) {

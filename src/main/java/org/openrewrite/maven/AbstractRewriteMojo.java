@@ -21,7 +21,6 @@ import org.openrewrite.config.RecipeDescriptor;
 import org.openrewrite.config.YamlResourceLoader;
 import org.openrewrite.java.style.CheckstyleConfigLoader;
 import org.openrewrite.marker.Generated;
-import org.openrewrite.maven.internal.MavenParsingException;
 import org.openrewrite.style.NamedStyles;
 
 import java.io.File;

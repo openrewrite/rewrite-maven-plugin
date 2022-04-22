@@ -16,13 +16,12 @@
 package org.openrewrite.maven;
 
 import org.apache.maven.plugin.MojoExecutionException;
-import org.apache.maven.plugins.annotations.Mojo;
-import org.apache.maven.plugins.annotations.ResolutionScope;
 import org.openrewrite.Result;
 
 import java.io.BufferedWriter;
 import java.io.File;
 import java.io.IOException;
+import java.nio.charset.Charset;
 import java.nio.file.Files;
 import java.nio.file.Path;
 
@@ -75,7 +74,8 @@ public class AbstractRewriteRunMojo extends AbstractRewriteMojo {
                     assert result.getAfter() != null;
                     try (BufferedWriter sourceFileWriter = Files.newBufferedWriter(
                             results.getProjectRoot().resolve(result.getAfter().getSourcePath()))) {
-                        sourceFileWriter.write(result.getAfter().printAll());
+                        Charset charset = result.getAfter().getCharset();
+                        sourceFileWriter.write(new String(result.getAfter().printAll().getBytes(charset), charset));
                     }
                 }
                 for (Result result : results.deleted) {
@@ -109,7 +109,8 @@ public class AbstractRewriteRunMojo extends AbstractRewriteMojo {
                         throw new RuntimeException("Unable to create directory " + afterParentDir.getAbsolutePath());
                     }
                     try (BufferedWriter sourceFileWriter = Files.newBufferedWriter(afterLocation)) {
-                        sourceFileWriter.write(result.getAfter().printAll());
+                        Charset charset = result.getAfter().getCharset();
+                        sourceFileWriter.write(new String(result.getAfter().printAll().getBytes(charset), charset));
                     }
                 }
                 for (Result result : results.refactoredInPlace) {
@@ -117,7 +118,8 @@ public class AbstractRewriteRunMojo extends AbstractRewriteMojo {
                     try (BufferedWriter sourceFileWriter = Files.newBufferedWriter(
                             results.getProjectRoot().resolve(result.getBefore().getSourcePath()))) {
                         assert result.getAfter() != null;
-                        sourceFileWriter.write(result.getAfter().printAll());
+                        Charset charset = result.getAfter().getCharset();
+                        sourceFileWriter.write(new String(result.getAfter().printAll().getBytes(charset), charset));
                     }
                 }
             } catch (IOException e) {
