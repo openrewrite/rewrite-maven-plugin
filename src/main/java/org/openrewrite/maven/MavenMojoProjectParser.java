@@ -31,7 +31,7 @@ import org.openrewrite.maven.cache.CompositeMavenPomCache;
 import org.openrewrite.maven.cache.InMemoryMavenPomCache;
 import org.openrewrite.maven.cache.MavenPomCache;
 import org.openrewrite.maven.cache.RocksdbMavenPomCache;
-import org.openrewrite.maven.internal.RawRepositories;
+import org.openrewrite.maven.internal.RawRepository;
 import org.openrewrite.maven.tree.ProfileActivation;
 import org.openrewrite.style.NamedStyles;
 import org.openrewrite.xml.tree.Xml;
@@ -228,38 +228,35 @@ public class MavenMojoProjectParser {
     private MavenSettings buildSettings() {
         MavenExecutionRequest mer = mavenSession.getRequest();
 
-        MavenSettings.Profiles profiles = new MavenSettings.Profiles();
-        profiles.setProfiles(
-                mer.getProfiles().stream().map(p -> new MavenSettings.Profile(
-                                p.getId(),
-                                p.getActivation() == null ? null : new ProfileActivation(
-                                        p.getActivation().isActiveByDefault(),
-                                        p.getActivation().getJdk(),
-                                        p.getActivation().getProperty() == null ? null : new ProfileActivation.Property(
-                                                p.getActivation().getProperty().getName(),
-                                                p.getActivation().getProperty().getValue()
-                                        )
-                                ),
-                                buildRawRepositories(p.getRepositories())
-                        )
-                ).collect(toList()));
+        List<MavenSettings.Profile> profiles =
+                mer.getProfiles().stream().map(p -> {
+                    MavenSettings.Profile profile = new MavenSettings.Profile(
+                            p.getId(),
+                            p.getActivation() == null ? null : new ProfileActivation(
+                                    p.getActivation().isActiveByDefault(),
+                                    p.getActivation().getJdk(),
+                                    p.getActivation().getProperty() == null ? null : new ProfileActivation.Property(
+                                            p.getActivation().getProperty().getName(),
+                                            p.getActivation().getProperty().getValue()
+                                    )
+                                    )
+                    );
+                    profile.setRepositories(buildRawRepositories(p.getRepositories()));
+                    return profile;
+                })
+                .collect(toList());
 
-        MavenSettings.ActiveProfiles activeProfiles = new MavenSettings.ActiveProfiles();
-        activeProfiles.setActiveProfiles(mer.getActiveProfiles());
-
-        MavenSettings.Mirrors mirrors = new MavenSettings.Mirrors();
-        mirrors.setMirrors(
+        List<MavenSettings.Mirror> mirrors =
                 mer.getMirrors().stream().map(m -> new MavenSettings.Mirror(
                         m.getId(),
                         m.getUrl(),
                         m.getMirrorOf(),
                         null,
                         null
-                )).collect(toList())
-        );
+                )).collect(toList());
 
-        MavenSettings.Servers servers = new MavenSettings.Servers();
-        servers.setServers(mer.getServers().stream().map(s -> {
+        List<MavenSettings.Server> servers =
+            mer.getServers().stream().map(s -> {
             SettingsDecryptionRequest decryptionRequest = new DefaultSettingsDecryptionRequest(s);
             SettingsDecryptionResult decryptionResult = settingsDecrypter.decrypt(decryptionRequest);
             return new MavenSettings.Server(
@@ -267,26 +264,28 @@ public class MavenMojoProjectParser {
                     s.getUsername(),
                     decryptionResult.getServer().getPassword()
             );
-        }).collect(toList()));
+        }).collect(toList());
 
-        return new MavenSettings(profiles, activeProfiles, mirrors, servers);
+        MavenSettings settings = new MavenSettings();
+        settings.setProfiles(profiles);
+        settings.setMirrors(mirrors);
+        settings.setActiveProfiles(mer.getActiveProfiles());
+        settings.setServers(servers);
+        return settings;
     }
 
     @Nullable
-    private static RawRepositories buildRawRepositories(@Nullable List<Repository> repositoriesToMap) {
+    private static List<RawRepository> buildRawRepositories(@Nullable List<Repository> repositoriesToMap) {
         if (repositoriesToMap == null) {
             return null;
         }
 
-        RawRepositories rawRepositories = new RawRepositories();
-        List<RawRepositories.Repository> transformedRepositories = repositoriesToMap.stream().map(r -> new RawRepositories.Repository(
+        return repositoriesToMap.stream().map(r -> new RawRepository(
                 r.getId(),
                 r.getUrl(),
-                r.getReleases() == null ? null : new RawRepositories.ArtifactPolicy(r.getReleases().isEnabled()),
-                r.getSnapshots() == null ? null : new RawRepositories.ArtifactPolicy(r.getSnapshots().isEnabled())
+                r.getReleases() == null ? null : new RawRepository.ArtifactPolicy(r.getReleases().isEnabled()),
+                r.getSnapshots() == null ? null : new RawRepository.ArtifactPolicy(r.getSnapshots().isEnabled())
         )).collect(toList());
-        rawRepositories.setRepositories(transformedRepositories);
-        return rawRepositories;
     }
 
     public List<SourceFile> listSourceFiles(Iterable<NamedStyles> styles,
