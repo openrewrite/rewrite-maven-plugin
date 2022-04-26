@@ -145,22 +145,8 @@ public class MavenMojoProjectParser {
             return null;
         }
 
-        List<Path> allPoms = new ArrayList<>();
-        allPoms.add(mavenProject.getFile().toPath());
-
-        // children
-        if (mavenProject.getCollectedProjects() != null) {
-            mavenProject.getCollectedProjects().stream()
-                    .filter(collectedProject -> collectedProject != mavenProject)
-                    .map(collectedProject -> collectedProject.getFile().toPath())
-                    .forEach(allPoms::add);
-        }
-
-        MavenProject parent = mavenProject.getParent();
-        while (parent != null && parent.getFile() != null) {
-            allPoms.add(parent.getFile().toPath());
-            parent = parent.getParent();
-        }
+        Set<Path> allPoms = collectPoms(mavenProject, new HashSet<>());
+        mavenSession.getProjectDependencyGraph().getUpstreamProjects(mavenProject, true).forEach(p -> collectPoms(p, allPoms));
         MavenParser.Builder mavenParserBuilder = MavenParser.builder().mavenConfig(baseDir.resolve(".mvn/maven.config"));
 
         MavenSettings settings = buildSettings();
@@ -188,6 +174,37 @@ public class MavenMojoProjectParser {
         }
 
         return maven;
+    }
+
+    /**
+     * Recursively navigate the maven project to collect any poms that are local (on disk)
+     *
+     * @param project A maven project to examine for any children/parent poms.
+     * @param paths A list of paths to poms that have been collected so far.
+     * @return All poms associated with the current pom.
+     */
+    private Set<Path> collectPoms(MavenProject project, Set<Path> paths) {
+        paths.add(project.getFile().toPath());
+
+        // children
+        if (project.getCollectedProjects() != null) {
+            for (MavenProject child : project.getCollectedProjects()) {
+                Path path = child.getFile().toPath();
+                if (!paths.contains(path)) {
+                    collectPoms(child, paths);
+                }
+            }
+        }
+
+        MavenProject parent = project.getParent();
+        while (parent != null && parent.getFile() != null) {
+            Path path = parent.getFile().toPath();
+            if (!paths.contains(path)) {
+                collectPoms(parent, paths);
+            }
+            parent = parent.getParent();
+        }
+        return paths;
     }
 
     private static MavenPomCache getPomCache(@Nullable String pomCacheDirectory, Log logger) {
