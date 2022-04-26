@@ -229,23 +229,19 @@ public class MavenMojoProjectParser {
         MavenExecutionRequest mer = mavenSession.getRequest();
 
         List<MavenSettings.Profile> profiles =
-                mer.getProfiles().stream().map(p -> {
-                    MavenSettings.Profile profile = new MavenSettings.Profile(
-                            p.getId(),
-                            p.getActivation() == null ? null : new ProfileActivation(
-                                    p.getActivation().isActiveByDefault(),
-                                    p.getActivation().getJdk(),
-                                    p.getActivation().getProperty() == null ? null : new ProfileActivation.Property(
-                                            p.getActivation().getProperty().getName(),
-                                            p.getActivation().getProperty().getValue()
-                                    )
-                                    )
-                    );
-                    profile.setRepositories(buildRawRepositories(p.getRepositories()));
-                    return profile;
-                })
-                .collect(toList());
-
+                mer.getProfiles().stream().map(p -> new MavenSettings.Profile(
+                        p.getId(),
+                        p.getActivation() == null ? null : new ProfileActivation(
+                                p.getActivation().isActiveByDefault(),
+                                p.getActivation().getJdk(),
+                                p.getActivation().getProperty() == null ? null : new ProfileActivation.Property(
+                                        p.getActivation().getProperty().getName(),
+                                        p.getActivation().getProperty().getValue()
+                                )
+                        ),
+                        buildRawRepositories(p.getRepositories())
+                    )
+            ).collect(toList());
         List<MavenSettings.Mirror> mirrors =
                 mer.getMirrors().stream().map(m -> new MavenSettings.Mirror(
                         m.getId(),
@@ -266,12 +262,7 @@ public class MavenMojoProjectParser {
             );
         }).collect(toList());
 
-        MavenSettings settings = new MavenSettings();
-        settings.setProfiles(profiles);
-        settings.setMirrors(mirrors);
-        settings.setActiveProfiles(mer.getActiveProfiles());
-        settings.setServers(servers);
-        return settings;
+        return new MavenSettings(profiles, mer.getActiveProfiles(), mirrors, servers);
     }
 
     @Nullable
