@@ -9,6 +9,7 @@ import org.openrewrite.hcl.HclParser;
 import org.openrewrite.json.JsonParser;
 import org.openrewrite.properties.PropertiesParser;
 import org.openrewrite.protobuf.ProtoParser;
+import org.openrewrite.text.PlainTextParser;
 import org.openrewrite.xml.XmlParser;
 import org.openrewrite.yaml.YamlParser;
 
@@ -49,6 +50,7 @@ public class ResourceParser {
         sourceFiles.addAll(parseSourceFiles(baseDir, new PropertiesParser(), searchDir, alreadyParsed, ctx));
         sourceFiles.addAll(parseSourceFiles(baseDir, new ProtoParser(), searchDir, alreadyParsed, ctx));
         sourceFiles.addAll(parseSourceFiles(baseDir, HclParser.builder().build(), searchDir, alreadyParsed, ctx));
+        sourceFiles.addAll(parseSourceFiles(baseDir,new PlainTextParser(),searchDir, alreadyParsed, ctx));
 
         return sourceFiles;
     }
