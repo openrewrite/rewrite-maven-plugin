@@ -1,7 +1,6 @@
 package org.openrewrite.maven;
 
 import org.apache.maven.plugin.logging.Log;
-import org.checkerframework.checker.units.qual.A;
 import org.openrewrite.ExecutionContext;
 import org.openrewrite.InMemoryExecutionContext;
 import org.openrewrite.Parser;
