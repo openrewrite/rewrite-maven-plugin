@@ -33,11 +33,13 @@ import org.openrewrite.maven.cache.MavenPomCache;
 import org.openrewrite.maven.cache.RocksdbMavenPomCache;
 import org.openrewrite.maven.internal.RawRepositories;
 import org.openrewrite.maven.tree.ProfileActivation;
+import org.openrewrite.quark.QuarkParser;
 import org.openrewrite.style.NamedStyles;
 import org.openrewrite.xml.tree.Xml;
 
 import java.io.File;
 import java.io.IOException;
+import java.io.UncheckedIOException;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
@@ -344,9 +346,10 @@ public class MavenMojoProjectParser {
 
         ResourceParser rp = new ResourceParser(logger, exclusions, sizeThresholdMb);
 
+        Set<Path> quarks = new HashSet<>();
         // Any resources parsed from "main/resources" should also have the main source set added to them.
         sourceFiles.addAll(ListUtils.map(
-                rp.parse(baseDir, mavenProject.getBasedir().toPath().resolve("src/main/resources"), alreadyParsed),
+                rp.parse(baseDir, mavenProject.getBasedir().toPath().resolve("src/main/resources"), alreadyParsed, quarks),
                 addProvenance(baseDir, ListUtils.concat(projectProvenance, javaParser.getSourceSet(ctx)), null)));
 
         logger.info("Parsing Java test files...");
@@ -366,12 +369,12 @@ public class MavenMojoProjectParser {
 
         // Any resources parsed from "test/resources" should also have the test source set added to them.
         sourceFiles.addAll(ListUtils.map(
-                rp.parse(baseDir, mavenProject.getBasedir().toPath().resolve("src/test/resources"), alreadyParsed),
+                rp.parse(baseDir, mavenProject.getBasedir().toPath().resolve("src/test/resources"), alreadyParsed, quarks),
                 addProvenance(baseDir, ListUtils.concat(projectProvenance, javaParser.getSourceSet(ctx)), null)));
 
         // Parse non-java, non-resource files
         sourceFiles.addAll(ListUtils.map(
-                rp.parse(baseDir, mavenProject.getBasedir().toPath(), alreadyParsed),
+                rp.parse(baseDir, mavenProject.getBasedir().toPath(), alreadyParsed, quarks),
                 addProvenance(baseDir, projectProvenance, null)
         ));
 
