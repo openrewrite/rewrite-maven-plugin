@@ -3,7 +3,6 @@ package org.openrewrite.maven;
 import org.apache.maven.plugin.logging.Log;
 import org.openrewrite.ExecutionContext;
 import org.openrewrite.InMemoryExecutionContext;
-import org.openrewrite.Parser;
 import org.openrewrite.SourceFile;
 import org.openrewrite.hcl.HclParser;
 import org.openrewrite.json.JsonParser;
@@ -44,42 +43,38 @@ public class ResourceParser {
         Consumer<Throwable> errorConsumer = t -> logger.error("Error parsing", t);
         InMemoryExecutionContext ctx = new InMemoryExecutionContext(errorConsumer);
 
-        sourceFiles.addAll(parseSourceFiles(baseDir, new JsonParser(), searchDir, alreadyParsed, ctx));
-        sourceFiles.addAll(parseSourceFiles(baseDir, new XmlParser(), searchDir, alreadyParsed, ctx));
-        sourceFiles.addAll(parseSourceFiles(baseDir, new YamlParser(), searchDir, alreadyParsed, ctx));
-        sourceFiles.addAll(parseSourceFiles(baseDir, new PropertiesParser(), searchDir, alreadyParsed, ctx));
-        sourceFiles.addAll(parseSourceFiles(baseDir, new ProtoParser(), searchDir, alreadyParsed, ctx));
-        sourceFiles.addAll(parseSourceFiles(baseDir, HclParser.builder().build(), searchDir, alreadyParsed, ctx));
-
-        sourceFiles.addAll(parseQuarks(baseDir, searchDir, alreadyParsed, ctx));
+        sourceFiles.addAll(parseSourceFiles(baseDir, searchDir, alreadyParsed, ctx));
         return sourceFiles;
     }
 
+    @SuppressWarnings("unchecked")
     public <S extends SourceFile> List<S> parseSourceFiles(
             Path baseDir,
-            Parser<S> parser,
             Path searchDir,
             Collection<Path> alreadyParsed,
             ExecutionContext ctx) {
+
         try (Stream<Path> resources = Files.find(searchDir, 16, (path, attrs) -> {
-            if (!parser.accept(path)) {
+            // Prevent java files from being parsed as quarks.
+            if (path.toString().endsWith(".java")) {
+                return false;
+            }
+
+            if (alreadyParsed.contains(path)) {
+                return false;
+            }
+
+            if (attrs.isDirectory() || attrs.isSymbolicLink() || attrs.isOther() || attrs.size() == 0) {
                 return false;
             }
 
             for (Path pathSegment : searchDir.relativize(path)) {
                 String pathStr = pathSegment.toString();
                 if ("target".equals(pathStr) || "build".equals(pathStr) || "out".equals(pathStr) ||
-                        ".gradle".equals(pathStr) || "node_modules".equals(pathStr) || ".metadata".equals(pathStr)) {
+                        ".gradle".equals(pathStr) || "node_modules".equals(pathStr) || ".metadata".equals(pathStr) ||
+                        ".DS_Store".equals(pathStr) || ".git".equals(pathStr) || ".idea".equals(pathStr)) {
                     return false;
                 }
-            }
-
-            if (attrs.isDirectory() || attrs.size() == 0) {
-                return false;
-            }
-
-            if (alreadyParsed.contains(path)) {
-                return false;
             }
 
             for (String exclusion : exclusions) {
@@ -94,66 +89,75 @@ public class ResourceParser {
             if ((sizeThresholdMb > 0 && fileSize > sizeThresholdMb * 1024L * 1024L)) {
                 logger.info("Parsing as Quark " + path + " as its size + " + fileSize / (1024L * 1024L) +
                         "Mb exceeds size threshold " + sizeThresholdMb + "Mb");
-                return false;
+                return true;
             }
 
             return true;
         })) {
             List<Path> resourceFiles = resources.collect(Collectors.toList());
-            alreadyParsed.addAll(resourceFiles);
-            return parser.parse(resourceFiles, baseDir, ctx);
-        } catch (IOException e) {
-            logger.error(e.getMessage(), e);
-            throw new UncheckedIOException(e);
-        }
-    }
+            List<S> sourceFiles = new ArrayList<>(resourceFiles.size());
 
-    public <S extends SourceFile> List<S> parseQuarks(
-            Path baseDir,
-            Path searchDir,
-            Collection<Path> alreadyParsed,
-            ExecutionContext ctx) {
-        QuarkParser parser = new QuarkParser();
-        try (Stream<Path> resources = Files.find(searchDir, 16, (path, attrs) -> {
-            if (path.toString().endsWith(".java")) {
-                return false;
-            }
+            JsonParser jsonParser = new JsonParser();
+            List<Path> jsonPaths = new ArrayList<>();
 
-            if (!parser.accept(path)) {
-                return false;
-            }
+            XmlParser xmlParser = new XmlParser();
+            List<Path> xmlPaths = new ArrayList<>();
 
-            for (Path pathSegment : searchDir.relativize(path)) {
-                String pathStr = pathSegment.toString();
-                if ("target".equals(pathStr) || "build".equals(pathStr) || "out".equals(pathStr) ||
-                        ".gradle".equals(pathStr) || "node_modules".equals(pathStr) || ".metadata".equals(pathStr) ||
-                        ".DS_Store".equals(pathStr) || ".git".equals(pathStr) || ".idea".equals(pathStr)) {
-                    return false;
+            YamlParser yamlParser = new YamlParser();
+            List<Path> yamlPaths = new ArrayList<>();
+
+            PropertiesParser propertiesParser = new PropertiesParser();
+            List<Path> propertiesPaths = new ArrayList<>();
+
+            ProtoParser protoParser = new ProtoParser();
+            List<Path> protoPaths = new ArrayList<>();
+
+            HclParser hclParser = HclParser.builder().build();
+            List<Path> hclPaths = new ArrayList<>();
+
+            QuarkParser quarkParser = new QuarkParser();
+            List<Path> quarkPaths = new ArrayList<>();
+
+            resourceFiles.forEach(path -> {
+                if (jsonParser.accept(path)) {
+                    jsonPaths.add(path);
+                } else if (xmlParser.accept(path)) {
+                    xmlPaths.add(path);
+                } else if (yamlParser.accept(path)) {
+                    yamlPaths.add(path);
+                } else if (propertiesParser.accept(path)) {
+                    propertiesPaths.add(path);
+                } else if (protoParser.accept(path)) {
+                    protoPaths.add(path);
+                } else if (hclParser.accept(path)) {
+                    hclPaths.add(path);
+                } else if (quarkParser.accept(path)) {
+                    quarkPaths.add(path);
                 }
-            }
+            });
 
-            if (attrs.isDirectory() || attrs.isSymbolicLink() || attrs.isOther() || attrs.size() == 0) {
-                return false;
-            }
+            sourceFiles.addAll((List<S>) jsonParser.parse(jsonPaths, baseDir, ctx));
+            alreadyParsed.addAll(jsonPaths);
 
-            if (alreadyParsed.contains(path)) {
-                return false;
-            }
+            sourceFiles.addAll((List<S>) xmlParser.parse(xmlPaths, baseDir, ctx));
+            alreadyParsed.addAll(xmlPaths);
 
-            for (String exclusion : exclusions) {
-                PathMatcher matcher = baseDir.getFileSystem().getPathMatcher("glob:" + exclusion);
-                if (matcher.matches(baseDir.relativize(path))) {
-                    alreadyParsed.add(path);
-                    return false;
-                }
-            }
+            sourceFiles.addAll((List<S>) yamlParser.parse(yamlPaths, baseDir, ctx));
+            alreadyParsed.addAll(yamlPaths);
 
-            return true;
-        })) {
-            List<Path> resourceFiles = resources.collect(Collectors.toList());
-            alreadyParsed.addAll(resourceFiles);
-            //noinspection unchecked
-            return (List<S>) parser.parse(resourceFiles, baseDir, ctx);
+            sourceFiles.addAll((List<S>) propertiesParser.parse(propertiesPaths, baseDir, ctx));
+            alreadyParsed.addAll(propertiesPaths);
+
+            sourceFiles.addAll((List<S>) protoParser.parse(protoPaths, baseDir, ctx));
+            alreadyParsed.addAll(protoPaths);
+
+            sourceFiles.addAll((List<S>) hclParser.parse(hclPaths, baseDir, ctx));
+            alreadyParsed.addAll(hclPaths);
+
+            sourceFiles.addAll((List<S>) quarkParser.parse(quarkPaths, baseDir, ctx));
+            alreadyParsed.addAll(quarkPaths);
+
+            return sourceFiles;
         } catch (IOException e) {
             logger.error(e.getMessage(), e);
             throw new UncheckedIOException(e);
