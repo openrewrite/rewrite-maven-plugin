@@ -36,7 +36,7 @@ public class ResourceParser {
         sizeThresholdMb = thresholdMb;
     }
 
-    public List<SourceFile> parse(Path baseDir, Path searchDir, Collection<Path> alreadyParsed, Collection<Path> quarks) {
+    public List<SourceFile> parse(Path baseDir, Path searchDir, Collection<Path> alreadyParsed) {
         List<SourceFile> sourceFiles = new ArrayList<>();
         if (!searchDir.toFile().exists()) {
             return sourceFiles;
@@ -44,15 +44,14 @@ public class ResourceParser {
         Consumer<Throwable> errorConsumer = t -> logger.error("Error parsing", t);
         InMemoryExecutionContext ctx = new InMemoryExecutionContext(errorConsumer);
 
-        sourceFiles.addAll(parseSourceFiles(baseDir, new JsonParser(), searchDir, alreadyParsed, quarks, ctx));
-        sourceFiles.addAll(parseSourceFiles(baseDir, new XmlParser(), searchDir, alreadyParsed, quarks, ctx));
-        sourceFiles.addAll(parseSourceFiles(baseDir, new YamlParser(), searchDir, alreadyParsed, quarks, ctx));
-        sourceFiles.addAll(parseSourceFiles(baseDir, new PropertiesParser(), searchDir, alreadyParsed, quarks, ctx));
-        sourceFiles.addAll(parseSourceFiles(baseDir, new ProtoParser(), searchDir, alreadyParsed, quarks, ctx));
-        sourceFiles.addAll(parseSourceFiles(baseDir, HclParser.builder().build(), searchDir, alreadyParsed, quarks, ctx));
+        sourceFiles.addAll(parseSourceFiles(baseDir, new JsonParser(), searchDir, alreadyParsed, ctx));
+        sourceFiles.addAll(parseSourceFiles(baseDir, new XmlParser(), searchDir, alreadyParsed, ctx));
+        sourceFiles.addAll(parseSourceFiles(baseDir, new YamlParser(), searchDir, alreadyParsed, ctx));
+        sourceFiles.addAll(parseSourceFiles(baseDir, new PropertiesParser(), searchDir, alreadyParsed, ctx));
+        sourceFiles.addAll(parseSourceFiles(baseDir, new ProtoParser(), searchDir, alreadyParsed, ctx));
+        sourceFiles.addAll(parseSourceFiles(baseDir, HclParser.builder().build(), searchDir, alreadyParsed, ctx));
 
-        sourceFiles.addAll(parseQuarks(baseDir, searchDir, alreadyParsed, quarks, ctx));
-
+        sourceFiles.addAll(parseQuarks(baseDir, searchDir, alreadyParsed, ctx));
         return sourceFiles;
     }
 
@@ -61,7 +60,6 @@ public class ResourceParser {
             Parser<S> parser,
             Path searchDir,
             Collection<Path> alreadyParsed,
-            Collection<Path> quarks,
             ExecutionContext ctx) {
         try (Stream<Path> resources = Files.find(searchDir, 16, (path, attrs) -> {
             if (!parser.accept(path)) {
@@ -94,9 +92,7 @@ public class ResourceParser {
 
             long fileSize = attrs.size();
             if ((sizeThresholdMb > 0 && fileSize > sizeThresholdMb * 1024L * 1024L)) {
-                alreadyParsed.add(path);
-                quarks.add(path);
-                logger.info("Skipping parsing " + path + " as its size + " + fileSize / (1024L * 1024L) +
+                logger.info("Parsing as Quark " + path + " as its size + " + fileSize / (1024L * 1024L) +
                         "Mb exceeds size threshold " + sizeThresholdMb + "Mb");
                 return false;
             }
@@ -116,10 +112,13 @@ public class ResourceParser {
             Path baseDir,
             Path searchDir,
             Collection<Path> alreadyParsed,
-            Collection<Path> quarks,
             ExecutionContext ctx) {
         QuarkParser parser = new QuarkParser();
         try (Stream<Path> resources = Files.find(searchDir, 16, (path, attrs) -> {
+            if (path.toString().endsWith(".java")) {
+                return false;
+            }
+
             if (!parser.accept(path)) {
                 return false;
             }
@@ -127,26 +126,25 @@ public class ResourceParser {
             for (Path pathSegment : searchDir.relativize(path)) {
                 String pathStr = pathSegment.toString();
                 if ("target".equals(pathStr) || "build".equals(pathStr) || "out".equals(pathStr) ||
-                        ".gradle".equals(pathStr) || "node_modules".equals(pathStr) || ".metadata".equals(pathStr)) {
+                        ".gradle".equals(pathStr) || "node_modules".equals(pathStr) || ".metadata".equals(pathStr) ||
+                        ".DS_Store".equals(pathStr) || ".git".equals(pathStr) || ".idea".equals(pathStr)) {
                     return false;
                 }
             }
 
-            if (attrs.isDirectory() || attrs.size() == 0) {
+            if (attrs.isDirectory() || attrs.isSymbolicLink() || attrs.isOther() || attrs.size() == 0) {
                 return false;
             }
 
-            if (!quarks.contains(path)) {
-                if (alreadyParsed.contains(path)) {
-                    return false;
-                }
+            if (alreadyParsed.contains(path)) {
+                return false;
+            }
 
-                for (String exclusion : exclusions) {
-                    PathMatcher matcher = baseDir.getFileSystem().getPathMatcher("glob:" + exclusion);
-                    if (matcher.matches(baseDir.relativize(path))) {
-                        alreadyParsed.add(path);
-                        return false;
-                    }
+            for (String exclusion : exclusions) {
+                PathMatcher matcher = baseDir.getFileSystem().getPathMatcher("glob:" + exclusion);
+                if (matcher.matches(baseDir.relativize(path))) {
+                    alreadyParsed.add(path);
+                    return false;
                 }
             }
 
@@ -154,7 +152,6 @@ public class ResourceParser {
         })) {
             List<Path> resourceFiles = resources.collect(Collectors.toList());
             alreadyParsed.addAll(resourceFiles);
-            quarks.clear();
             //noinspection unchecked
             return (List<S>) parser.parse(resourceFiles, baseDir, ctx);
         } catch (IOException e) {

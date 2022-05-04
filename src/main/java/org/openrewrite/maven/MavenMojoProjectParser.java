@@ -344,10 +344,9 @@ public class MavenMojoProjectParser {
 
         ResourceParser rp = new ResourceParser(logger, exclusions, sizeThresholdMb);
 
-        Set<Path> quarks = new HashSet<>();
         // Any resources parsed from "main/resources" should also have the main source set added to them.
         sourceFiles.addAll(ListUtils.map(
-                rp.parse(baseDir, mavenProject.getBasedir().toPath().resolve("src/main/resources"), alreadyParsed, quarks),
+                rp.parse(baseDir, mavenProject.getBasedir().toPath().resolve("src/main/resources"), alreadyParsed),
                 addProvenance(baseDir, ListUtils.concat(projectProvenance, javaParser.getSourceSet(ctx)), null)));
 
         logger.info("Parsing Java test files...");
@@ -367,12 +366,12 @@ public class MavenMojoProjectParser {
 
         // Any resources parsed from "test/resources" should also have the test source set added to them.
         sourceFiles.addAll(ListUtils.map(
-                rp.parse(baseDir, mavenProject.getBasedir().toPath().resolve("src/test/resources"), alreadyParsed, quarks),
+                rp.parse(baseDir, mavenProject.getBasedir().toPath().resolve("src/test/resources"), alreadyParsed),
                 addProvenance(baseDir, ListUtils.concat(projectProvenance, javaParser.getSourceSet(ctx)), null)));
 
         // Parse non-java, non-resource files
         sourceFiles.addAll(ListUtils.map(
-                rp.parse(baseDir, mavenProject.getBasedir().toPath(), alreadyParsed, quarks),
+                rp.parse(baseDir, mavenProject.getBasedir().toPath(), alreadyParsed),
                 addProvenance(baseDir, projectProvenance, null)
         ));
 
