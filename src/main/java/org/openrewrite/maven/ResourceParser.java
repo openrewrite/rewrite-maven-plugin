@@ -54,6 +54,7 @@ public class ResourceParser {
             Collection<Path> alreadyParsed,
             ExecutionContext ctx) {
 
+        List<Path> quarkPaths = new ArrayList<>();
         try (Stream<Path> resources = Files.find(searchDir, 16, (path, attrs) -> {
             // Prevent java files from being parsed as quarks.
             if (path.toString().endsWith(".java")) {
@@ -89,7 +90,8 @@ public class ResourceParser {
             if ((sizeThresholdMb > 0 && fileSize > sizeThresholdMb * 1024L * 1024L)) {
                 logger.info("Parsing as Quark " + path + " as its size + " + fileSize / (1024L * 1024L) +
                         "Mb exceeds size threshold " + sizeThresholdMb + "Mb");
-                return true;
+                quarkPaths.add(path);
+                return false;
             }
 
             return true;
@@ -116,7 +118,6 @@ public class ResourceParser {
             List<Path> hclPaths = new ArrayList<>();
 
             QuarkParser quarkParser = new QuarkParser();
-            List<Path> quarkPaths = new ArrayList<>();
 
             resourceFiles.forEach(path -> {
                 if (jsonParser.accept(path)) {
