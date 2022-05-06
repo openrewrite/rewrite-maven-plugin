@@ -381,7 +381,7 @@ public class MavenMojoProjectParser {
 
         // Parse non-java, non-resource files
         sourceFiles.addAll(ListUtils.map(
-                rp.parse(mavenSession.getCurrentProject().getBasedir().toPath(), alreadyParsed),
+                rp.parse(mavenProject.getBasedir().toPath(), alreadyParsed),
                 addProvenance(baseDir, projectProvenance, null)
         ));
 

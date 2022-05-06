@@ -30,13 +30,13 @@ public class ResourceParser {
     public ResourceParser(Path baseDir, Log logger, Collection<String> exclusions, int sizeThresholdMb, Collection<Path> skipOtherMavenProjects) {
         this.baseDir = baseDir;
         this.logger = logger;
-        this.exclusions = mergeExclusions(baseDir, exclusions);
+        this.exclusions = mergeExclusions(exclusions);
         this.sizeThresholdMb = sizeThresholdMb;
         this.skipOtherMavenProjects = skipOtherMavenProjects;
     }
 
-    private static List<PathMatcher> mergeExclusions(Path baseDir, Collection<String> exclusions) {
-        Set<String> mergedExclusions = new HashSet<>(new ArrayList<>(Arrays.asList("build", "target", "out", ".gradle", ".idea", ".project", "node_modules", ".git", ".metadata", ".DS_Store")));
+    private List<PathMatcher> mergeExclusions(Collection<String> exclusions) {
+        Set<String> mergedExclusions = new HashSet<>(Arrays.asList("build", "target", "out", ".gradle", ".idea", ".project", "node_modules", ".git", ".metadata", ".DS_Store"));
         mergedExclusions.addAll(exclusions);
         return mergedExclusions.stream().map(o -> baseDir.getFileSystem().getPathMatcher("glob:**/" + o)).collect(Collectors.toList());
     }
@@ -91,7 +91,7 @@ public class ResourceParser {
             }
         });
 
-        List<S> sourceFiles = new ArrayList<>(resources.size());
+        List<S> sourceFiles = new ArrayList<>(resources.size() + quarkPaths.size());
 
         JsonParser jsonParser = new JsonParser();
         List<Path> jsonPaths = new ArrayList<>();
