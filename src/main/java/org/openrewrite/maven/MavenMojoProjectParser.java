@@ -306,6 +306,16 @@ public class MavenMojoProjectParser {
         return rawRepositories;
     }
 
+    /**
+     * Used to scope `Files.walkFileTree` to the current maven project by skipping the subtrees of other MavenProjects.
+     */
+    private Set<Path> pathsToOtherMavenProjects() {
+        return mavenSession.getProjects().stream()
+                .filter(o -> o != mavenSession.getCurrentProject())
+                .map(o -> o.getBasedir().toPath())
+                .collect(Collectors.toSet());
+    }
+
     public List<SourceFile> listSourceFiles(Iterable<NamedStyles> styles,
                                             ExecutionContext ctx) throws DependencyResolutionRequiredException, MojoExecutionException {
 
@@ -342,11 +352,11 @@ public class MavenMojoProjectParser {
         sourceFiles.addAll(ListUtils.map(maybeAutodetectStyles(javaParser.parse(mainJavaSources, baseDir, ctx), styles),
                 addProvenance(baseDir, projectProvenance, generatedSourcePaths)));
 
-        ResourceParser rp = new ResourceParser(logger, exclusions, sizeThresholdMb);
+        ResourceParser rp = new ResourceParser(baseDir, logger, exclusions, sizeThresholdMb, pathsToOtherMavenProjects());
 
         // Any resources parsed from "main/resources" should also have the main source set added to them.
         sourceFiles.addAll(ListUtils.map(
-                rp.parse(baseDir, mavenProject.getBasedir().toPath().resolve("src/main/resources"), alreadyParsed),
+                rp.parse(mavenProject.getBasedir().toPath().resolve("src/main/resources"), alreadyParsed),
                 addProvenance(baseDir, ListUtils.concat(projectProvenance, javaParser.getSourceSet(ctx)), null)));
 
         logger.info("Parsing Java test files...");
@@ -366,12 +376,12 @@ public class MavenMojoProjectParser {
 
         // Any resources parsed from "test/resources" should also have the test source set added to them.
         sourceFiles.addAll(ListUtils.map(
-                rp.parse(baseDir, mavenProject.getBasedir().toPath().resolve("src/test/resources"), alreadyParsed),
+                rp.parse(mavenProject.getBasedir().toPath().resolve("src/test/resources"), alreadyParsed),
                 addProvenance(baseDir, ListUtils.concat(projectProvenance, javaParser.getSourceSet(ctx)), null)));
 
         // Parse non-java, non-resource files
         sourceFiles.addAll(ListUtils.map(
-                rp.parse(baseDir, mavenProject.getBasedir().toPath(), alreadyParsed),
+                rp.parse(mavenProject.getBasedir().toPath(), alreadyParsed),
                 addProvenance(baseDir, projectProvenance, null)
         ));
 
