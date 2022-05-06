@@ -21,7 +21,7 @@ import java.util.function.Consumer;
 import java.util.stream.Collectors;
 
 public class ResourceParser {
-    private static final Set<String> DEFAULT_EXCLUSIONS = new HashSet<>(Arrays.asList("build", "target", "out", ".gradle", ".idea", ".project", "node_modules", ".git", ".metadata", ".DS_Store"));
+    private static final Set<String> DEFAULT_IGNORED_DIRECTORIES = new HashSet<>(Arrays.asList("build", "target", "out", ".gradle", ".idea", ".project", "node_modules", ".git", ".metadata", ".DS_Store"));
 
     private final Path baseDir;
     private final Log logger;
@@ -72,7 +72,7 @@ public class ResourceParser {
         Files.walkFileTree(searchDir, Collections.emptySet(), 16, new SimpleFileVisitor<Path>() {
             @Override
             public FileVisitResult preVisitDirectory(Path dir, BasicFileAttributes attrs) {
-                if (isExcluded(dir) || excludedDirectories.contains(dir)) {
+                if (isExcluded(dir) || isIgnoredDirectory(searchDir, dir) || excludedDirectories.contains(dir)) {
                     return FileVisitResult.SKIP_SUBTREE;
                 }
                 return FileVisitResult.CONTINUE;
@@ -167,9 +167,12 @@ public class ResourceParser {
                 return true;
             }
         }
+        return false;
+    }
 
-        for (Path pathSegment : baseDir.relativize(path)) {
-            if (DEFAULT_EXCLUSIONS.contains(pathSegment.toString())) {
+    private boolean isIgnoredDirectory(Path searchDir, Path path) {
+        for (Path pathSegment : searchDir.relativize(path)) {
+            if (DEFAULT_IGNORED_DIRECTORIES.contains(pathSegment.toString())) {
                 return true;
             }
         }
