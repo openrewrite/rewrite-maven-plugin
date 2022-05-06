@@ -145,7 +145,7 @@ public class MavenMojoProjectParser {
             return null;
         }
 
-        Set<Path> allPoms = collectPoms(mavenProject, new HashSet<>());
+        Set<Path> allPoms = collectPoms(mavenProject, new LinkedHashSet<>());
         mavenSession.getProjectDependencyGraph().getUpstreamProjects(mavenProject, true).forEach(p -> collectPoms(p, allPoms));
         MavenParser.Builder mavenParserBuilder = MavenParser.builder().mavenConfig(baseDir.resolve(".mvn/maven.config"));
 
