@@ -82,7 +82,7 @@ public class ResourceParser {
             public FileVisitResult visitFile(Path file, BasicFileAttributes attrs) {
                 if (attrs.size() != 0 && !attrs.isOther() && !alreadyParsed.contains(file) && !isExcluded(file)) {
                     if (isOverSizeThreshold(attrs.size())) {
-                        logger.info("Skipping parsing " + file + " as its size + " + attrs.size() / (1024L * 1024L) +
+                        logger.info("Parsing as quark " + file + " as its size + " + attrs.size() / (1024L * 1024L) +
                                 "Mb exceeds size threshold " + sizeThresholdMb + "Mb");
                         quarkPaths.add(file);
                     } else {
