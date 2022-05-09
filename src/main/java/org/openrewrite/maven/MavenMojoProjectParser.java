@@ -319,7 +319,6 @@ public class MavenMojoProjectParser {
     public List<SourceFile> listSourceFiles(Iterable<NamedStyles> styles,
                                             ExecutionContext ctx) throws DependencyResolutionRequiredException, MojoExecutionException {
 
-        Set<Path> alreadyParsed = new HashSet<>();
         JavaParser javaParser = JavaParser.fromJavaVersion()
                 .styles(styles)
                 .logCompilationWarningsAndErrors(false)
@@ -331,6 +330,7 @@ public class MavenMojoProjectParser {
                 generatedSourcePaths.stream(),
                 listJavaSources(mavenProject.getBuild().getSourceDirectory()).stream()
         ).collect(toList());
+        Set<Path> alreadyParsed = new HashSet<>(mainJavaSources);
 
         List<SourceFile> sourceFiles = new ArrayList<>();
         Xml.Document maven = parseMaven(ctx);
@@ -370,8 +370,9 @@ public class MavenMojoProjectParser {
 
         // JavaParser will add SourceSet Markers to any Java SourceFile, so only adding the project provenance info to
         // java source.
+        List<Path> testJavaSources = listJavaSources(mavenProject.getBuild().getTestSourceDirectory());
         sourceFiles.addAll(ListUtils.map(
-                maybeAutodetectStyles(javaParser.parse(listJavaSources(mavenProject.getBuild().getTestSourceDirectory()), baseDir, ctx), styles),
+                maybeAutodetectStyles(javaParser.parse(testJavaSources, baseDir, ctx), styles),
                 addProvenance(baseDir, projectProvenance, null)));
 
         // Any resources parsed from "test/resources" should also have the test source set added to them.
