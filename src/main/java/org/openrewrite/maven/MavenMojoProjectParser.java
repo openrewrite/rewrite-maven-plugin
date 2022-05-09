@@ -145,7 +145,7 @@ public class MavenMojoProjectParser {
             return null;
         }
 
-        Set<Path> allPoms = collectPoms(mavenProject, new LinkedHashSet<>());
+        Set<Path> allPoms = collectPoms(mavenProject, new HashSet<>());
         mavenSession.getProjectDependencyGraph().getUpstreamProjects(mavenProject, true).forEach(p -> collectPoms(p, allPoms));
         MavenParser.Builder mavenParserBuilder = MavenParser.builder().mavenConfig(baseDir.resolve(".mvn/maven.config"));
 
@@ -158,16 +158,19 @@ public class MavenMojoProjectParser {
             //If the flag is set to false, only the default, in-memory cache is used.
             mavenExecutionContext.setPomCache(getPomCache(pomCacheDirectory, logger));
         }
+
         List<String> activeProfiles = mavenProject.getActiveProfiles().stream().map(Profile::getId).collect(Collectors.toList());
         if (!activeProfiles.isEmpty()) {
             mavenParserBuilder.activeProfiles(activeProfiles.toArray(new String[]{}));
         }
 
-        Xml.Document maven = mavenParserBuilder
+        List<Xml.Document> mavens = mavenParserBuilder
                 .build()
-                .parse(allPoms, baseDir, ctx)
-                .iterator()
-                .next();
+                .parse(allPoms, baseDir, ctx);
+
+        Xml.Document maven = mavens.stream()
+                .filter(o -> mavenProject.getFile().toPath().equals(baseDir.resolve(o.getSourcePath())))
+                .collect(toList()).get(0);
 
         for (Marker marker : projectProvenance) {
             maven = maven.withMarkers(maven.getMarkers().addIfAbsent(marker));
