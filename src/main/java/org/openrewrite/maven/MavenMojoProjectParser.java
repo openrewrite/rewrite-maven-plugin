@@ -37,8 +37,6 @@ import org.openrewrite.maven.tree.ProfileActivation;
 import org.openrewrite.style.NamedStyles;
 import org.openrewrite.xml.tree.Xml;
 
-import javax.tools.JavaCompiler;
-import javax.xml.transform.Source;
 import java.io.File;
 import java.io.IOException;
 import java.nio.file.Files;

@@ -1,7 +1,6 @@
 package org.openrewrite.maven;
 
 import org.apache.maven.plugin.logging.Log;
-import org.apache.maven.project.MavenProject;
 import org.openrewrite.ExecutionContext;
 import org.openrewrite.InMemoryExecutionContext;
 import org.openrewrite.SourceFile;
