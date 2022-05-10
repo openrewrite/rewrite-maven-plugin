@@ -132,7 +132,7 @@ public class MavenMojoProjectParser {
                 rp.parse(mavenProject.getBasedir().toPath(), alreadyParsed),
                 addProvenance(baseDir, projectProvenance, null)
         );
-        logInfo(mavenProject, "Parsed " + parsedResourceFiles.size() + " additional files found within the project.");
+        logDebug(mavenProject, "Parsed " + parsedResourceFiles.size() + " additional files found within the project.");
         sourceFiles.addAll(parsedResourceFiles);
 
         return sourceFiles;
