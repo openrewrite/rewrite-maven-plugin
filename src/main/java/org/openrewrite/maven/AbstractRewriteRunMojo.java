@@ -34,6 +34,12 @@ public class AbstractRewriteRunMojo extends AbstractRewriteMojo {
     @Override
     public void execute() throws MojoExecutionException {
         MavenOptsHelper.checkAndLogMissingJvmModuleExports(getLog());
+
+        //Defer execution of rewrite's parsing and recipe execution until the last project.
+        if (!project.getId().equals(mavenSession.getProjects().get(mavenSession.getProjects().size() - 1).getId())) {
+            return;
+        }
+
         ResultsContainer results = listResults();
 
         if (results.isNotEmpty()) {
