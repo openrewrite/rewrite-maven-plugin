@@ -18,12 +18,14 @@ package org.openrewrite.maven;
 import org.apache.maven.plugin.MojoExecutionException;
 import org.apache.maven.plugins.annotations.*;
 import org.openrewrite.Result;
+import org.openrewrite.internal.lang.Nullable;
 
 import java.io.BufferedWriter;
 import java.io.File;
 import java.io.IOException;
 import java.nio.file.Files;
 import java.nio.file.Path;
+import java.nio.file.Paths;
 import java.util.stream.Stream;
 
 /**
@@ -33,9 +35,9 @@ import java.util.stream.Stream;
  */
 public class AbstractRewriteDryRunMojo extends AbstractRewriteMojo {
 
-    @SuppressWarnings("NotNullFieldNotInitialized")
-    @Parameter(property = "reportOutputDirectory", defaultValue = "${project.reporting.outputDirectory}/rewrite")
-    private File reportOutputDirectory;
+    @Parameter(property = "reportOutputDirectory")
+    @Nullable
+    private String reportOutputDirectory;
 
     /**
      * Whether to throw an exception if there are any result changes produced.
@@ -46,6 +48,12 @@ public class AbstractRewriteDryRunMojo extends AbstractRewriteMojo {
     @Override
     public void execute() throws MojoExecutionException {
         MavenOptsHelper.checkAndLogMissingJvmModuleExports(getLog());
+
+        //Defer execution of rewrite's parsing and recipe execution until the last project.
+        if (!project.getId().equals(mavenSession.getProjects().get(mavenSession.getProjects().size() - 1).getId())) {
+            return;
+        }
+
         ResultsContainer results = listResults();
 
         if (results.isNotEmpty()) {
@@ -79,10 +87,19 @@ public class AbstractRewriteDryRunMojo extends AbstractRewriteMojo {
                 logRecipesThatMadeChanges(result);
             }
 
-            //noinspection ResultOfMethodCallIgnored
-            reportOutputDirectory.mkdirs();
+            Path outPath;
+            if (reportOutputDirectory != null) {
+                outPath = Paths.get(reportOutputDirectory);
+            } else {
+                outPath = Paths.get(mavenSession.getTopLevelProject().getBuild().getDirectory()).resolve("rewrite");
+            }
+            try {
+                Files.createDirectories(outPath);
+            } catch (IOException e) {
+                throw new RuntimeException("Could not create the folder [ " + outPath + "].", e);
+            }
 
-            Path patchFile = reportOutputDirectory.toPath().resolve("rewrite.patch");
+            Path patchFile = outPath.resolve("rewrite.patch");
             try (BufferedWriter writer = Files.newBufferedWriter(patchFile)) {
                 Stream.concat(
                                 Stream.concat(results.generated.stream(), results.deleted.stream()),

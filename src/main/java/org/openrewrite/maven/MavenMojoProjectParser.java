@@ -73,29 +73,34 @@ public class MavenMojoProjectParser {
 
     private final Log logger;
     private final Path baseDir;
-    private final MavenProject mavenProject;
-    private final List<Marker> projectProvenance;
     private final boolean pomCacheEnabled;
     @Nullable
     private final String pomCacheDirectory;
     private final boolean skipMavenParsing;
+
+    private final BuildTool buildTool;
+
     private final Collection<String> exclusions;
     private final int sizeThresholdMb;
     private final MavenSession mavenSession;
     private final SettingsDecrypter settingsDecrypter;
 
     @SuppressWarnings("BooleanParameter")
-    public MavenMojoProjectParser(Log logger, Path baseDir, boolean pomCacheEnabled, @Nullable String pomCacheDirectory, MavenProject mavenProject, RuntimeInformation runtime, boolean skipMavenParsing, Collection<String> exclusions, int thresholdMb, MavenSession session, SettingsDecrypter settingsDecrypter) {
+    public MavenMojoProjectParser(Log logger, Path baseDir, boolean pomCacheEnabled, @Nullable String pomCacheDirectory, RuntimeInformation runtime, boolean skipMavenParsing, Collection<String> exclusions, int thresholdMb, MavenSession session, SettingsDecrypter settingsDecrypter) {
         this.logger = logger;
         this.baseDir = baseDir;
-        this.mavenProject = mavenProject;
         this.pomCacheEnabled = pomCacheEnabled;
         this.pomCacheDirectory = pomCacheDirectory;
         this.skipMavenParsing = skipMavenParsing;
+        this.buildTool = new BuildTool(randomId(), BuildTool.Type.Maven, runtime.getMavenVersion());
         this.exclusions = exclusions;
         sizeThresholdMb = thresholdMb;
         this.mavenSession = session;
         this.settingsDecrypter = settingsDecrypter;
+    }
+
+    public List<SourceFile> listSourceFiles(MavenProject mavenProject, Iterable<NamedStyles> styles,
+                                            ExecutionContext ctx) throws DependencyResolutionRequiredException, MojoExecutionException {
 
         String javaRuntimeVersion = System.getProperty("java.runtime.version");
         String javaVendor = System.getProperty("java.vm.vendor");
@@ -112,10 +117,10 @@ public class MavenMojoProjectParser {
         }
 
         BuildEnvironment buildEnvironment = BuildEnvironment.build(System::getenv);
-        projectProvenance = Stream.of(
+        List<Marker> projectProvenance = Stream.of(
                         buildEnvironment,
                         gitProvenance(baseDir, buildEnvironment),
-                        new BuildTool(randomId(), BuildTool.Type.Maven, runtime.getMavenVersion()),
+                        buildTool,
                         new JavaVersion(randomId(), javaRuntimeVersion, javaVendor, sourceCompatibility, targetCompatibility),
                         new JavaProject(randomId(), mavenProject.getName(), new JavaProject.Publication(
                                 mavenProject.getGroupId(),
@@ -124,21 +129,95 @@ public class MavenMojoProjectParser {
                         )))
                 .filter(Objects::nonNull)
                 .collect(toList());
-    }
 
-    @Nullable
-    private GitProvenance gitProvenance(Path baseDir, @Nullable BuildEnvironment buildEnvironment) {
-        try {
-            return GitProvenance.fromProjectDirectory(baseDir, buildEnvironment);
-        } catch (Exception e) {
-            // Logging at a low level as this is unlikely to happen except in non-git projects, where it is expected
-            logger.debug("Unable to determine git provenance", e);
+        JavaParser javaParser = JavaParser.fromJavaVersion()
+                .styles(styles)
+                .logCompilationWarningsAndErrors(false)
+                .build();
+
+        // Some annotation processors output generated sources to the /target directory
+        List<Path> generatedSourcePaths = listJavaSources(mavenProject.getBuild().getDirectory());
+        List<Path> mainJavaSources = Stream.concat(
+                generatedSourcePaths.stream(),
+                listJavaSources(mavenProject.getBuild().getSourceDirectory()).stream()
+        ).collect(toList());
+        Set<Path> alreadyParsed = new HashSet<>(mainJavaSources);
+
+        List<SourceFile> sourceFiles = new ArrayList<>();
+
+        String projectLogPrefix = "Project [" + mavenProject.getName() + "] ";
+        logger.info(projectLogPrefix +  "Resolving Poms...");
+        Xml.Document maven = parseMaven(mavenProject, projectProvenance, ctx);
+        if (maven != null) {
+            sourceFiles.add(maven);
+            alreadyParsed.add(baseDir.resolve(maven.getSourcePath()));
         }
-        return null;
+
+        logger.info(projectLogPrefix +  "Parsing Source Files");
+        List<Path> dependencies = mavenProject.getCompileClasspathElements().stream()
+                .distinct()
+                .map(Paths::get)
+                .collect(toList());
+        javaParser.setClasspath(dependencies);
+        javaParser.setSourceSet("main");
+
+        // JavaParser will add SourceSet Markers to any Java SourceFile, so only adding the project provenance info to
+        // java source.
+        List<J.CompilationUnit> parsedJava = ListUtils.map(maybeAutodetectStyles(javaParser.parse(mainJavaSources, baseDir, ctx), styles),
+                addProvenance(baseDir, projectProvenance, generatedSourcePaths));
+        logger.info(projectLogPrefix + "Parsed " + parsedJava.size() + " java source files in main scope.");
+        sourceFiles.addAll(parsedJava);
+
+        ResourceParser rp = new ResourceParser(baseDir, projectLogPrefix, logger, exclusions, sizeThresholdMb, pathsToOtherMavenProjects());
+
+        List<SourceFile> parsedResourceFiles = ListUtils.map(
+                rp.parse(mavenProject.getBasedir().toPath().resolve("src/main/resources"), alreadyParsed),
+                addProvenance(baseDir, ListUtils.concat(projectProvenance, javaParser.getSourceSet(ctx)), null));
+
+        logger.info(projectLogPrefix + "Parsed " + parsedResourceFiles.size() + " resource files in main scope.");
+        // Any resources parsed from "main/resources" should also have the main source set added to them.
+        sourceFiles.addAll(parsedResourceFiles);
+
+        List<Path> testDependencies = mavenProject.getTestClasspathElements().stream()
+                .distinct()
+                .map(Paths::get)
+                .collect(toList());
+
+        javaParser.setClasspath(testDependencies);
+        javaParser.setSourceSet("test");
+
+        // JavaParser will add SourceSet Markers to any Java SourceFile, so only adding the project provenance info to
+        // java source.
+        List<Path> testJavaSources = listJavaSources(mavenProject.getBuild().getTestSourceDirectory());
+
+        parsedJava = ListUtils.map(
+                maybeAutodetectStyles(javaParser.parse(testJavaSources, baseDir, ctx), styles),
+                addProvenance(baseDir, projectProvenance, null));
+
+        logger.info(projectLogPrefix + "Parsed " + parsedJava.size() + " java source files in test scope.");
+        sourceFiles.addAll(parsedJava);
+
+        // Any resources parsed from "test/resources" should also have the test source set added to them.
+        parsedResourceFiles = ListUtils.map(
+                rp.parse(mavenProject.getBasedir().toPath().resolve("src/test/resources"), alreadyParsed),
+                addProvenance(baseDir, ListUtils.concat(projectProvenance, javaParser.getSourceSet(ctx)), null)
+        );
+        logger.info(projectLogPrefix + "Parsed " + parsedResourceFiles.size() + " resource files in main scope.");
+        sourceFiles.addAll(parsedResourceFiles);
+
+        //Collect any additional files that were not parsed above.
+        parsedResourceFiles = ListUtils.map(
+                rp.parse(mavenProject.getBasedir().toPath(), alreadyParsed),
+                addProvenance(baseDir, projectProvenance, null)
+        );
+        logger.info(projectLogPrefix + "Parsed " + parsedResourceFiles.size() + " additional files found within the project.");
+        sourceFiles.addAll(parsedResourceFiles);
+
+        return sourceFiles;
     }
 
     @Nullable
-    public Xml.Document parseMaven(ExecutionContext ctx) {
+    public Xml.Document parseMaven(MavenProject mavenProject, List<Marker> projectProvenance, ExecutionContext ctx) {
         J.clearCaches();
         if (skipMavenParsing) {
             logger.info("Skipping Maven parsing...");
@@ -319,79 +398,6 @@ public class MavenMojoProjectParser {
                 .collect(Collectors.toSet());
     }
 
-    public List<SourceFile> listSourceFiles(Iterable<NamedStyles> styles,
-                                            ExecutionContext ctx) throws DependencyResolutionRequiredException, MojoExecutionException {
-
-        JavaParser javaParser = JavaParser.fromJavaVersion()
-                .styles(styles)
-                .logCompilationWarningsAndErrors(false)
-                .build();
-
-        // Some annotation processors output generated sources to the /target directory
-        List<Path> generatedSourcePaths = listJavaSources(mavenProject.getBuild().getDirectory());
-        List<Path> mainJavaSources = Stream.concat(
-                generatedSourcePaths.stream(),
-                listJavaSources(mavenProject.getBuild().getSourceDirectory()).stream()
-        ).collect(toList());
-        Set<Path> alreadyParsed = new HashSet<>(mainJavaSources);
-
-        List<SourceFile> sourceFiles = new ArrayList<>();
-        Xml.Document maven = parseMaven(ctx);
-        if (maven != null) {
-            sourceFiles.add(maven);
-            alreadyParsed.add(baseDir.resolve(maven.getSourcePath()));
-        }
-
-        logger.info("Parsing Java main files...");
-        List<Path> dependencies = mavenProject.getCompileClasspathElements().stream()
-                .distinct()
-                .map(Paths::get)
-                .collect(toList());
-        javaParser.setClasspath(dependencies);
-        javaParser.setSourceSet("main");
-
-        // JavaParser will add SourceSet Markers to any Java SourceFile, so only adding the project provenance info to
-        // java source.
-        sourceFiles.addAll(ListUtils.map(maybeAutodetectStyles(javaParser.parse(mainJavaSources, baseDir, ctx), styles),
-                addProvenance(baseDir, projectProvenance, generatedSourcePaths)));
-
-        ResourceParser rp = new ResourceParser(baseDir, logger, exclusions, sizeThresholdMb, pathsToOtherMavenProjects());
-
-        // Any resources parsed from "main/resources" should also have the main source set added to them.
-        sourceFiles.addAll(ListUtils.map(
-                rp.parse(mavenProject.getBasedir().toPath().resolve("src/main/resources"), alreadyParsed),
-                addProvenance(baseDir, ListUtils.concat(projectProvenance, javaParser.getSourceSet(ctx)), null)));
-
-        logger.info("Parsing Java test files...");
-        List<Path> testDependencies = mavenProject.getTestClasspathElements().stream()
-                .distinct()
-                .map(Paths::get)
-                .collect(toList());
-
-        javaParser.setClasspath(testDependencies);
-        javaParser.setSourceSet("test");
-
-        // JavaParser will add SourceSet Markers to any Java SourceFile, so only adding the project provenance info to
-        // java source.
-        List<Path> testJavaSources = listJavaSources(mavenProject.getBuild().getTestSourceDirectory());
-        sourceFiles.addAll(ListUtils.map(
-                maybeAutodetectStyles(javaParser.parse(testJavaSources, baseDir, ctx), styles),
-                addProvenance(baseDir, projectProvenance, null)));
-
-        // Any resources parsed from "test/resources" should also have the test source set added to them.
-        sourceFiles.addAll(ListUtils.map(
-                rp.parse(mavenProject.getBasedir().toPath().resolve("src/test/resources"), alreadyParsed),
-                addProvenance(baseDir, ListUtils.concat(projectProvenance, javaParser.getSourceSet(ctx)), null)));
-
-        // Parse non-java, non-resource files
-        sourceFiles.addAll(ListUtils.map(
-                rp.parse(mavenProject.getBasedir().toPath(), alreadyParsed),
-                addProvenance(baseDir, projectProvenance, null)
-        ));
-
-        return sourceFiles;
-    }
-
     private List<J.CompilationUnit> maybeAutodetectStyles(List<J.CompilationUnit> sourceFiles, @Nullable Iterable<NamedStyles> styles) {
         if (styles != null) {
             return sourceFiles;
@@ -416,7 +422,7 @@ public class MavenMojoProjectParser {
         };
     }
 
-    public static List<Path> listJavaSources(String sourceDirectory) throws MojoExecutionException {
+    private static List<Path> listJavaSources(String sourceDirectory) throws MojoExecutionException {
         File sourceDirectoryFile = new File(sourceDirectory);
         if (!sourceDirectoryFile.exists()) {
             return emptyList();
@@ -429,4 +435,16 @@ public class MavenMojoProjectParser {
             throw new MojoExecutionException("Unable to list Java source files", e);
         }
     }
+
+    @Nullable
+    private GitProvenance gitProvenance(Path baseDir, @Nullable BuildEnvironment buildEnvironment) {
+        try {
+            return GitProvenance.fromProjectDirectory(baseDir, buildEnvironment);
+        } catch (Exception e) {
+            // Logging at a low level as this is unlikely to happen except in non-git projects, where it is expected
+            logger.debug("Unable to determine git provenance", e);
+        }
+        return null;
+    }
+
 }
