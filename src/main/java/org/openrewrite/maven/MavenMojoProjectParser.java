@@ -18,6 +18,7 @@ import org.openrewrite.SourceFile;
 import org.openrewrite.internal.ListUtils;
 import org.openrewrite.internal.lang.Nullable;
 import org.openrewrite.java.JavaParser;
+import org.openrewrite.java.internal.JavaTypeCache;
 import org.openrewrite.java.marker.JavaProject;
 import org.openrewrite.java.marker.JavaVersion;
 import org.openrewrite.java.style.Autodetect;
@@ -70,6 +71,8 @@ public class MavenMojoProjectParser {
 
     @Nullable
     static MavenPomCache pomCache;
+
+    static JavaTypeCache typeCache = new JavaTypeCache();
 
     private final Log logger;
     private final Path baseDir;
@@ -132,6 +135,7 @@ public class MavenMojoProjectParser {
 
         JavaParser javaParser = JavaParser.fromJavaVersion()
                 .styles(styles)
+                .typeCache(typeCache)
                 .logCompilationWarningsAndErrors(false)
                 .build();
 
