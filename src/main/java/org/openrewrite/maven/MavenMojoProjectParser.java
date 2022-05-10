@@ -165,16 +165,16 @@ public class MavenMojoProjectParser {
         // java source.
         List<J.CompilationUnit> parsedJava = ListUtils.map(maybeAutodetectStyles(javaParser.parse(mainJavaSources, baseDir, ctx), styles),
                 addProvenance(baseDir, projectProvenance, generatedSourcePaths));
-        logger.info(projectLogPrefix + "Parsed " + parsedJava.size() + " java source files in main scope.");
+        logger.debug(projectLogPrefix + "Parsed " + parsedJava.size() + " java source files in main scope.");
         sourceFiles.addAll(parsedJava);
 
-        ResourceParser rp = new ResourceParser(baseDir, projectLogPrefix, logger, exclusions, sizeThresholdMb, pathsToOtherMavenProjects());
+        ResourceParser rp = new ResourceParser(baseDir, logger, exclusions, sizeThresholdMb, pathsToOtherMavenProjects());
 
         List<SourceFile> parsedResourceFiles = ListUtils.map(
                 rp.parse(mavenProject.getBasedir().toPath().resolve("src/main/resources"), alreadyParsed),
                 addProvenance(baseDir, ListUtils.concat(projectProvenance, javaParser.getSourceSet(ctx)), null));
 
-        logger.info(projectLogPrefix + "Parsed " + parsedResourceFiles.size() + " resource files in main scope.");
+        logger.debug(projectLogPrefix + "Parsed " + parsedResourceFiles.size() + " resource files in main scope.");
         // Any resources parsed from "main/resources" should also have the main source set added to them.
         sourceFiles.addAll(parsedResourceFiles);
 
@@ -189,12 +189,13 @@ public class MavenMojoProjectParser {
         // JavaParser will add SourceSet Markers to any Java SourceFile, so only adding the project provenance info to
         // java source.
         List<Path> testJavaSources = listJavaSources(mavenProject.getBuild().getTestSourceDirectory());
+        alreadyParsed.addAll(testJavaSources);
 
         parsedJava = ListUtils.map(
                 maybeAutodetectStyles(javaParser.parse(testJavaSources, baseDir, ctx), styles),
                 addProvenance(baseDir, projectProvenance, null));
 
-        logger.info(projectLogPrefix + "Parsed " + parsedJava.size() + " java source files in test scope.");
+        logger.debug(projectLogPrefix + "Parsed " + parsedJava.size() + " java source files in test scope.");
         sourceFiles.addAll(parsedJava);
 
         // Any resources parsed from "test/resources" should also have the test source set added to them.
@@ -202,7 +203,7 @@ public class MavenMojoProjectParser {
                 rp.parse(mavenProject.getBasedir().toPath().resolve("src/test/resources"), alreadyParsed),
                 addProvenance(baseDir, ListUtils.concat(projectProvenance, javaParser.getSourceSet(ctx)), null)
         );
-        logger.info(projectLogPrefix + "Parsed " + parsedResourceFiles.size() + " resource files in main scope.");
+        logger.debug(projectLogPrefix + "Parsed " + parsedResourceFiles.size() + " resource files in test scope.");
         sourceFiles.addAll(parsedResourceFiles);
 
         //Collect any additional files that were not parsed above.
@@ -210,7 +211,7 @@ public class MavenMojoProjectParser {
                 rp.parse(mavenProject.getBasedir().toPath(), alreadyParsed),
                 addProvenance(baseDir, projectProvenance, null)
         );
-        logger.info(projectLogPrefix + "Parsed " + parsedResourceFiles.size() + " additional files found within the project.");
+        logger.debug(projectLogPrefix + "Parsed " + parsedResourceFiles.size() + " additional files found within the project.");
         sourceFiles.addAll(parsedResourceFiles);
 
         return sourceFiles;

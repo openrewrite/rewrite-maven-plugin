@@ -24,16 +24,14 @@ import java.util.stream.Collectors;
 public class ResourceParser {
     private static final Set<String> DEFAULT_IGNORED_DIRECTORIES = new HashSet<>(Arrays.asList("build", "target", "out", ".gradle", ".idea", ".project", "node_modules", ".git", ".metadata", ".DS_Store"));
 
-    private final String projectLogPrefix;
     private final Path baseDir;
     private final Log logger;
     private final Collection<PathMatcher> exclusions;
     private final int sizeThresholdMb;
     private final Collection<Path> excludedDirectories;
 
-    public ResourceParser(Path baseDir, String projectLogPrefix, Log logger, Collection<String> exclusions, int sizeThresholdMb, Collection<Path> excludedDirectories) {
+    public ResourceParser(Path baseDir, Log logger, Collection<String> exclusions, int sizeThresholdMb, Collection<Path> excludedDirectories) {
         this.baseDir = baseDir;
-        this.projectLogPrefix = projectLogPrefix;
         this.logger = logger;
         this.exclusions = exclusionMatchers(baseDir, exclusions);
         this.sizeThresholdMb = sizeThresholdMb;
@@ -51,13 +49,13 @@ public class ResourceParser {
         if (!searchDir.toFile().exists()) {
             return sourceFiles;
         }
-        Consumer<Throwable> errorConsumer = t -> logger.error(projectLogPrefix + "Error parsing", t);
+        Consumer<Throwable> errorConsumer = t -> logger.error("Error parsing", t);
         InMemoryExecutionContext ctx = new InMemoryExecutionContext(errorConsumer);
 
         try {
             sourceFiles.addAll(parseSourceFiles(searchDir, alreadyParsed, ctx));
         } catch (IOException e) {
-            logger.error(projectLogPrefix + e.getMessage(), e);
+            logger.error(e.getMessage(), e);
             throw new UncheckedIOException(e);
         }
 
@@ -86,7 +84,7 @@ public class ResourceParser {
                 if (attrs.size() != 0 && !attrs.isOther() && !attrs.isSymbolicLink() &&
                         !alreadyParsed.contains(file) && !isExcluded(file)) {
                     if (isOverSizeThreshold(attrs.size())) {
-                        logger.info(projectLogPrefix + "Parsing as quark " + file + " as its size + " + attrs.size() / (1024L * 1024L) +
+                        logger.info("Parsing as quark " + file + " as its size + " + attrs.size() / (1024L * 1024L) +
                                 "Mb exceeds size threshold " + sizeThresholdMb + "Mb");
                         quarkPaths.add(file);
                     } else {
