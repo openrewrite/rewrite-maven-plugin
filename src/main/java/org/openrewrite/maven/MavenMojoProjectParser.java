@@ -147,7 +147,7 @@ public class MavenMojoProjectParser {
         logger.debug(projectLogPrefix + "Parsed " + parsedJava.size() + " java source files in main scope.");
         sourceFiles.addAll(parsedJava);
 
-        ResourceParser rp = new ResourceParser(baseDir, logger, exclusions, sizeThresholdMb, pathsToOtherMavenProjects());
+        ResourceParser rp = new ResourceParser(baseDir, logger, exclusions, sizeThresholdMb, pathsToOtherMavenProjects(mavenProject));
 
         List<SourceFile> parsedResourceFiles = ListUtils.map(
                 rp.parse(mavenProject.getBasedir().toPath().resolve("src/main/resources"), alreadyParsed),
@@ -402,9 +402,9 @@ public class MavenMojoProjectParser {
     /**
      * Used to scope `Files.walkFileTree` to the current maven project by skipping the subtrees of other MavenProjects.
      */
-    private Set<Path> pathsToOtherMavenProjects() {
+    private Set<Path> pathsToOtherMavenProjects(MavenProject mavenProject) {
         return mavenSession.getProjects().stream()
-                .filter(o -> o != mavenSession.getCurrentProject())
+                .filter(o -> o != mavenProject)
                 .map(o -> o.getBasedir().toPath())
                 .collect(Collectors.toSet());
     }
