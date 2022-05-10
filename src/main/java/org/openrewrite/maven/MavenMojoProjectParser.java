@@ -106,6 +106,17 @@ public class MavenMojoProjectParser {
                                             ExecutionContext ctx) throws DependencyResolutionRequiredException, MojoExecutionException {
 
         List<Marker> projectProvenance = generateProvenance(mavenProject);
+        List<SourceFile> sourceFiles = new ArrayList<>();
+        Set<Path> alreadyParsed = new HashSet<>();
+
+        // First parse the maven project.
+        String projectLogPrefix = "Project [" + mavenProject.getName() + "] ";
+        logger.info(projectLogPrefix +  "Resolving Poms...");
+        Xml.Document maven = parseMaven(mavenProject, projectProvenance, ctx);
+        if (maven != null) {
+            sourceFiles.add(maven);
+            alreadyParsed.add(baseDir.resolve(maven.getSourcePath()));
+        }
 
         JavaParser javaParser = JavaParser.fromJavaVersion()
                 .styles(styles)
@@ -119,17 +130,7 @@ public class MavenMojoProjectParser {
                 generatedSourcePaths.stream(),
                 listJavaSources(mavenProject.getBuild().getSourceDirectory()).stream()
         ).collect(toList());
-        Set<Path> alreadyParsed = new HashSet<>(mainJavaSources);
-
-        List<SourceFile> sourceFiles = new ArrayList<>();
-
-        String projectLogPrefix = "Project [" + mavenProject.getName() + "] ";
-        logger.info(projectLogPrefix +  "Resolving Poms...");
-        Xml.Document maven = parseMaven(mavenProject, projectProvenance, ctx);
-        if (maven != null) {
-            sourceFiles.add(maven);
-            alreadyParsed.add(baseDir.resolve(maven.getSourcePath()));
-        }
+        alreadyParsed.addAll(mainJavaSources);
 
         logger.info(projectLogPrefix +  "Parsing Source Files");
         List<Path> dependencies = mavenProject.getCompileClasspathElements().stream()
