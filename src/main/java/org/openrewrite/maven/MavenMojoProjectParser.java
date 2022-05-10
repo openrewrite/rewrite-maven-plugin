@@ -105,33 +105,7 @@ public class MavenMojoProjectParser {
     public List<SourceFile> listSourceFiles(MavenProject mavenProject, Iterable<NamedStyles> styles,
                                             ExecutionContext ctx) throws DependencyResolutionRequiredException, MojoExecutionException {
 
-        String javaRuntimeVersion = System.getProperty("java.runtime.version");
-        String javaVendor = System.getProperty("java.vm.vendor");
-        String sourceCompatibility = javaRuntimeVersion;
-        String targetCompatibility = javaRuntimeVersion;
-
-        String propertiesSourceCompatibility = (String) mavenProject.getProperties().get("maven.compiler.source");
-        if (propertiesSourceCompatibility != null) {
-            sourceCompatibility = propertiesSourceCompatibility;
-        }
-        String propertiesTargetCompatibility = (String) mavenProject.getProperties().get("maven.compiler.target");
-        if (propertiesTargetCompatibility != null) {
-            targetCompatibility = propertiesTargetCompatibility;
-        }
-
-        BuildEnvironment buildEnvironment = BuildEnvironment.build(System::getenv);
-        List<Marker> projectProvenance = Stream.of(
-                        buildEnvironment,
-                        gitProvenance(baseDir, buildEnvironment),
-                        buildTool,
-                        new JavaVersion(randomId(), javaRuntimeVersion, javaVendor, sourceCompatibility, targetCompatibility),
-                        new JavaProject(randomId(), mavenProject.getName(), new JavaProject.Publication(
-                                mavenProject.getGroupId(),
-                                mavenProject.getArtifactId(),
-                                mavenProject.getVersion()
-                        )))
-                .filter(Objects::nonNull)
-                .collect(toList());
+        List<Marker> projectProvenance = generateProvenance(mavenProject);
 
         JavaParser javaParser = JavaParser.fromJavaVersion()
                 .styles(styles)
@@ -219,6 +193,37 @@ public class MavenMojoProjectParser {
         sourceFiles.addAll(parsedResourceFiles);
 
         return sourceFiles;
+    }
+
+    private List<Marker> generateProvenance(MavenProject mavenProject) {
+
+        String javaRuntimeVersion = System.getProperty("java.runtime.version");
+        String javaVendor = System.getProperty("java.vm.vendor");
+        String sourceCompatibility = javaRuntimeVersion;
+        String targetCompatibility = javaRuntimeVersion;
+
+        String propertiesSourceCompatibility = (String) mavenProject.getProperties().get("maven.compiler.source");
+        if (propertiesSourceCompatibility != null) {
+            sourceCompatibility = propertiesSourceCompatibility;
+        }
+        String propertiesTargetCompatibility = (String) mavenProject.getProperties().get("maven.compiler.target");
+        if (propertiesTargetCompatibility != null) {
+            targetCompatibility = propertiesTargetCompatibility;
+        }
+
+        BuildEnvironment buildEnvironment = BuildEnvironment.build(System::getenv);
+        return Stream.of(
+                        buildEnvironment,
+                        gitProvenance(baseDir, buildEnvironment),
+                        buildTool,
+                        new JavaVersion(randomId(), javaRuntimeVersion, javaVendor, sourceCompatibility, targetCompatibility),
+                        new JavaProject(randomId(), mavenProject.getName(), new JavaProject.Publication(
+                                mavenProject.getGroupId(),
+                                mavenProject.getArtifactId(),
+                                mavenProject.getVersion()
+                        )))
+                .filter(Objects::nonNull)
+                .collect(toList());
     }
 
     @Nullable
