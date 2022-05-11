@@ -88,6 +88,9 @@ public abstract class ConfigurableRewriteMojo extends AbstractMojo {
     @Parameter(property = "rewrite.failOnInvalidActiveRecipes", alias = "failOnInvalidActiveRecipes", defaultValue = "false")
     protected boolean failOnInvalidActiveRecipes;
 
+    @Parameter(property = "rewrite.runPerSubmodule", alias = "runPerSubmodule", defaultValue = "false")
+    protected boolean runPerSubmodule;
+
     @Nullable
     @Parameter(property = "rewrite.recipeArtifactCoordinates")
     private String recipeArtifactCoordinates;

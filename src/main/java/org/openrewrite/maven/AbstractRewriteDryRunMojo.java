@@ -49,8 +49,9 @@ public class AbstractRewriteDryRunMojo extends AbstractRewriteMojo {
     public void execute() throws MojoExecutionException {
         MavenOptsHelper.checkAndLogMissingJvmModuleExports(getLog());
 
-        //Defer execution of rewrite's parsing and recipe execution until the last project.
-        if (!project.getId().equals(mavenSession.getProjects().get(mavenSession.getProjects().size() - 1).getId())) {
+        //If the plugin is configured to run over all projects (at the end of the build) only proceed if the plugin
+        //is being run on the last project.
+        if (!runPerSubmodule && !project.getId().equals(mavenSession.getProjects().get(mavenSession.getProjects().size() - 1).getId())) {
             return;
         }
 
@@ -90,6 +91,8 @@ public class AbstractRewriteDryRunMojo extends AbstractRewriteMojo {
             Path outPath;
             if (reportOutputDirectory != null) {
                 outPath = Paths.get(reportOutputDirectory);
+            } else if (runPerSubmodule) {
+                outPath = Paths.get(project.getBuild().getDirectory()).resolve("rewrite");
             } else {
                 outPath = Paths.get(mavenSession.getTopLevelProject().getBuild().getDirectory()).resolve("rewrite");
             }
