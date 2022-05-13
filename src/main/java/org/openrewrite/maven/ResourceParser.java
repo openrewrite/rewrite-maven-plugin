@@ -80,7 +80,7 @@ public class ResourceParser {
 
             @Override
             public FileVisitResult visitFile(Path file, BasicFileAttributes attrs) {
-                if (attrs.size() != 0 && !attrs.isOther() && !attrs.isSymbolicLink() &&
+                if (!attrs.isOther() && !attrs.isSymbolicLink() &&
                         !alreadyParsed.contains(file) && !isExcluded(file)) {
                     if (isOverSizeThreshold(attrs.size())) {
                         logger.info("Parsing as quark " + file + " as its size + " + attrs.size() / (1024L * 1024L) +
