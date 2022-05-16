@@ -3,40 +3,48 @@ package org.openrewrite.maven;
 import org.apache.maven.plugin.logging.Log;
 import org.openrewrite.ExecutionContext;
 import org.openrewrite.InMemoryExecutionContext;
-import org.openrewrite.Parser;
 import org.openrewrite.SourceFile;
 import org.openrewrite.hcl.HclParser;
 import org.openrewrite.json.JsonParser;
 import org.openrewrite.properties.PropertiesParser;
 import org.openrewrite.protobuf.ProtoParser;
 import org.openrewrite.text.PlainTextParser;
+import org.openrewrite.quark.QuarkParser;
 import org.openrewrite.xml.XmlParser;
 import org.openrewrite.yaml.YamlParser;
 
 import java.io.IOException;
 import java.io.UncheckedIOException;
-import java.nio.file.Files;
-import java.nio.file.Path;
-import java.nio.file.PathMatcher;
-import java.util.ArrayList;
-import java.util.Collection;
-import java.util.List;
+import java.nio.file.*;
+import java.nio.file.attribute.BasicFileAttributes;
+import java.util.*;
 import java.util.function.Consumer;
 import java.util.stream.Collectors;
-import java.util.stream.Stream;
 
 public class ResourceParser {
-    private final Log logger;
-    private final Collection<String> exclusions;
-    private final int sizeThresholdMb;
+    private static final Set<String> DEFAULT_IGNORED_DIRECTORIES = new HashSet<>(Arrays.asList("build", "target", "out", ".gradle", ".idea", ".project", "node_modules", ".git", ".metadata", ".DS_Store"));
 
-    public ResourceParser(Log logger, Collection<String> exclusions, int thresholdMb) {
+    private final Path baseDir;
+    private final Log logger;
+    private final Collection<PathMatcher> exclusions;
+    private final int sizeThresholdMb;
+    private final Collection<Path> excludedDirectories;
+
+    public ResourceParser(Path baseDir, Log logger, Collection<String> exclusions, int sizeThresholdMb, Collection<Path> excludedDirectories) {
+        this.baseDir = baseDir;
         this.logger = logger;
-        this.exclusions = exclusions;
-        sizeThresholdMb = thresholdMb;
+        this.exclusions = exclusionMatchers(baseDir, exclusions);
+        this.sizeThresholdMb = sizeThresholdMb;
+        this.excludedDirectories = excludedDirectories;
     }
 
-    public List<SourceFile> parse(Path baseDir, Path searchDir, Collection<Path> alreadyParsed) {
+    private Collection<PathMatcher> exclusionMatchers(Path baseDir, Collection<String> exclusions) {
+        return exclusions.stream()
+                .map(o -> baseDir.getFileSystem().getPathMatcher("glob:" + o))
+                .collect(Collectors.toList());
+    }
+
+    public List<SourceFile> parse(Path searchDir, Collection<Path> alreadyParsed) {
         List<SourceFile> sourceFiles = new ArrayList<>();
         if (!searchDir.toFile().exists()) {
             return sourceFiles;
@@ -44,68 +52,140 @@ public class ResourceParser {
         Consumer<Throwable> errorConsumer = t -> logger.error("Error parsing", t);
         InMemoryExecutionContext ctx = new InMemoryExecutionContext(errorConsumer);
 
-        sourceFiles.addAll(parseSourceFiles(baseDir, new JsonParser(), searchDir, alreadyParsed, ctx));
-        sourceFiles.addAll(parseSourceFiles(baseDir, new XmlParser(), searchDir, alreadyParsed, ctx));
-        sourceFiles.addAll(parseSourceFiles(baseDir, new YamlParser(), searchDir, alreadyParsed, ctx));
-        sourceFiles.addAll(parseSourceFiles(baseDir, new PropertiesParser(), searchDir, alreadyParsed, ctx));
-        sourceFiles.addAll(parseSourceFiles(baseDir, new ProtoParser(), searchDir, alreadyParsed, ctx));
-        sourceFiles.addAll(parseSourceFiles(baseDir, HclParser.builder().build(), searchDir, alreadyParsed, ctx));
-        sourceFiles.addAll(parseSourceFiles(baseDir,new PlainTextParser(),searchDir, alreadyParsed, ctx));
-
-        return sourceFiles;
-    }
-
-    public <S extends SourceFile> List<S> parseSourceFiles(
-            Path baseDir,
-            Parser<S> parser,
-            Path searchDir,
-            Collection<Path> alreadyParsed,
-            ExecutionContext ctx) {
-        try (Stream<Path> resources = Files.find(searchDir, 16, (path, attrs) -> {
-            if (!parser.accept(path)) {
-                return false;
-            }
-
-            for(Path pathSegment : searchDir.relativize(path)) {
-                String pathStr = pathSegment.toString();
-                if("target".equals(pathStr) || "build".equals(pathStr) || "out".equals(pathStr) ||
-                        ".gradle".equals(pathStr) || "node_modules".equals(pathStr) || ".metadata".equals(pathStr)) {
-                    return false;
-                }
-            }
-
-            if (attrs.isDirectory() || attrs.size() == 0) {
-                return false;
-            }
-
-            if (alreadyParsed.contains(path)) {
-                return false;
-            }
-
-            for (String exclusion : exclusions) {
-                PathMatcher matcher = baseDir.getFileSystem().getPathMatcher("glob:" + exclusion);
-                if (matcher.matches(baseDir.relativize(path))) {
-                    alreadyParsed.add(path);
-                    return false;
-                }
-            }
-
-            long fileSize = attrs.size();
-            if ((sizeThresholdMb > 0 && fileSize > sizeThresholdMb * 1024L * 1024L)) {
-                alreadyParsed.add(path);
-                logger.info("Skipping parsing " + path + " as its size + " + fileSize / (1024L * 1024L) +
-                        "Mb exceeds size threshold " + sizeThresholdMb + "Mb");
-                return false;
-            }
-
-            return true;
-        })) {
-            List<Path> resourceFiles = resources.collect(Collectors.toList());
-            alreadyParsed.addAll(resourceFiles);
-            return parser.parse(resourceFiles, baseDir, ctx);
+        try {
+            sourceFiles.addAll(parseSourceFiles(searchDir, alreadyParsed, ctx));
         } catch (IOException e) {
             logger.error(e.getMessage(), e);
             throw new UncheckedIOException(e);
         }
+
+        return sourceFiles;
+    }
+
+    @SuppressWarnings({"DuplicatedCode", "unchecked"})
+    public <S extends SourceFile> List<S> parseSourceFiles(
+            Path searchDir,
+            Collection<Path> alreadyParsed,
+            ExecutionContext ctx) throws IOException {
+
+        List<Path> resources = new ArrayList<>();
+        List<Path> quarkPaths = new ArrayList<>();
+        Files.walkFileTree(searchDir, Collections.emptySet(), 16, new SimpleFileVisitor<Path>() {
+            @Override
+            public FileVisitResult preVisitDirectory(Path dir, BasicFileAttributes attrs) {
+                if (isExcluded(dir) || isIgnoredDirectory(searchDir, dir) || excludedDirectories.contains(dir)) {
+                    return FileVisitResult.SKIP_SUBTREE;
+                }
+                return FileVisitResult.CONTINUE;
+            }
+
+            @Override
+            public FileVisitResult visitFile(Path file, BasicFileAttributes attrs) {
+                if (!attrs.isOther() && !attrs.isSymbolicLink() &&
+                        !alreadyParsed.contains(file) && !isExcluded(file)) {
+                    if (isOverSizeThreshold(attrs.size())) {
+                        logger.info("Parsing as quark " + file + " as its size + " + attrs.size() / (1024L * 1024L) +
+                                "Mb exceeds size threshold " + sizeThresholdMb + "Mb");
+                        quarkPaths.add(file);
+                    } else {
+                        resources.add(file);
+                    }
+                }
+                return FileVisitResult.CONTINUE;
+            }
+        });
+
+        List<S> sourceFiles = new ArrayList<>(resources.size() + quarkPaths.size());
+
+        JsonParser jsonParser = new JsonParser();
+        List<Path> jsonPaths = new ArrayList<>();
+
+        XmlParser xmlParser = new XmlParser();
+        List<Path> xmlPaths = new ArrayList<>();
+
+        YamlParser yamlParser = new YamlParser();
+        List<Path> yamlPaths = new ArrayList<>();
+
+        PropertiesParser propertiesParser = new PropertiesParser();
+        List<Path> propertiesPaths = new ArrayList<>();
+
+        ProtoParser protoParser = new ProtoParser();
+        List<Path> protoPaths = new ArrayList<>();
+
+        HclParser hclParser = HclParser.builder().build();
+        List<Path> hclPaths = new ArrayList<>();
+      
+        PlainTextParser plainTextParser = new PlainTextParser();
+        List<Path> plainTextPaths = new ArrayList<>();
+
+        QuarkParser quarkParser = new QuarkParser();
+
+        resources.forEach(path -> {
+            if (jsonParser.accept(path)) {
+                jsonPaths.add(path);
+            } else if (xmlParser.accept(path)) {
+                xmlPaths.add(path);
+            } else if (yamlParser.accept(path)) {
+                yamlPaths.add(path);
+            } else if (propertiesParser.accept(path)) {
+                propertiesPaths.add(path);
+            } else if (protoParser.accept(path)) {
+                protoPaths.add(path);
+            } else if (hclParser.accept(path)) {
+                hclPaths.add(path);
+            } else if (plainTextParser.accept(path) {
+                plainTextPaths.add(path);
+            } else if (quarkParser.accept(path)) {
+                quarkPaths.add(path);
+            }
+        });
+
+        sourceFiles.addAll((List<S>) jsonParser.parse(jsonPaths, baseDir, ctx));
+        alreadyParsed.addAll(jsonPaths);
+
+        sourceFiles.addAll((List<S>) xmlParser.parse(xmlPaths, baseDir, ctx));
+        alreadyParsed.addAll(xmlPaths);
+
+        sourceFiles.addAll((List<S>) yamlParser.parse(yamlPaths, baseDir, ctx));
+        alreadyParsed.addAll(yamlPaths);
+
+        sourceFiles.addAll((List<S>) propertiesParser.parse(propertiesPaths, baseDir, ctx));
+        alreadyParsed.addAll(propertiesPaths);
+
+        sourceFiles.addAll((List<S>) protoParser.parse(protoPaths, baseDir, ctx));
+        alreadyParsed.addAll(protoPaths);
+
+        sourceFiles.addAll((List<S>) hclParser.parse(hclPaths, baseDir, ctx));
+        alreadyParsed.addAll(hclPaths);
+
+        sourceFiles.addAll((List<S>) plainTextParser.parse(plainTextPaths, baseDir, ctx));
+        alreadyParsed.addAll(plainTextPaths);
+
+        sourceFiles.addAll((List<S>) quarkParser.parse(quarkPaths, baseDir, ctx));
+        alreadyParsed.addAll(quarkPaths);
+
+        return sourceFiles;
+    }
+
+    private boolean isOverSizeThreshold(long fileSize) {
+        return (sizeThresholdMb > 0 && fileSize > sizeThresholdMb * 1024L * 1024L);
+    }
+
+    private boolean isExcluded(Path path) {
+        for (PathMatcher excluded : exclusions) {
+            if (excluded.matches(baseDir.relativize(path))) {
+                return true;
+            }
+        }
+        return false;
+    }
+
+    private boolean isIgnoredDirectory(Path searchDir, Path path) {
+        for (Path pathSegment : searchDir.relativize(path)) {
+            if (DEFAULT_IGNORED_DIRECTORIES.contains(pathSegment.toString())) {
+                return true;
+            }
+        }
+        return false;
     }
 }

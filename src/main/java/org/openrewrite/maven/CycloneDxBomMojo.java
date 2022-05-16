@@ -14,6 +14,7 @@ import org.openrewrite.xml.tree.Xml;
 import java.io.File;
 import java.nio.file.Files;
 import java.nio.file.Path;
+import java.util.Collections;
 
 /**
  * Generate a CycloneDx bill of materials outlining the project's dependencies, including transitive dependencies.
@@ -31,7 +32,7 @@ public class CycloneDxBomMojo extends AbstractRewriteMojo {
     public void execute() throws MojoExecutionException {
         ExecutionContext ctx = executionContext();
         Path baseDir = getBaseDir();
-        Xml.Document maven = new MavenMojoProjectParser(getLog(), baseDir, pomCacheEnabled, pomCacheDirectory, project, runtime, skipMavenParsing, getExclusions(), sizeThresholdMb, mavenSession, settingsDecrypter).parseMaven(ctx);
+        Xml.Document maven = new MavenMojoProjectParser(getLog(), baseDir, pomCacheEnabled, pomCacheDirectory, runtime, skipMavenParsing, getExclusions(), sizeThresholdMb, mavenSession, settingsDecrypter).parseMaven(project, Collections.emptyList(), ctx);
         if (maven != null) {
             File cycloneDxBom = buildCycloneDxBom(maven);
             projectHelper.attachArtifact(project, "xml", "cyclonedx", cycloneDxBom);

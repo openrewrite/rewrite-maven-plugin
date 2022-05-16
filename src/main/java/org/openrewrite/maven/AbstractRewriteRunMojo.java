@@ -16,6 +16,7 @@
 package org.openrewrite.maven;
 
 import org.apache.maven.plugin.MojoExecutionException;
+import org.apache.maven.plugins.annotations.Parameter;
 import org.openrewrite.Result;
 
 import java.io.BufferedWriter;
@@ -31,9 +32,17 @@ import java.nio.file.Path;
  * Base mojo for rewrite:run and rewrite:runNoFork.
  */
 public class AbstractRewriteRunMojo extends AbstractRewriteMojo {
+
     @Override
     public void execute() throws MojoExecutionException {
         MavenOptsHelper.checkAndLogMissingJvmModuleExports(getLog());
+
+        //If the plugin is configured to run over all projects (at the end of the build) only proceed if the plugin
+        //is being run on the last project.
+        if (!runPerSubmodule && !project.getId().equals(mavenSession.getProjects().get(mavenSession.getProjects().size() - 1).getId())) {
+            return;
+        }
+
         ResultsContainer results = listResults();
 
         if (results.isNotEmpty()) {

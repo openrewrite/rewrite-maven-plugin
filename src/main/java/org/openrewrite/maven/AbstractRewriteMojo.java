@@ -172,8 +172,20 @@ public abstract class AbstractRewriteMojo extends ConfigurableRewriteMojo {
                 }
             }
             ExecutionContext ctx = executionContext();
-            MavenMojoProjectParser projectParser = new MavenMojoProjectParser(getLog(), baseDir, pomCacheEnabled, pomCacheDirectory, project, runtime, skipMavenParsing, getExclusions(), sizeThresholdMb, mavenSession, settingsDecrypter);
-            List<SourceFile> sourceFiles = projectParser.listSourceFiles(styles, ctx);
+
+            //Parse and collect source files from each project in the maven session.
+            MavenMojoProjectParser projectParser = new MavenMojoProjectParser(getLog(), baseDir, pomCacheEnabled, pomCacheDirectory, runtime, skipMavenParsing, getExclusions(), sizeThresholdMb, mavenSession, settingsDecrypter);
+
+            List<SourceFile> sourceFiles = new ArrayList<>();
+            if (runPerSubmodule) {
+                //If running per submodule, parse the source files for only the current project.
+                sourceFiles.addAll(projectParser.listSourceFiles(project, styles, ctx));
+            } else {
+                //If running across all project, iterate and parse source files from each project
+                for (MavenProject projectIndex : mavenSession.getProjects()) {
+                    sourceFiles.addAll(projectParser.listSourceFiles(projectIndex, styles, ctx));
+                }
+            }
 
             getLog().info("Running recipe(s)...");
             List<Result> results = recipe.run(sourceFiles, ctx).stream()
