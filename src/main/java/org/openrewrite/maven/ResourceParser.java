@@ -133,7 +133,7 @@ public class ResourceParser {
                 protoPaths.add(path);
             } else if (hclParser.accept(path)) {
                 hclPaths.add(path);
-            } else if (plainTextParser.accept(path) {
+            } else if (plainTextParser.accept(path)) {
                 plainTextPaths.add(path);
             } else if (quarkParser.accept(path)) {
                 quarkPaths.add(path);
