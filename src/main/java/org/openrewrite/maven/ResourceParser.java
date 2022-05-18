@@ -8,6 +8,7 @@ import org.openrewrite.hcl.HclParser;
 import org.openrewrite.json.JsonParser;
 import org.openrewrite.properties.PropertiesParser;
 import org.openrewrite.protobuf.ProtoParser;
+import org.openrewrite.text.PlainTextParser;
 import org.openrewrite.quark.QuarkParser;
 import org.openrewrite.xml.XmlParser;
 import org.openrewrite.yaml.YamlParser;
@@ -69,6 +70,7 @@ public class ResourceParser {
 
         List<Path> resources = new ArrayList<>();
         List<Path> quarkPaths = new ArrayList<>();
+        List<Path> plainTextPaths = new ArrayList<>();
         Files.walkFileTree(searchDir, Collections.emptySet(), 16, new SimpleFileVisitor<Path>() {
             @Override
             public FileVisitResult preVisitDirectory(Path dir, BasicFileAttributes attrs) {
@@ -86,6 +88,8 @@ public class ResourceParser {
                         logger.info("Parsing as quark " + file + " as its size + " + attrs.size() / (1024L * 1024L) +
                                 "Mb exceeds size threshold " + sizeThresholdMb + "Mb");
                         quarkPaths.add(file);
+                    } else if (isParsedAsPlainText(file)) {
+                        plainTextPaths.add(file);
                     } else {
                         resources.add(file);
                     }
@@ -113,6 +117,8 @@ public class ResourceParser {
 
         HclParser hclParser = HclParser.builder().build();
         List<Path> hclPaths = new ArrayList<>();
+      
+        PlainTextParser plainTextParser = new PlainTextParser();
 
         QuarkParser quarkParser = new QuarkParser();
 
@@ -152,6 +158,9 @@ public class ResourceParser {
         sourceFiles.addAll((List<S>) hclParser.parse(hclPaths, baseDir, ctx));
         alreadyParsed.addAll(hclPaths);
 
+        sourceFiles.addAll((List<S>) plainTextParser.parse(plainTextPaths, baseDir, ctx));
+        alreadyParsed.addAll(plainTextPaths);
+
         sourceFiles.addAll((List<S>) quarkParser.parse(quarkPaths, baseDir, ctx));
         alreadyParsed.addAll(quarkPaths);
 
@@ -169,6 +178,16 @@ public class ResourceParser {
             }
         }
         return false;
+    }
+
+    private boolean isParsedAsPlainText(Path path) {
+        String pathString = path.toString();
+
+        return  pathString.contains("/META-INF/services") ||
+                pathString.endsWith(".gitignore")||
+                pathString.endsWith(".gitattributes")||
+                pathString.endsWith(".java-version")||
+                pathString.endsWith(".sdkmanrc");
     }
 
     private boolean isIgnoredDirectory(Path searchDir, Path path) {
