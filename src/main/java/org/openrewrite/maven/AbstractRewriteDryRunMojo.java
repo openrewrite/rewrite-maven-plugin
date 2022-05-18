@@ -21,7 +21,6 @@ import org.openrewrite.Result;
 import org.openrewrite.internal.lang.Nullable;
 
 import java.io.BufferedWriter;
-import java.io.File;
 import java.io.IOException;
 import java.nio.file.Files;
 import java.nio.file.Path;
@@ -47,7 +46,6 @@ public class AbstractRewriteDryRunMojo extends AbstractRewriteMojo {
 
     @Override
     public void execute() throws MojoExecutionException {
-        MavenOptsHelper.checkAndLogMissingJvmModuleExports(getLog());
 
         //If the plugin is configured to run over all projects (at the end of the build) only proceed if the plugin
         //is being run on the last project.
