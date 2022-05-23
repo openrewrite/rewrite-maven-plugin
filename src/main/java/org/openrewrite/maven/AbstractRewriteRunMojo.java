@@ -16,8 +16,8 @@
 package org.openrewrite.maven;
 
 import org.apache.maven.plugin.MojoExecutionException;
-import org.apache.maven.plugins.annotations.Parameter;
 import org.openrewrite.Result;
+import org.openrewrite.quark.Quark;
 
 import java.io.BufferedWriter;
 import java.io.File;
@@ -99,26 +99,31 @@ public class AbstractRewriteRunMojo extends AbstractRewriteMojo {
                     assert result.getBefore() != null;
                     Path originalLocation = results.getProjectRoot().resolve(result.getBefore().getSourcePath());
                     File originalParentDir = originalLocation.toFile().getParentFile();
-                    boolean deleteSucceeded = originalLocation.toFile().delete();
-                    if (!deleteSucceeded) {
-                        throw new IOException("Unable to delete file " + originalLocation.toAbsolutePath());
-                    }
-                    assert result.getAfter() != null;
-                    // Ensure directories exist in case something was moved into a hitherto non-existent package
-                    Path afterLocation = results.getProjectRoot().resolve(result.getAfter().getSourcePath());
-                    File afterParentDir = afterLocation.toFile().getParentFile();
-                    // Rename the directory if its name case has been changed, e.g. camel case to lower case.
-                    if (afterParentDir.exists() && afterParentDir.getAbsolutePath().equalsIgnoreCase((originalParentDir.getAbsolutePath()))
-                        && !afterParentDir.getAbsolutePath().equals(originalParentDir.getAbsolutePath())) {
-                        if (!originalParentDir.renameTo(afterParentDir)) {
-                            throw new RuntimeException("Unable to rename directory from " + originalParentDir.getAbsolutePath() + " To: " + afterParentDir.getAbsolutePath());
+                    // Quarks are empty source files, the contents cannot be modified, so they can just be moved.
+                    if (result.getAfter() instanceof Quark) {
+                        Files.move(originalLocation, result.getAfter().getSourcePath());
+                    } else {
+                        boolean deleteSucceeded = originalLocation.toFile().delete();
+                        if (!deleteSucceeded) {
+                            throw new IOException("Unable to delete file " + originalLocation.toAbsolutePath());
                         }
-                    } else if (!afterParentDir.exists() && !afterParentDir.mkdirs()) {
-                        throw new RuntimeException("Unable to create directory " + afterParentDir.getAbsolutePath());
-                    }
-                    try (BufferedWriter sourceFileWriter = Files.newBufferedWriter(afterLocation)) {
-                        Charset charset = result.getAfter().getCharset();
-                        sourceFileWriter.write(new String(result.getAfter().printAll().getBytes(charset), charset));
+                        assert result.getAfter() != null;
+                        // Ensure directories exist in case something was moved into a hitherto non-existent package
+                        Path afterLocation = results.getProjectRoot().resolve(result.getAfter().getSourcePath());
+                        File afterParentDir = afterLocation.toFile().getParentFile();
+                        // Rename the directory if its name case has been changed, e.g. camel case to lower case.
+                        if (afterParentDir.exists() && afterParentDir.getAbsolutePath().equalsIgnoreCase((originalParentDir.getAbsolutePath()))
+                                && !afterParentDir.getAbsolutePath().equals(originalParentDir.getAbsolutePath())) {
+                            if (!originalParentDir.renameTo(afterParentDir)) {
+                                throw new RuntimeException("Unable to rename directory from " + originalParentDir.getAbsolutePath() + " To: " + afterParentDir.getAbsolutePath());
+                            }
+                        } else if (!afterParentDir.exists() && !afterParentDir.mkdirs()) {
+                            throw new RuntimeException("Unable to create directory " + afterParentDir.getAbsolutePath());
+                        }
+                        try (BufferedWriter sourceFileWriter = Files.newBufferedWriter(afterLocation)) {
+                            Charset charset = result.getAfter().getCharset();
+                            sourceFileWriter.write(new String(result.getAfter().printAll().getBytes(charset), charset));
+                        }
                     }
                 }
                 for (Result result : results.refactoredInPlace) {
