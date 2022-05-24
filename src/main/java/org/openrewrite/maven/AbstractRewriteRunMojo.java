@@ -23,6 +23,7 @@ import java.io.BufferedWriter;
 import java.io.File;
 import java.io.IOException;
 import java.nio.charset.Charset;
+import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
 import java.nio.file.Path;
 
@@ -80,9 +81,9 @@ public class AbstractRewriteRunMojo extends AbstractRewriteMojo {
             try {
                 for (Result result : results.generated) {
                     assert result.getAfter() != null;
+                    Charset charset = result.getAfter().getCharset() == null ? StandardCharsets.UTF_8 : result.getAfter().getCharset();
                     try (BufferedWriter sourceFileWriter = Files.newBufferedWriter(
-                            results.getProjectRoot().resolve(result.getAfter().getSourcePath()))) {
-                        Charset charset = result.getAfter().getCharset();
+                            results.getProjectRoot().resolve(result.getAfter().getSourcePath()), charset)) {
                         sourceFileWriter.write(new String(result.getAfter().printAll().getBytes(charset), charset));
                     }
                 }
@@ -120,18 +121,18 @@ public class AbstractRewriteRunMojo extends AbstractRewriteMojo {
                         } else if (!afterParentDir.exists() && !afterParentDir.mkdirs()) {
                             throw new RuntimeException("Unable to create directory " + afterParentDir.getAbsolutePath());
                         }
-                        try (BufferedWriter sourceFileWriter = Files.newBufferedWriter(afterLocation)) {
-                            Charset charset = result.getAfter().getCharset();
+                        Charset charset = result.getAfter().getCharset() == null ? StandardCharsets.UTF_8 : result.getAfter().getCharset();
+                        try (BufferedWriter sourceFileWriter = Files.newBufferedWriter(afterLocation, charset)) {
                             sourceFileWriter.write(new String(result.getAfter().printAll().getBytes(charset), charset));
                         }
                     }
                 }
                 for (Result result : results.refactoredInPlace) {
                     assert result.getBefore() != null;
+                    assert result.getAfter() != null;
+                    Charset charset = result.getAfter().getCharset() == null ? StandardCharsets.UTF_8 : result.getAfter().getCharset();
                     try (BufferedWriter sourceFileWriter = Files.newBufferedWriter(
-                            results.getProjectRoot().resolve(result.getBefore().getSourcePath()))) {
-                        assert result.getAfter() != null;
-                        Charset charset = result.getAfter().getCharset();
+                            results.getProjectRoot().resolve(result.getBefore().getSourcePath()), charset)) {
                         sourceFileWriter.write(new String(result.getAfter().printAll().getBytes(charset), charset));
                     }
                 }

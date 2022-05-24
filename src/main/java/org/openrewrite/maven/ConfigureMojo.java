@@ -13,6 +13,7 @@ import javax.annotation.Nullable;
 import java.io.BufferedWriter;
 import java.io.IOException;
 import java.nio.charset.Charset;
+import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.util.Arrays;
@@ -76,9 +77,9 @@ public class ConfigureMojo extends AbstractRewriteMojo {
 
         assert result.getBefore() != null;
         assert result.getAfter() != null;
+        Charset charset = result.getAfter().getCharset() == null ? StandardCharsets.UTF_8 : result.getAfter().getCharset();
         try (BufferedWriter sourceFileWriter = Files.newBufferedWriter(
-                baseDir.resolve(result.getBefore().getSourcePath()))) {
-            Charset charset = result.getAfter().getCharset();
+                baseDir.resolve(result.getBefore().getSourcePath()), charset)) {
             sourceFileWriter.write(new String(result.getAfter().printAll().getBytes(charset), charset));
         } catch (IOException e) {
             throw new RuntimeException(e);
