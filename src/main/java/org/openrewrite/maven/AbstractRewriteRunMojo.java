@@ -16,12 +16,14 @@
 package org.openrewrite.maven;
 
 import org.apache.maven.plugin.MojoExecutionException;
+import org.openrewrite.FileAttributes;
 import org.openrewrite.Result;
+import org.openrewrite.binary.Binary;
+import org.openrewrite.ipc.http.HttpUrlConnectionSender;
 import org.openrewrite.quark.Quark;
+import org.openrewrite.remote.Remote;
 
-import java.io.BufferedWriter;
-import java.io.File;
-import java.io.IOException;
+import java.io.*;
 import java.nio.charset.Charset;
 import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
@@ -81,11 +83,7 @@ public class AbstractRewriteRunMojo extends AbstractRewriteMojo {
             try {
                 for (Result result : results.generated) {
                     assert result.getAfter() != null;
-                    Charset charset = result.getAfter().getCharset() == null ? StandardCharsets.UTF_8 : result.getAfter().getCharset();
-                    try (BufferedWriter sourceFileWriter = Files.newBufferedWriter(
-                            results.getProjectRoot().resolve(result.getAfter().getSourcePath()), charset)) {
-                        sourceFileWriter.write(new String(result.getAfter().printAll().getBytes(charset), charset));
-                    }
+                    writeAfter(results.getProjectRoot(), result);
                 }
                 for (Result result : results.deleted) {
                     assert result.getBefore() != null;
@@ -121,23 +119,67 @@ public class AbstractRewriteRunMojo extends AbstractRewriteMojo {
                         } else if (!afterParentDir.exists() && !afterParentDir.mkdirs()) {
                             throw new RuntimeException("Unable to create directory " + afterParentDir.getAbsolutePath());
                         }
-                        Charset charset = result.getAfter().getCharset() == null ? StandardCharsets.UTF_8 : result.getAfter().getCharset();
-                        try (BufferedWriter sourceFileWriter = Files.newBufferedWriter(afterLocation, charset)) {
-                            sourceFileWriter.write(new String(result.getAfter().printAll().getBytes(charset), charset));
-                        }
+                        writeAfter(results.getProjectRoot(), result);
                     }
                 }
                 for (Result result : results.refactoredInPlace) {
                     assert result.getBefore() != null;
                     assert result.getAfter() != null;
-                    Charset charset = result.getAfter().getCharset() == null ? StandardCharsets.UTF_8 : result.getAfter().getCharset();
-                    try (BufferedWriter sourceFileWriter = Files.newBufferedWriter(
-                            results.getProjectRoot().resolve(result.getBefore().getSourcePath()), charset)) {
-                        sourceFileWriter.write(new String(result.getAfter().printAll().getBytes(charset), charset));
-                    }
+                    writeAfter(results.getProjectRoot(), result);
                 }
             } catch (IOException e) {
                 throw new RuntimeException("Unable to rewrite source files", e);
+            }
+        }
+    }
+
+    private static void writeAfter(Path root, Result result) {
+        assert result.getAfter() != null;
+        Path targetPath = root.resolve(result.getAfter().getSourcePath());
+        File targetFile = targetPath.toFile();
+        if(!targetFile.getParentFile().exists()) {
+            //noinspection ResultOfMethodCallIgnored
+            targetFile.getParentFile().mkdirs();
+        }
+        if(result.getAfter() instanceof Binary) {
+            try (FileOutputStream sourceFileWriter = new FileOutputStream(targetFile)) {
+                sourceFileWriter.write(((Binary) result.getAfter()).getBytes());
+            } catch (IOException e) {
+                throw new UncheckedIOException("Unable to rewrite source files", e);
+            }
+        } else if (result.getAfter() instanceof Remote) {
+            Remote remote = (Remote) result.getAfter();
+            try (FileOutputStream sourceFileWriter = new FileOutputStream(targetFile)) {
+                InputStream source = remote.getInputStream(new HttpUrlConnectionSender());
+                byte[] buf = new byte[4096];
+                int length;
+                while ((length = source.read(buf)) > 0) {
+                    sourceFileWriter.write(buf, 0, length);
+                }
+            } catch (IOException e) {
+                throw new UncheckedIOException("Unable to rewrite source files", e);
+            }
+        } else {
+            Charset charset = result.getAfter().getCharset() == null ? StandardCharsets.UTF_8 : result.getAfter().getCharset();
+            try (BufferedWriter sourceFileWriter = Files.newBufferedWriter(targetPath, charset)) {
+                sourceFileWriter.write(new String(result.getAfter().printAll().getBytes(charset), charset));
+            } catch (IOException e) {
+                throw new UncheckedIOException("Unable to rewrite source files", e);
+            }
+        }
+        if(result.getAfter().getFileAttributes() != null) {
+            FileAttributes fileAttributes = result.getAfter().getFileAttributes();
+            if(targetFile.canRead() != fileAttributes.isReadable()) {
+                //noinspection ResultOfMethodCallIgnored
+                targetFile.setReadable(fileAttributes.isReadable());
+            }
+            if(targetFile.canWrite() != fileAttributes.isWritable()) {
+                //noinspection ResultOfMethodCallIgnored
+                targetFile.setWritable(fileAttributes.isWritable());
+            }
+            if(targetFile.canExecute() != fileAttributes.isExecutable()) {
+                //noinspection ResultOfMethodCallIgnored
+                targetFile.setExecutable(fileAttributes.isExecutable());
             }
         }
     }
