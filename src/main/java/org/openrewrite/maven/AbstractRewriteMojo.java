@@ -101,10 +101,13 @@ public abstract class AbstractRewriteMojo extends ConfigurableRewriteMojo {
         Object maybeMultiModuleDir = System.getProperties().get("maven.multiModuleProjectDirectory");
         try {
             if (maybeMultiModuleDir instanceof String) {
+                getLog().debug("Base Directory [" + maybeMultiModuleDir +"] calculated from property.");
                 return Paths.get((String) maybeMultiModuleDir).toRealPath();
             } else {
                 // This path should only be taken by tests using AbstractMojoTestCase
-                return project.getBasedir().toPath().toRealPath();
+                Path baseDir = project.getBasedir().toPath().toRealPath();
+                getLog().debug("Base Directory [" + baseDir +"] calculated from project.");
+                return baseDir;
             }
         } catch (IOException e) {
             throw new RuntimeException(e);
@@ -248,7 +251,7 @@ public abstract class AbstractRewriteMojo extends ConfigurableRewriteMojo {
                     generated.add(result);
                 } else if (result.getBefore() != null && result.getAfter() == null) {
                     deleted.add(result);
-                } else if (result.getBefore() != null && !result.getBefore().getSourcePath().equals(result.getAfter().getSourcePath())) {
+                } else if (result.getBefore() != null && result.getAfter() != null && !result.getBefore().getSourcePath().equals(result.getAfter().getSourcePath())) {
                     moved.add(result);
                 } else {
                     refactoredInPlace.add(result);

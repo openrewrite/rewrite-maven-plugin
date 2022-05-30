@@ -287,9 +287,31 @@ public class MavenMojoProjectParser {
                 .build()
                 .parse(allPoms, baseDir, ctx);
 
+        if (logger.isDebugEnabled()) {
+            logDebug(mavenProject, "Base Directory : '" + baseDir + "'");
+            if (allPoms.isEmpty()) {
+                logDebug(mavenProject, "There were no collected pom paths.");
+            } else {
+                for (Path path : allPoms) {
+                    logDebug(mavenProject, "  Collected Pom : '" + path + "'");
+                }
+            }
+            if (mavens.isEmpty()) {
+                logDebug(mavenProject, "There were no parsed maven source files.");
+            } else {
+                for (Xml.Document source : mavens) {
+                    logDebug(mavenProject, "  Maven Source : '" + source.getSourcePath() + "'");
+                }
+            }
+        }
+
         Xml.Document maven = mavens.stream()
                 .filter(o -> mavenProject.getFile().toPath().equals(baseDir.resolve(o.getSourcePath())))
-                .collect(toList()).get(0);
+                .findFirst().orElse(null);
+        if (maven == null) {
+            logError(mavenProject, "Parse resulted in no Maven source files.");
+            return null;
+        }
 
         for (Marker marker : projectProvenance) {
             maven = maven.withMarkers(maven.getMarkers().addIfAbsent(marker));
@@ -485,6 +507,10 @@ public class MavenMojoProjectParser {
             logger.debug("Unable to determine git provenance", e);
         }
         return null;
+    }
+
+    private void logError(MavenProject mavenProject, String message) {
+        logger.error("Project [" + mavenProject.getName() + "] " + message);
     }
 
     private void logInfo(MavenProject mavenProject, String message) {
