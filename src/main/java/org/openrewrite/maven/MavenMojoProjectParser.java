@@ -300,7 +300,7 @@ public class MavenMojoProjectParser {
                 logDebug(mavenProject, "There were no parsed maven source files.");
             } else {
                 for (Xml.Document source : mavens) {
-                    logDebug(mavenProject, "  Maven Source : '" + source.getSourcePath() + "'");
+                    logDebug(mavenProject, "  Maven Source : '" + baseDir.resolve(source.getSourcePath()) + "'");
                 }
             }
         }
@@ -309,7 +309,7 @@ public class MavenMojoProjectParser {
                 .filter(o -> mavenProject.getFile().toPath().equals(baseDir.resolve(o.getSourcePath())))
                 .findFirst().orElse(null);
         if (maven == null) {
-            logError(mavenProject, "Parse resulted in no Maven source files.");
+            logError(mavenProject, "Parse resulted in no Maven source files. Maven Project File '" + mavenProject.getFile().toPath() + "'");
             return null;
         }
 
