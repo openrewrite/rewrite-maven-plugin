@@ -41,6 +41,7 @@ import java.io.File;
 import java.io.IOException;
 import java.nio.file.Files;
 import java.nio.file.Path;
+import java.nio.file.PathMatcher;
 import java.nio.file.Paths;
 import java.util.*;
 import java.util.function.UnaryOperator;
@@ -126,7 +127,19 @@ public class MavenMojoProjectParser {
 
         sourceFiles.addAll(processMainSources(mavenProject, javaParser, rp, projectProvenance, alreadyParsed, styles, ctx));
         sourceFiles.addAll(processTestSources(mavenProject, javaParser, rp, projectProvenance, alreadyParsed, styles, ctx));
-
+        Collection<PathMatcher> exclusionMatchers = exclusions.stream()
+                .map(pattern -> baseDir.getFileSystem().getPathMatcher("glob:" + pattern))
+                .collect(toList());
+        sourceFiles = ListUtils.map(sourceFiles, sourceFile -> {
+            if(sourceFile instanceof J.CompilationUnit) {
+                for(PathMatcher excluded : exclusionMatchers) {
+                    if(excluded.matches(sourceFile.getSourcePath())) {
+                        return null;
+                    }
+                }
+            }
+            return sourceFile;
+        });
         //Collect any additional files that were not parsed above.
         List<SourceFile> parsedResourceFiles = ListUtils.map(
                 rp.parse(mavenProject.getBasedir().toPath(), alreadyParsed),
