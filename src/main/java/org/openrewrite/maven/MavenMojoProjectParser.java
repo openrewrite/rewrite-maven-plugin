@@ -511,6 +511,13 @@ public class MavenMojoProjectParser {
         }
     }
 
+    /**
+     * Used to reset the type cache.
+     */
+    public void resetTypeCache() {
+        typeCache.clear();
+    }
+
     @Nullable
     private GitProvenance gitProvenance(Path baseDir, @Nullable BuildEnvironment buildEnvironment) {
         try {
