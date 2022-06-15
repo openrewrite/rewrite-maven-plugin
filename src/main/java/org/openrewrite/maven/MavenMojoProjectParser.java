@@ -474,7 +474,7 @@ public class MavenMojoProjectParser {
     }
 
     private List<J.CompilationUnit> maybeAutodetectStyles(List<J.CompilationUnit> sourceFiles, @Nullable Iterable<NamedStyles> styles) {
-        if (styles != null) {
+        if (styles != null && styles.spliterator().getExactSizeIfKnown() > 0) {
             return sourceFiles;
         }
         Autodetect autodetect = Autodetect.detect(sourceFiles);
