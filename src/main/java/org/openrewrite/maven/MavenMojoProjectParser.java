@@ -402,6 +402,8 @@ public class MavenMojoProjectParser {
     private MavenSettings buildSettings() {
         MavenExecutionRequest mer = mavenSession.getRequest();
 
+        final String localRepositoryUriString = mer.getLocalRepositoryPath().toURI().toString();
+
         MavenSettings.Profiles profiles = new MavenSettings.Profiles();
         profiles.setProfiles(
                 mer.getProfiles().stream().map(p -> new MavenSettings.Profile(
@@ -443,7 +445,7 @@ public class MavenMojoProjectParser {
             );
         }).collect(toList()));
 
-        return new MavenSettings(profiles, activeProfiles, mirrors, servers);
+        return new MavenSettings(localRepositoryUriString, profiles, activeProfiles, mirrors, servers);
     }
 
     @Nullable
