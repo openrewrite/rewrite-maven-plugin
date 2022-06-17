@@ -443,7 +443,7 @@ public class MavenMojoProjectParser {
             );
         }).collect(toList()));
 
-        return new MavenSettings(profiles, activeProfiles, mirrors, servers);
+        return new MavenSettings(mer.getLocalRepositoryPath().toString(), profiles, activeProfiles, mirrors, servers);
     }
 
     @Nullable
