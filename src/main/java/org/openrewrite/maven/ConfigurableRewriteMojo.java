@@ -5,6 +5,7 @@ import org.apache.maven.plugins.annotations.Parameter;
 import org.openrewrite.internal.lang.Nullable;
 
 import java.util.*;
+import java.util.stream.Collectors;
 
 @SuppressWarnings("FieldMayBeFinal")
 public abstract class ConfigurableRewriteMojo extends AbstractMojo {
@@ -110,7 +111,12 @@ public abstract class ConfigurableRewriteMojo extends AbstractMojo {
                 if (computedRecipes == null) {
                     Set<String> res = toLinkedHashSet(rewriteActiveRecipes);
                     if (res.isEmpty()) {
-                        res.addAll(activeRecipes);
+                        res.addAll(
+                            activeRecipes
+                                .stream()
+                                .filter(Objects::nonNull)
+                                .collect(Collectors.toList())
+                        );
                     }
                     computedRecipes = Collections.unmodifiableSet(res);
                 }
