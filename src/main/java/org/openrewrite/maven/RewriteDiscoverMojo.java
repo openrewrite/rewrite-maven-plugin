@@ -21,7 +21,7 @@ import java.util.HashSet;
  * {@code ./mvnw rewrite:discover -Ddetail=true -Drecipe=<recipe-name>} to display recipe configuration details. For example:<br>
  * {@code ./mvnw rewrite:discover -Ddetail=true -Drecipe=org.openrewrite.java.format.AutoFormat}
  */
-@Mojo(name = "discover", threadSafe = true)
+@Mojo(name = "discover", threadSafe = true, requiresProject = false, aggregator = true)
 @SuppressWarnings("unused")
 public class RewriteDiscoverMojo extends AbstractRewriteMojo {
 

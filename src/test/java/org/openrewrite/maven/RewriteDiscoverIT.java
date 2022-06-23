@@ -78,4 +78,16 @@ public class RewriteDiscoverIT {
         assertThat(result).out().warn().isEmpty();
     }
 
+    @MavenTest
+    void rewrite_discover_multi_module(MavenExecutionResult result) {
+        assertThat(result)
+            .isSuccessful()
+            .out()
+            .info()
+            .anySatisfy(line -> assertThat(line).matches("^a.*SKIPPED$"))
+            .anySatisfy(line -> assertThat(line).matches("^b.*SKIPPED$"));
+
+        assertThat(result).out().warn().isEmpty();
+    }
+
 }
