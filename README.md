@@ -135,7 +135,7 @@ If you're looking for more information on the output from a test, try checking t
 
 ### Using this plugin against itself
 
-The `pom.xml` has the a `profile` for using the `rewrite-maven-plugin` applied to itself (it's a helpful plugin, why not use it to help develop itself?). This needs to be in it's own profile to prevent errors during deployment.
+The `pom.xml` file contains a `bootstrap` profile to use the `rewrite-maven-plugin` against itself (it's a helpful plugin, why not use it to help develop itself?).
 
 ```sh
 ./mvnw -Pbootstrap rewrite:dryRun
