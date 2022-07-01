@@ -101,12 +101,12 @@ public abstract class AbstractRewriteMojo extends ConfigurableRewriteMojo {
         Object maybeMultiModuleDir = System.getProperties().get("maven.multiModuleProjectDirectory");
         try {
             if (maybeMultiModuleDir instanceof String) {
-                getLog().debug("Base Directory [" + maybeMultiModuleDir +"] calculated from property.");
+                getLog().debug("Base Directory [" + maybeMultiModuleDir + "] calculated from property.");
                 return Paths.get((String) maybeMultiModuleDir).toRealPath();
             } else {
                 // This path should only be taken by tests using AbstractMojoTestCase
                 Path baseDir = project.getBasedir().toPath().toRealPath();
-                getLog().debug("Base Directory [" + baseDir +"] calculated from project.");
+                getLog().debug("Base Directory [" + baseDir + "] calculated from project.");
                 return baseDir;
             }
         } catch (IOException e) {
