@@ -112,10 +112,10 @@ public abstract class ConfigurableRewriteMojo extends AbstractMojo {
                     Set<String> res = toLinkedHashSet(rewriteActiveRecipes);
                     if (res.isEmpty()) {
                         res.addAll(
-                            activeRecipes
-                                .stream()
-                                .filter(Objects::nonNull)
-                                .collect(Collectors.toList())
+                                activeRecipes
+                                        .stream()
+                                        .filter(Objects::nonNull)
+                                        .collect(Collectors.toList())
                         );
                     }
                     computedRecipes = Collections.unmodifiableSet(res);
@@ -131,7 +131,7 @@ public abstract class ConfigurableRewriteMojo extends AbstractMojo {
             synchronized (this) {
                 if (computedStyles == null) {
                     Set<String> res = toSet(rewriteActiveStyles);
-                    if (res.isEmpty()){
+                    if (res.isEmpty()) {
                         res.addAll(activeStyles);
                     }
                     computedStyles = Collections.unmodifiableSet(res);
