@@ -104,14 +104,14 @@ public class MavenMojoProjectParser {
     }
 
     public List<SourceFile> listSourceFiles(MavenProject mavenProject, Iterable<NamedStyles> styles,
-                                            ExecutionContext ctx) throws DependencyResolutionRequiredException, MojoExecutionException {
+            ExecutionContext ctx) throws DependencyResolutionRequiredException, MojoExecutionException {
 
         List<Marker> projectProvenance = generateProvenance(mavenProject);
         List<SourceFile> sourceFiles = new ArrayList<>();
         Set<Path> alreadyParsed = new HashSet<>();
 
         // First parse the maven project.
-        logInfo(mavenProject,"Resolving Poms...");
+        logInfo(mavenProject, "Resolving Poms...");
         Xml.Document maven = parseMaven(mavenProject, projectProvenance, ctx);
         if (maven != null) {
             sourceFiles.add(maven);
@@ -131,9 +131,9 @@ public class MavenMojoProjectParser {
                 .map(pattern -> baseDir.getFileSystem().getPathMatcher("glob:" + pattern))
                 .collect(toList());
         sourceFiles = ListUtils.map(sourceFiles, sourceFile -> {
-            if(sourceFile instanceof J.CompilationUnit) {
-                for(PathMatcher excluded : exclusionMatchers) {
-                    if(excluded.matches(sourceFile.getSourcePath())) {
+            if (sourceFile instanceof J.CompilationUnit) {
+                for (PathMatcher excluded : exclusionMatchers) {
+                    if (excluded.matches(sourceFile.getSourcePath())) {
                         return null;
                     }
                 }
@@ -169,15 +169,15 @@ public class MavenMojoProjectParser {
 
         BuildEnvironment buildEnvironment = BuildEnvironment.build(System::getenv);
         return Stream.of(
-                        buildEnvironment,
-                        gitProvenance(baseDir, buildEnvironment),
-                        buildTool,
-                        new JavaVersion(randomId(), javaRuntimeVersion, javaVendor, sourceCompatibility, targetCompatibility),
-                        new JavaProject(randomId(), mavenProject.getName(), new JavaProject.Publication(
-                                mavenProject.getGroupId(),
-                                mavenProject.getArtifactId(),
-                                mavenProject.getVersion()
-                        )))
+                buildEnvironment,
+                gitProvenance(baseDir, buildEnvironment),
+                buildTool,
+                new JavaVersion(randomId(), javaRuntimeVersion, javaVendor, sourceCompatibility, targetCompatibility),
+                new JavaProject(randomId(), mavenProject.getName(), new JavaProject.Publication(
+                        mavenProject.getGroupId(),
+                        mavenProject.getArtifactId(),
+                        mavenProject.getVersion()
+                )))
                 .filter(Objects::nonNull)
                 .collect(toList());
     }
@@ -213,7 +213,7 @@ public class MavenMojoProjectParser {
         // java source.
         List<J.CompilationUnit> parsedJava = ListUtils.map(maybeAutodetectStyles(javaParser.parse(mainJavaSources, baseDir, ctx), styles),
                 addProvenance(baseDir, projectProvenance, generatedSourcePaths));
-        logDebug(mavenProject,"Parsed " + parsedJava.size() + " java source files in main scope.");
+        logDebug(mavenProject, "Parsed " + parsedJava.size() + " java source files in main scope.");
 
         //Filter out any generated source files from the returned list, as we do not want to apply the recipe to the
         //generated files.
@@ -225,11 +225,12 @@ public class MavenMojoProjectParser {
                 resourceParser.parse(mavenProject.getBasedir().toPath().resolve("src/main/resources"), alreadyParsed),
                 addProvenance(baseDir, ListUtils.concat(projectProvenance, javaParser.getSourceSet(ctx)), null));
 
-        logDebug(mavenProject,"Parsed " + parsedResourceFiles.size() + " resource files in main scope.");
+        logDebug(mavenProject, "Parsed " + parsedResourceFiles.size() + " resource files in main scope.");
         // Any resources parsed from "main/resources" should also have the main source set added to them.
         sourceFiles.addAll(parsedResourceFiles);
         return sourceFiles.isEmpty() ? Collections.emptyList() : sourceFiles;
     }
+
     private List<SourceFile> processTestSources(
             MavenProject mavenProject,
             JavaParser javaParser,
@@ -256,7 +257,7 @@ public class MavenMojoProjectParser {
                 maybeAutodetectStyles(javaParser.parse(testJavaSources, baseDir, ctx), styles),
                 addProvenance(baseDir, projectProvenance, null));
 
-        logDebug(mavenProject,"Parsed " + parsedJava.size() + " java source files in test scope.");
+        logDebug(mavenProject, "Parsed " + parsedJava.size() + " java source files in test scope.");
         List<SourceFile> sourceFiles = new ArrayList<>(parsedJava);
 
         // Any resources parsed from "test/resources" should also have the test source set added to them.
@@ -264,7 +265,7 @@ public class MavenMojoProjectParser {
                 resourceParser.parse(mavenProject.getBasedir().toPath().resolve("src/test/resources"), alreadyParsed),
                 addProvenance(baseDir, ListUtils.concat(projectProvenance, javaParser.getSourceSet(ctx)), null)
         );
-        logDebug(mavenProject,"Parsed " + parsedResourceFiles.size() + " resource files in test scope.");
+        logDebug(mavenProject, "Parsed " + parsedResourceFiles.size() + " resource files in test scope.");
         sourceFiles.addAll(parsedResourceFiles);
         return sourceFiles.isEmpty() ? Collections.emptyList() : sourceFiles;
     }
@@ -399,6 +400,7 @@ public class MavenMojoProjectParser {
         //property has been set AND it is set to 32.
         return !System.getProperty("sun.arch.data.model", "64").equals("32");
     }
+
     private MavenSettings buildSettings() {
         MavenExecutionRequest mer = mavenSession.getRequest();
 
@@ -536,6 +538,7 @@ public class MavenMojoProjectParser {
     private void logInfo(MavenProject mavenProject, String message) {
         logger.info("Project [" + mavenProject.getName() + "] " + message);
     }
+
     private void logDebug(MavenProject mavenProject, String message) {
         logger.debug("Project [" + mavenProject.getName() + "] " + message);
     }

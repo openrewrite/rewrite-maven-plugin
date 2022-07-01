@@ -137,11 +137,11 @@ public class AbstractRewriteRunMojo extends AbstractRewriteMojo {
         assert result.getAfter() != null;
         Path targetPath = root.resolve(result.getAfter().getSourcePath());
         File targetFile = targetPath.toFile();
-        if(!targetFile.getParentFile().exists()) {
+        if (!targetFile.getParentFile().exists()) {
             //noinspection ResultOfMethodCallIgnored
             targetFile.getParentFile().mkdirs();
         }
-        if(result.getAfter() instanceof Binary) {
+        if (result.getAfter() instanceof Binary) {
             try (FileOutputStream sourceFileWriter = new FileOutputStream(targetFile)) {
                 sourceFileWriter.write(((Binary) result.getAfter()).getBytes());
             } catch (IOException e) {
@@ -167,17 +167,17 @@ public class AbstractRewriteRunMojo extends AbstractRewriteMojo {
                 throw new UncheckedIOException("Unable to rewrite source files", e);
             }
         }
-        if(result.getAfter().getFileAttributes() != null) {
+        if (result.getAfter().getFileAttributes() != null) {
             FileAttributes fileAttributes = result.getAfter().getFileAttributes();
-            if(targetFile.canRead() != fileAttributes.isReadable()) {
+            if (targetFile.canRead() != fileAttributes.isReadable()) {
                 //noinspection ResultOfMethodCallIgnored
                 targetFile.setReadable(fileAttributes.isReadable());
             }
-            if(targetFile.canWrite() != fileAttributes.isWritable()) {
+            if (targetFile.canWrite() != fileAttributes.isWritable()) {
                 //noinspection ResultOfMethodCallIgnored
                 targetFile.setWritable(fileAttributes.isWritable());
             }
-            if(targetFile.canExecute() != fileAttributes.isExecutable()) {
+            if (targetFile.canExecute() != fileAttributes.isExecutable()) {
                 //noinspection ResultOfMethodCallIgnored
                 targetFile.setExecutable(fileAttributes.isExecutable());
             }
