@@ -34,8 +34,7 @@ import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.util.*;
 
-import static java.util.Collections.emptyList;
-import static java.util.Collections.emptyMap;
+import static java.util.Collections.*;
 import static java.util.stream.Collectors.joining;
 import static java.util.stream.Collectors.toList;
 
@@ -97,20 +96,35 @@ public abstract class AbstractRewriteMojo extends ConfigurableRewriteMojo {
     }
 
     protected Path getBaseDir() {
-        // This property is set by Maven, apparently for both multi and single module builds
-        Object maybeMultiModuleDir = System.getProperties().get("maven.multiModuleProjectDirectory");
-        try {
-            if (maybeMultiModuleDir instanceof String) {
-                getLog().debug("Base Directory [" + maybeMultiModuleDir + "] calculated from property.");
-                return Paths.get((String) maybeMultiModuleDir).toRealPath();
-            } else {
-                // This path should only be taken by tests using AbstractMojoTestCase
-                Path baseDir = project.getBasedir().toPath().toRealPath();
-                getLog().debug("Base Directory [" + baseDir + "] calculated from project.");
-                return baseDir;
-            }
-        } catch (IOException e) {
-            throw new RuntimeException(e);
+        Path localRepositoryFolder = Paths.get(mavenSession.getLocalRepository().getBasedir()).normalize();
+        Set<Path> baseFolders = new HashSet<>();
+
+        for (MavenProject project : mavenSession.getAllProjects()) {
+            collectBasePaths(project, baseFolders, localRepositoryFolder);
+        }
+
+        if (!baseFolders.isEmpty()) {
+            List<Path> sortedPaths = new ArrayList<>(new ArrayList<>(baseFolders));
+            Collections.sort(sortedPaths);
+            return sortedPaths.get(0);
+        } else {
+            return Paths.get(mavenSession.getExecutionRootDirectory());
+        }
+    }
+
+    private void collectBasePaths(MavenProject project, Set<Path> paths, Path localRepository) {
+
+        Path baseDir = project.getBasedir() == null ? null : project.getBasedir().toPath().normalize();
+        if (baseDir == null || baseDir.startsWith(localRepository) || paths.contains(baseDir)) {
+            return;
+        }
+
+        paths.add(baseDir);
+
+        MavenProject parent = project.getParent();
+        while (parent != null && parent.getBasedir() != null) {
+            collectBasePaths(parent, paths, localRepository);
+            parent = parent.getParent();
         }
     }
 
