@@ -13,3 +13,5 @@ updates:
       interval: weekly
     commit-message:
       prefix: "chore(ci)"
+    ignore:
+      - dependency-name: "com.puppycrawl.tools:checkstyle"
