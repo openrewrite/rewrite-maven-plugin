@@ -202,6 +202,7 @@ public abstract class AbstractRewriteMojo extends ConfigurableRewriteMojo {
             List<SourceFile> sourceFiles = new ArrayList<>();
             if (runPerSubmodule) {
                 //If running per submodule, parse the source files for only the current project.
+                projectParser.resetTypeCache();
                 sourceFiles.addAll(projectParser.listSourceFiles(project, styles, ctx));
             } else {
                 //If running across all project, iterate and parse source files from each project
