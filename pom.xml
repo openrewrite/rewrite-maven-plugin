@@ -4,7 +4,7 @@
 
     <groupId>org.openrewrite.maven</groupId>
     <artifactId>rewrite-maven-plugin</artifactId>
-    <version>4.32.0-SNAPSHOT</version>
+    <version>4.31.2-SNAPSHOT</version>
     <name>rewrite-maven-plugin</name>
 
     <packaging>maven-plugin</packaging>
@@ -40,7 +40,7 @@
     </scm>
 
     <properties>
-        <rewrite.version>7.27.1</rewrite.version>
+        <rewrite.version>7.27.2</rewrite.version>
 
         <!-- using 'ssh' url scheme by default, which assumes a human is performing git operations leveraging an ssh key -->
         <developerConnectionUrl>scm:git:ssh://git@github.com/openrewrite/rewrite-maven-plugin.git
@@ -49,7 +49,7 @@
         <java.version>1.8</java.version>
 
         <!-- dependencies and plugins -->
-        <rocksdbjni.version>7.3.1</rocksdbjni.version>
+        <rocksdbjni.version>7.4.3</rocksdbjni.version>
         <itf-maven.version>0.11.0</itf-maven.version>
         <junit-jupiter.version>5.9.0</junit-jupiter.version>
         <maven-dependencies.version>3.8.6</maven-dependencies.version>
@@ -271,18 +271,6 @@
             <groupId>org.apache.maven.plugins</groupId>
             <artifactId>maven-resources-plugin</artifactId>
             <version>3.3.0</version>
-            <scope>test</scope>
-        </dependency>
-        <dependency>
-            <groupId>org.eclipse.aether</groupId>
-            <artifactId>aether-transport-file</artifactId>
-            <version>1.1.0</version>
-            <scope>test</scope>
-        </dependency>
-        <dependency>
-            <groupId>org.eclipse.aether</groupId>
-            <artifactId>aether-transport-http</artifactId>
-            <version>1.1.0</version>
             <scope>test</scope>
         </dependency>
     </dependencies>
