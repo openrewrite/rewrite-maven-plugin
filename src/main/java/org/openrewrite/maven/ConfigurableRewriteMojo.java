@@ -76,6 +76,39 @@ public abstract class ConfigurableRewriteMojo extends AbstractMojo {
     }
 
     @Nullable
+    @Parameter(property = "plainTextMasks")
+    private Set<String> plainTextMasks = null;
+
+    @Nullable
+    @Parameter(property = "rewrite.plainTextMasks")
+    private String rewritePlainTextMasks = null;
+
+    protected Set<String> getPlainTextMasks() {
+        if (plainTextMasks == null && rewritePlainTextMasks == null) {
+            //If not defined, use a default set of masks
+            return new HashSet<>(Arrays.asList(
+                    "**/META-INF/services/**",
+                    "**/.gitignore",
+                    "**/.gitattributes",
+                    "**/.java-version",
+                    "**/.sdkmanrc",
+                    "**/*.sh",
+                    "**/*.bash",
+                    "**/*.bat",
+                    "**/*.ksh",
+                    "**/*.txt",
+                    "**/*.jsp"
+            ));
+        } else {
+            Set<String> masks = toSet(rewritePlainTextMasks);
+            if (plainTextMasks != null) {
+                masks.addAll(plainTextMasks);
+            }
+            return masks;
+        }
+    }
+
+    @Nullable
     @Parameter(property = "sizeThresholdMb", defaultValue = "10")
     protected int sizeThresholdMb;
 

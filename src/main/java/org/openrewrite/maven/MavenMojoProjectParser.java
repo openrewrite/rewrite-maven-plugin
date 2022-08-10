@@ -85,12 +85,13 @@ public class MavenMojoProjectParser {
     private final BuildTool buildTool;
 
     private final Collection<String> exclusions;
+    private final Collection<String> plainTextMasks;
     private final int sizeThresholdMb;
     private final MavenSession mavenSession;
     private final SettingsDecrypter settingsDecrypter;
 
     @SuppressWarnings("BooleanParameter")
-    public MavenMojoProjectParser(Log logger, Path baseDir, boolean pomCacheEnabled, @Nullable String pomCacheDirectory, RuntimeInformation runtime, boolean skipMavenParsing, Collection<String> exclusions, int sizeThresholdMb, MavenSession session, SettingsDecrypter settingsDecrypter) {
+    public MavenMojoProjectParser(Log logger, Path baseDir, boolean pomCacheEnabled, @Nullable String pomCacheDirectory, RuntimeInformation runtime, boolean skipMavenParsing, Collection<String> exclusions, Collection<String> plainTextMasks, int sizeThresholdMb, MavenSession session, SettingsDecrypter settingsDecrypter) {
         this.logger = logger;
         this.baseDir = baseDir;
         this.pomCacheEnabled = pomCacheEnabled;
@@ -98,6 +99,7 @@ public class MavenMojoProjectParser {
         this.skipMavenParsing = skipMavenParsing;
         this.buildTool = new BuildTool(randomId(), BuildTool.Type.Maven, runtime.getMavenVersion());
         this.exclusions = exclusions;
+        this.plainTextMasks = plainTextMasks;
         this.sizeThresholdMb = sizeThresholdMb;
         this.mavenSession = session;
         this.settingsDecrypter = settingsDecrypter;
@@ -123,7 +125,7 @@ public class MavenMojoProjectParser {
                 .typeCache(typeCache)
                 .logCompilationWarningsAndErrors(false)
                 .build();
-        ResourceParser rp = new ResourceParser(baseDir, logger, exclusions, sizeThresholdMb, pathsToOtherMavenProjects(mavenProject));
+        ResourceParser rp = new ResourceParser(baseDir, logger, exclusions, plainTextMasks, sizeThresholdMb, pathsToOtherMavenProjects(mavenProject));
 
         sourceFiles.addAll(processMainSources(mavenProject, javaParser, rp, projectProvenance, alreadyParsed, styles, ctx));
         sourceFiles.addAll(processTestSources(mavenProject, javaParser, rp, projectProvenance, alreadyParsed, styles, ctx));

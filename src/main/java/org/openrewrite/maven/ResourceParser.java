@@ -29,18 +29,20 @@ public class ResourceParser {
     private final Collection<PathMatcher> exclusions;
     private final int sizeThresholdMb;
     private final Collection<Path> excludedDirectories;
+    private final Collection<PathMatcher> plainTextMasks;
 
-    public ResourceParser(Path baseDir, Log logger, Collection<String> exclusions, int sizeThresholdMb, Collection<Path> excludedDirectories) {
+    public ResourceParser(Path baseDir, Log logger, Collection<String> exclusions, Collection<String> plainTextMasks, int sizeThresholdMb, Collection<Path> excludedDirectories) {
         this.baseDir = baseDir;
         this.logger = logger;
-        this.exclusions = exclusionMatchers(baseDir, exclusions);
+        this.exclusions = pathMatchers(baseDir, exclusions);
         this.sizeThresholdMb = sizeThresholdMb;
         this.excludedDirectories = excludedDirectories;
+        this.plainTextMasks = pathMatchers(baseDir, plainTextMasks);
     }
 
-    private Collection<PathMatcher> exclusionMatchers(Path baseDir, Collection<String> exclusions) {
-        return exclusions.stream()
-                .map(o -> baseDir.getFileSystem().getPathMatcher("glob:" + o))
+    private Collection<PathMatcher> pathMatchers(Path basePath, Collection<String> pathExpressions) {
+        return pathExpressions.stream()
+                .map(o -> basePath.getFileSystem().getPathMatcher("glob:" + o))
                 .collect(Collectors.toList());
     }
 
@@ -172,22 +174,25 @@ public class ResourceParser {
     }
 
     private boolean isExcluded(Path path) {
-        for (PathMatcher excluded : exclusions) {
-            if (excluded.matches(baseDir.relativize(path))) {
-                return true;
+        if (!exclusions.isEmpty()) {
+            for (PathMatcher excluded : exclusions) {
+                if (excluded.matches(baseDir.relativize(path))) {
+                    return true;
+                }
             }
         }
         return false;
     }
 
     private boolean isParsedAsPlainText(Path path) {
-        String pathString = path.toString();
-
-        return  pathString.contains("/META-INF/services") ||
-                pathString.endsWith(".gitignore") ||
-                pathString.endsWith(".gitattributes") ||
-                pathString.endsWith(".java-version") ||
-                pathString.endsWith(".sdkmanrc");
+        if (!plainTextMasks.isEmpty()) {
+            for (PathMatcher matcher : plainTextMasks) {
+                if (matcher.matches(baseDir.relativize(path))) {
+                    return true;
+                }
+            }
+        }
+        return false;
     }
 
     private boolean isIgnoredDirectory(Path searchDir, Path path) {
