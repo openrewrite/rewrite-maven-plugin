@@ -197,7 +197,7 @@ public abstract class AbstractRewriteMojo extends ConfigurableRewriteMojo {
             ExecutionContext ctx = executionContext();
 
             //Parse and collect source files from each project in the maven session.
-            MavenMojoProjectParser projectParser = new MavenMojoProjectParser(getLog(), baseDir, pomCacheEnabled, pomCacheDirectory, runtime, skipMavenParsing, getExclusions(), sizeThresholdMb, mavenSession, settingsDecrypter);
+            MavenMojoProjectParser projectParser = new MavenMojoProjectParser(getLog(), baseDir, pomCacheEnabled, pomCacheDirectory, runtime, skipMavenParsing, getExclusions(), getPlainTextMasks(), sizeThresholdMb, mavenSession, settingsDecrypter);
 
             List<SourceFile> sourceFiles = new ArrayList<>();
             if (runPerSubmodule) {
