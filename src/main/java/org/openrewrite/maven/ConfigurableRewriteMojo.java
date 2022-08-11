@@ -75,16 +75,15 @@ public abstract class ConfigurableRewriteMojo extends AbstractMojo {
         }
     }
 
-    @Nullable
     @Parameter(property = "plainTextMasks")
-    private Set<String> plainTextMasks = null;
+    private Set<String> plainTextMasks = new HashSet<>();
 
     @Nullable
     @Parameter(property = "rewrite.plainTextMasks")
     private String rewritePlainTextMasks = null;
 
     protected Set<String> getPlainTextMasks() {
-        if (plainTextMasks == null && rewritePlainTextMasks == null) {
+        if (plainTextMasks.isEmpty() && rewritePlainTextMasks == null) {
             //If not defined, use a default set of masks
             return new HashSet<>(Arrays.asList(
                     "**/META-INF/services/**",
