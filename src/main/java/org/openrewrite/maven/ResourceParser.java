@@ -91,6 +91,7 @@ public class ResourceParser {
                                 "Mb exceeds size threshold " + sizeThresholdMb + "Mb");
                         quarkPaths.add(file);
                     } else if (isParsedAsPlainText(file)) {
+                        System.out.println("Plain Text File : " + file);
                         plainTextPaths.add(file);
                     } else {
                         resources.add(file);
@@ -186,8 +187,12 @@ public class ResourceParser {
 
     private boolean isParsedAsPlainText(Path path) {
         if (!plainTextMasks.isEmpty()) {
+            Path computed = baseDir.relativize(path);
+            if (!computed.startsWith("/")) {
+                computed = Paths.get("/").resolve(computed);
+            }
             for (PathMatcher matcher : plainTextMasks) {
-                if (matcher.matches(baseDir.relativize(path))) {
+                if (matcher.matches(computed)) {
                     return true;
                 }
             }
