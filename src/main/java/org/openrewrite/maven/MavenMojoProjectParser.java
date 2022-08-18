@@ -322,7 +322,7 @@ public class MavenMojoProjectParser {
         }
 
         Xml.Document maven = mavens.stream()
-                .filter(o -> mavenProject.getFile().toPath().equals(baseDir.resolve(o.getSourcePath())))
+                .filter(o -> pomPath(mavenProject).equals(baseDir.resolve(o.getSourcePath())))
                 .findFirst().orElse(null);
         if (maven == null) {
             logError(mavenProject, "Parse resulted in no Maven source files. Maven Project File '" + mavenProject.getFile().toPath() + "'");
@@ -344,12 +344,12 @@ public class MavenMojoProjectParser {
      * @return All poms associated with the current pom.
      */
     private Set<Path> collectPoms(MavenProject project, Set<Path> paths) {
-        paths.add(project.getFile().toPath());
+        paths.add(pomPath(project));
 
         // children
         if (project.getCollectedProjects() != null) {
             for (MavenProject child : project.getCollectedProjects()) {
-                Path path = child.getFile().toPath();
+                Path path = pomPath(child);
                 if (!paths.contains(path)) {
                     collectPoms(child, paths);
                 }
@@ -358,13 +358,22 @@ public class MavenMojoProjectParser {
 
         MavenProject parent = project.getParent();
         while (parent != null && parent.getFile() != null) {
-            Path path = parent.getFile().toPath();
+            Path path = pomPath(parent);
             if (!paths.contains(path)) {
                 collectPoms(parent, paths);
             }
             parent = parent.getParent();
         }
         return paths;
+    }
+
+    private static Path pomPath(MavenProject mavenProject) {
+        Path pomPath = mavenProject.getFile().toPath();
+        // org.codehaus.mojo:flatten-maven-plugin produces a synthetic pom unsuitable for our purposes, use the regular pom instead
+        if(pomPath.endsWith(".flattened-pom.xml")) {
+            return mavenProject.getBasedir().toPath().resolve("pom.xml");
+        }
+        return pomPath;
     }
 
     private static MavenPomCache getPomCache(@Nullable String pomCacheDirectory, Log logger) {
