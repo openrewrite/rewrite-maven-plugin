@@ -12,21 +12,21 @@ public abstract class ConfigurableRewriteMojo extends AbstractMojo {
 
     @SuppressWarnings("NotNullFieldNotInitialized")
     @Parameter(property = "rewrite.configLocation", alias = "configLocation", defaultValue = "${maven.multiModuleProjectDirectory}/rewrite.yml")
-    String configLocation;
+    protected String configLocation;
 
     @Parameter(property = "activeRecipes")
-    private List<String> activeRecipes = Collections.emptyList();
+    protected List<String> activeRecipes = Collections.emptyList();
 
     @Nullable
     @Parameter(property = "rewrite.activeRecipes")
-    private String rewriteActiveRecipes;
+    protected String rewriteActiveRecipes;
 
     @Parameter(property = "activeStyles")
-    private Set<String> activeStyles = Collections.emptySet();
+    protected Set<String> activeStyles = Collections.emptySet();
 
     @Nullable
     @Parameter(property = "rewrite.activeStyles")
-    private String rewriteActiveStyles;
+    protected String rewriteActiveStyles;
 
     @Nullable
     @Parameter(property = "rewrite.metricsUri", alias = "metricsUri")
@@ -100,9 +100,7 @@ public abstract class ConfigurableRewriteMojo extends AbstractMojo {
             ));
         } else {
             Set<String> masks = toSet(rewritePlainTextMasks);
-            if (plainTextMasks != null) {
-                masks.addAll(plainTextMasks);
-            }
+            masks.addAll(plainTextMasks);
             return masks;
         }
     }
