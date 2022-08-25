@@ -5,6 +5,7 @@ import org.apache.maven.plugins.annotations.Component;
 import org.apache.maven.plugins.annotations.Mojo;
 import org.apache.maven.plugins.annotations.Parameter;
 import org.codehaus.plexus.components.interactivity.Prompter;
+import org.codehaus.plexus.components.interactivity.PrompterException;
 import org.openrewrite.config.Environment;
 import org.openrewrite.config.OptionDescriptor;
 import org.openrewrite.config.RecipeDescriptor;
@@ -13,6 +14,7 @@ import org.openrewrite.internal.lang.Nullable;
 import org.openrewrite.maven.ui.RecipeDescriptorTreePrompter;
 import org.openrewrite.style.NamedStyles;
 
+import java.util.Arrays;
 import java.util.Collection;
 import java.util.HashSet;
 
@@ -22,8 +24,9 @@ import java.util.HashSet;
  * {@code ./mvnw rewrite:discover -Ddetail=true -Drecipe=org.openrewrite.java.format.AutoFormat}
  */
 @Mojo(name = "discover", threadSafe = true, requiresProject = false, aggregator = true)
-@SuppressWarnings("unused")
 public class RewriteDiscoverMojo extends AbstractRewriteMojo {
+
+    private static final String RUN_PROMPT_MESSAGE = "Run `%s`?\n";
 
     /**
      * The name of a specific recipe to show details for. For example:<br>
@@ -68,6 +71,7 @@ public class RewriteDiscoverMojo extends AbstractRewriteMojo {
             RecipeDescriptorTreePrompter treePrompter = new RecipeDescriptorTreePrompter(prompter);
             RecipeDescriptor rd = treePrompter.execute(availableRecipeDescriptors);
             writeRecipeDescriptor(rd, true, 0, 0);
+            promptToRun(rd);
         } else {
             Collection<RecipeDescriptor> activeRecipeDescriptors = new HashSet<>();
             for (String activeRecipe : getActiveRecipes()) {
@@ -143,6 +147,52 @@ public class RewriteDiscoverMojo extends AbstractRewriteMojo {
             if (verbose) {
                 getLog().info("");
             }
+        }
+    }
+    
+    private void promptToRun(RecipeDescriptor rd) throws MojoExecutionException {
+        try {
+            String prompted = prompter.prompt(String.format(RUN_PROMPT_MESSAGE, rd.getDisplayName()), Arrays.asList("y", "n"), "n");
+            if ("y".equalsIgnoreCase(prompted)) {
+
+                RewriteRunMojo rewriteRunMojo = new RewriteRunMojo();
+                rewriteRunMojo.rewriteActiveRecipes = rd.getName();
+
+                rewriteRunMojo.project = project;
+                rewriteRunMojo.runtime = runtime;
+                rewriteRunMojo.settingsDecrypter = settingsDecrypter;
+                rewriteRunMojo.repositorySystem = repositorySystem;
+                rewriteRunMojo.mavenSession = mavenSession;
+                
+                rewriteRunMojo.configLocation = configLocation;
+                rewriteRunMojo.activeRecipes = activeRecipes;
+                rewriteRunMojo.activeStyles = activeStyles;
+                rewriteRunMojo.rewriteActiveStyles = rewriteActiveStyles;
+                rewriteRunMojo.metricsUri = metricsUri;
+                rewriteRunMojo.metricsUsername = metricsUsername;
+                rewriteRunMojo.metricsPassword = metricsPassword;
+                rewriteRunMojo.pomCacheEnabled = pomCacheEnabled;
+                rewriteRunMojo.pomCacheDirectory = pomCacheDirectory;
+                rewriteRunMojo.skipMavenParsing = skipMavenParsing;
+                rewriteRunMojo.checkstyleConfigFile = checkstyleConfigFile;
+                rewriteRunMojo.sizeThresholdMb = sizeThresholdMb;
+                rewriteRunMojo.failOnInvalidActiveRecipes = failOnInvalidActiveRecipes;
+                rewriteRunMojo.runPerSubmodule = runPerSubmodule;
+
+                // Non visible fields
+//                rewriteRunMojo.exclusions = exclusions;
+//                rewriteRunMojo.rewriteExclusions = rewriteExclusions;
+//                rewriteRunMojo.plainTextMasks = plainTextMasks;
+//                rewriteRunMojo.rewritePlainTextMasks = rewritePlainTextMasks;
+//                rewriteRunMojo.recipeArtifactCoordinates = recipeArtifactCoordinates;
+//                rewriteRunMojo.computedRecipes = computedRecipes;
+//                rewriteRunMojo.computedStyles = computedStyles;
+//                rewriteRunMojo.computedRecipeArtifactCoordinates = computedRecipeArtifactCoordinates;
+
+                rewriteRunMojo.execute();
+            }
+        } catch (PrompterException e) {
+            throw new MojoExecutionException(e.getMessage(), e);
         }
     }
 }
