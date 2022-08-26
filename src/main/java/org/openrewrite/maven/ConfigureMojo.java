@@ -68,7 +68,7 @@ public class ConfigureMojo extends AbstractRewriteMojo {
         List<Result> results = new ChangePluginConfiguration(groupId, artifactId, getConfiguration())
                 .doNext(new ChangePluginDependencies(groupId, artifactId, dependencies))
                 .doNext(new ChangePluginExecutions(groupId, artifactId, getExecutions()))
-                .run(pom);
+                .run(pom).getResults();
         if (results.isEmpty()) {
             getLog().warn("No changes made to plugin " + artifactId + " configuration");
             return;

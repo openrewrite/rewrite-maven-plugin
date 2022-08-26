@@ -46,7 +46,7 @@ public class RemoveMojo extends AbstractRewriteMojo {
         List<Xml.Document> poms = mp.parse(Collections.singleton(project.getFile().toPath()), baseDir, ctx);
         Result result = new RemovePlugin(groupId, artifactId)
                 .run(poms)
-                .get(0);
+                .getResults().get(0);
 
         assert result.getBefore() != null;
         assert result.getAfter() != null;

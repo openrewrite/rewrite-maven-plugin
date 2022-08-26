@@ -212,7 +212,7 @@ public abstract class AbstractRewriteMojo extends ConfigurableRewriteMojo {
             }
 
             getLog().info("Running recipe(s)...");
-            List<Result> results = recipe.run(sourceFiles, ctx).stream()
+            List<Result> results = recipe.run(sourceFiles, ctx).getResults().stream()
                     .filter(source -> {
                         // Remove ASTs originating from generated files
                         if (source.getBefore() != null) {

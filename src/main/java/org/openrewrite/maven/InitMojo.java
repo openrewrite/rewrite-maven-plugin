@@ -73,7 +73,7 @@ public class InitMojo extends AbstractRewriteMojo {
         List<Xml.Document> poms = mp.parse(Collections.singleton(project.getFile().toPath()), baseDir, ctx);
         List<Result> results = new AddPlugin(groupId, artifactId, getVersion(), getConfiguration(), null, getExecutions())
                 .doNext(new ChangePluginDependencies(groupId, artifactId, dependencies))
-                .run(poms);
+                .run(poms).getResults();
         if (results.isEmpty()) {
             getLog().warn("Plugin " + artifactId + " is already part of the build");
             return;
