@@ -58,6 +58,10 @@ public abstract class ConfigurableRewriteMojo extends AbstractMojo {
     @Parameter(property = "rewrite.checkstyleConfigFile", alias = "checkstyleConfigFile")
     protected String checkstyleConfigFile;
 
+    @Nullable
+    @Parameter(property = "rewrite.checkstyleDetectionEnabled", alias = "checkstyleDetectionEnabled", defaultValue = "true")
+    protected boolean checkstyleDetectionEnabled;
+
     @Parameter(property = "exclusions")
     private Set<String> exclusions = Collections.emptySet();
 

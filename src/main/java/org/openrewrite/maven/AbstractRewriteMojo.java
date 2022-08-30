@@ -148,7 +148,7 @@ public abstract class AbstractRewriteMojo extends ConfigurableRewriteMojo {
                 Plugin checkstylePlugin = project.getPlugin("org.apache.maven.plugins:maven-checkstyle-plugin");
                 if (checkstyleConfigFile != null && !checkstyleConfigFile.isEmpty()) {
                     styles.add(CheckstyleConfigLoader.loadCheckstyleConfig(Paths.get(checkstyleConfigFile), emptyMap()));
-                } else if (checkstylePlugin != null) {
+                } else if (checkstyleDetectionEnabled && checkstylePlugin != null) {
                     Object checkstyleConfRaw = checkstylePlugin.getConfiguration();
                     if (checkstyleConfRaw instanceof Xpp3Dom) {
                         Xpp3Dom xmlCheckstyleConf = (Xpp3Dom) checkstyleConfRaw;
