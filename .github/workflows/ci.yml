@@ -31,10 +31,10 @@ jobs:
           gpg-private-key: ${{ secrets.OSSRH_SIGNING_KEY }}
           gpg-passphrase: SONATYPE_SIGNING_PASSWORD
       - name: build
-        run: ./mvnw --show-version --no-transfer-progress --update-snapshots clean verify --file=pom.xml --fail-at-end --batch-mode
+        run: ./mvnw --show-version --no-transfer-progress --update-snapshots clean verify --file=pom.xml --fail-at-end --batch-mode -Dstyle.color=always
       - name: publish-snapshots
         if: github.event_name != 'pull_request'
-        run: ./mvnw --show-version --no-transfer-progress --settings=${{ github.workspace }}/settings.xml --file=pom.xml --batch-mode --activate-profiles=sign-artifacts clean deploy -DskipTests
+        run: ./mvnw --show-version --no-transfer-progress --settings=${{ github.workspace }}/settings.xml --file=pom.xml --batch-mode -Dstyle.color=always --activate-profiles=sign-artifacts clean deploy -DskipTests
         env:
           GITHUB_TOKEN: ${{ github.token }}
           SONATYPE_USERNAME: ${{ secrets.OSSRH_USERNAME }}
