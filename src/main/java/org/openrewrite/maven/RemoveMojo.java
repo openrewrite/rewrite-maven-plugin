@@ -44,19 +44,21 @@ public class RemoveMojo extends AbstractRewriteMojo {
                 .mavenConfig(baseDir.resolve(".mvn/maven.config"))
                 .build();
         List<Xml.Document> poms = mp.parse(Collections.singleton(project.getFile().toPath()), baseDir, ctx);
-        Result result = new RemovePlugin(groupId, artifactId)
+        List<Result> results = new RemovePlugin(groupId, artifactId)
                 .run(poms)
-                .getResults().get(0);
-
-        assert result.getBefore() != null;
-        assert result.getAfter() != null;
-        Charset charset = result.getAfter().getCharset() == null ? StandardCharsets.UTF_8 : result.getAfter().getCharset();
-        try (BufferedWriter sourceFileWriter = Files.newBufferedWriter(
-                baseDir.resolve(result.getBefore().getSourcePath()), charset)) {
-            sourceFileWriter.write(new String(result.getAfter().printAll().getBytes(charset), charset));
-        } catch (IOException e) {
-            throw new RuntimeException(e);
+                .getResults();
+        if (!results.isEmpty()) {
+            Result result = results.get(0);
+            assert result.getBefore() != null;
+            assert result.getAfter() != null;
+            Charset charset = result.getAfter().getCharset() == null ? StandardCharsets.UTF_8 : result.getAfter().getCharset();
+            try (BufferedWriter sourceFileWriter = Files.newBufferedWriter(
+                    baseDir.resolve(result.getBefore().getSourcePath()), charset)) {
+                sourceFileWriter.write(new String(result.getAfter().printAll().getBytes(charset), charset));
+            } catch (IOException e) {
+                throw new RuntimeException(e);
+            }
+            getLog().info("Removed " + artifactId + " from " + project.getFile().getPath());
         }
-        getLog().info("Removed " + artifactId + " from " + project.getFile().getPath());
     }
 }
