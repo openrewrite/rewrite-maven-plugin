@@ -10,6 +10,7 @@ import org.openrewrite.properties.PropertiesParser;
 import org.openrewrite.protobuf.ProtoParser;
 import org.openrewrite.text.PlainTextParser;
 import org.openrewrite.quark.QuarkParser;
+import org.openrewrite.tree.ParsingExecutionContextView;
 import org.openrewrite.xml.XmlParser;
 import org.openrewrite.yaml.YamlParser;
 
@@ -56,6 +57,7 @@ public class ResourceParser {
 
         try {
             sourceFiles.addAll(parseSourceFiles(searchDir, alreadyParsed, ctx));
+            sourceFiles.addAll(ParsingExecutionContextView.view(ctx).pollParseFailures());
         } catch (IOException e) {
             logger.error(e.getMessage(), e);
             throw new UncheckedIOException(e);

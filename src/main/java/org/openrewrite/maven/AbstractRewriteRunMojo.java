@@ -98,27 +98,28 @@ public class AbstractRewriteRunMojo extends AbstractRewriteMojo {
                     assert result.getBefore() != null;
                     Path originalLocation = results.getProjectRoot().resolve(result.getBefore().getSourcePath());
                     File originalParentDir = originalLocation.toFile().getParentFile();
-                    // Quarks are empty source files, the contents cannot be modified, so they can just be moved.
-                    if (result.getAfter() instanceof Quark) {
-                        Files.move(originalLocation, result.getAfter().getSourcePath());
+
+                    assert result.getAfter() != null;
+                    // Ensure directories exist in case something was moved into a hitherto non-existent package
+                    Path afterLocation = results.getProjectRoot().resolve(result.getAfter().getSourcePath());
+                    File afterParentDir = afterLocation.toFile().getParentFile();
+                    // Rename the directory if its name case has been changed, e.g. camel case to lower case.
+                    if (afterParentDir.exists()
+                            && afterParentDir.getAbsolutePath().equalsIgnoreCase((originalParentDir.getAbsolutePath()))
+                            && !afterParentDir.getAbsolutePath().equals(originalParentDir.getAbsolutePath())) {
+                        if (!originalParentDir.renameTo(afterParentDir)) {
+                            throw new RuntimeException("Unable to rename directory from " + originalParentDir.getAbsolutePath() + " To: " + afterParentDir.getAbsolutePath());
+                        }
+                    } else if (!afterParentDir.exists() && !afterParentDir.mkdirs()) {
+                        throw new RuntimeException("Unable to create directory " + afterParentDir.getAbsolutePath());
+                    }
+                    if(result.getAfter() instanceof Quark) {
+                        // We don't know the contents of a Quark, but we can move it
+                        Files.move(originalLocation, results.getProjectRoot().resolve(result.getAfter().getSourcePath()));
                     } else {
-                        boolean deleteSucceeded = originalLocation.toFile().delete();
-                        if (!deleteSucceeded) {
-                            throw new IOException("Unable to delete file " + originalLocation.toAbsolutePath());
-                        }
-                        assert result.getAfter() != null;
-                        // Ensure directories exist in case something was moved into a hitherto non-existent package
-                        Path afterLocation = results.getProjectRoot().resolve(result.getAfter().getSourcePath());
-                        File afterParentDir = afterLocation.toFile().getParentFile();
-                        // Rename the directory if its name case has been changed, e.g. camel case to lower case.
-                        if (afterParentDir.exists() && afterParentDir.getAbsolutePath().equalsIgnoreCase((originalParentDir.getAbsolutePath()))
-                                && !afterParentDir.getAbsolutePath().equals(originalParentDir.getAbsolutePath())) {
-                            if (!originalParentDir.renameTo(afterParentDir)) {
-                                throw new RuntimeException("Unable to rename directory from " + originalParentDir.getAbsolutePath() + " To: " + afterParentDir.getAbsolutePath());
-                            }
-                        } else if (!afterParentDir.exists() && !afterParentDir.mkdirs()) {
-                            throw new RuntimeException("Unable to create directory " + afterParentDir.getAbsolutePath());
-                        }
+                        // On Mac this can return "false" even when the file was deleted, so skip the check
+                        //noinspection ResultOfMethodCallIgnored
+                        originalLocation.toFile().delete();
                         writeAfter(results.getProjectRoot(), result);
                     }
                 }
