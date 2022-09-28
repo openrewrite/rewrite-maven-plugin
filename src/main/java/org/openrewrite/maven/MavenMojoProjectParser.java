@@ -22,6 +22,9 @@ import org.openrewrite.java.internal.JavaTypeCache;
 import org.openrewrite.java.marker.JavaProject;
 import org.openrewrite.java.marker.JavaVersion;
 import org.openrewrite.java.style.Autodetect;
+import org.openrewrite.java.style.ImportLayoutStyle;
+import org.openrewrite.java.style.SpacesStyle;
+import org.openrewrite.java.style.TabsAndIndentsStyle;
 import org.openrewrite.java.tree.J;
 import org.openrewrite.marker.BuildTool;
 import org.openrewrite.marker.Generated;
@@ -34,6 +37,7 @@ import org.openrewrite.maven.cache.MavenPomCache;
 import org.openrewrite.maven.cache.RocksdbMavenPomCache;
 import org.openrewrite.maven.internal.RawRepositories;
 import org.openrewrite.maven.tree.ProfileActivation;
+import org.openrewrite.style.GeneralFormatStyle;
 import org.openrewrite.style.NamedStyles;
 import org.openrewrite.tree.ParsingExecutionContextView;
 import org.openrewrite.xml.tree.Xml;
@@ -492,16 +496,17 @@ public class MavenMojoProjectParser {
                 .collect(Collectors.toSet());
     }
 
-    private List<J.CompilationUnit> maybeAutodetectStyles(List<J.CompilationUnit> sourceFiles, @Nullable Iterable<NamedStyles> styles) {
-        if (styles != null && styles.spliterator().getExactSizeIfKnown() > 0) {
+    private List<J.CompilationUnit> maybeAutodetectStyles(List<J.CompilationUnit> sourceFiles, Iterable<NamedStyles> styles) {
+        ImportLayoutStyle importLayout = NamedStyles.merge(ImportLayoutStyle.class, styles);
+        SpacesStyle spacesStyle = NamedStyles.merge(SpacesStyle.class, styles);
+        TabsAndIndentsStyle tabsStyle = NamedStyles.merge(TabsAndIndentsStyle.class, styles);
+        GeneralFormatStyle generalStyle = NamedStyles.merge(GeneralFormatStyle.class, styles);
+        if(importLayout != null && spacesStyle != null && tabsStyle != null && generalStyle != null) {
+            // No need to autodetect if all the styles it would detect are already present
             return sourceFiles;
         }
         Autodetect autodetect = Autodetect.detect(sourceFiles);
-
-        return map(sourceFiles, cu -> {
-            List<Marker> markers = ListUtils.concat(map(cu.getMarkers().getMarkers(), m -> m instanceof NamedStyles ? null : m), autodetect);
-            return cu.withMarkers(cu.getMarkers().withMarkers(markers));
-        });
+        return map(sourceFiles, cu -> cu.withMarkers(cu.getMarkers().add(autodetect)));
     }
 
     private static <S extends SourceFile> UnaryOperator<S> addProvenance(Path baseDir, List<Marker> provenance, @Nullable Collection<Path> generatedSources) {
