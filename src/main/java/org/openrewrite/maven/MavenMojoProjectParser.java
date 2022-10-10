@@ -107,7 +107,7 @@ public class MavenMojoProjectParser {
         this.settingsDecrypter = settingsDecrypter;
     }
 
-    public List<SourceFile> listSourceFiles(MavenProject mavenProject, Iterable<NamedStyles> styles,
+    public List<SourceFile> listSourceFiles(MavenProject mavenProject, List<NamedStyles> styles,
             ExecutionContext ctx) throws DependencyResolutionRequiredException, MojoExecutionException {
 
         List<Marker> projectProvenance = generateProvenance(mavenProject);
@@ -127,7 +127,6 @@ public class MavenMojoProjectParser {
             ParsingExecutionContextView.view(ctx).setCharset(Charset.forName(mavenSourceEncoding.toString()));
         }
         JavaParser javaParser = JavaParser.fromJavaVersion()
-                .styles(styles)
                 .typeCache(typeCache)
                 .logCompilationWarningsAndErrors(false)
                 .build();
@@ -196,7 +195,7 @@ public class MavenMojoProjectParser {
             ResourceParser resourceParser,
             List<Marker> projectProvenance,
             Set<Path> alreadyParsed,
-            Iterable<NamedStyles> styles,
+            List<NamedStyles> styles,
             ExecutionContext ctx) throws DependencyResolutionRequiredException, MojoExecutionException {
 
         // Some annotation processors output generated sources to the /target directory. These are added for parsing but
@@ -219,7 +218,7 @@ public class MavenMojoProjectParser {
 
         // JavaParser will add SourceSet Markers to any Java SourceFile, so only adding the project provenance info to
         // java source.
-        List<J.CompilationUnit> parsedJava = ListUtils.map(autodetectStyles(javaParser.parse(mainJavaSources, baseDir, ctx), styles),
+        List<J.CompilationUnit> parsedJava = ListUtils.map(applyStyles(javaParser.parse(mainJavaSources, baseDir, ctx), styles),
                 addProvenance(baseDir, projectProvenance, generatedSourcePaths));
         logDebug(mavenProject, "Parsed " + parsedJava.size() + " java source files in main scope.");
 
@@ -245,7 +244,7 @@ public class MavenMojoProjectParser {
             ResourceParser resourceParser,
             List<Marker> projectProvenance,
             Set<Path> alreadyParsed,
-            Iterable<NamedStyles> styles,
+            List<NamedStyles> styles,
             ExecutionContext ctx) throws DependencyResolutionRequiredException, MojoExecutionException {
 
         List<Path> testDependencies = mavenProject.getTestClasspathElements().stream()
@@ -262,7 +261,7 @@ public class MavenMojoProjectParser {
         alreadyParsed.addAll(testJavaSources);
 
         List<J.CompilationUnit> parsedJava = ListUtils.map(
-                autodetectStyles(javaParser.parse(testJavaSources, baseDir, ctx), styles),
+                applyStyles(javaParser.parse(testJavaSources, baseDir, ctx), styles),
                 addProvenance(baseDir, projectProvenance, null));
 
         logDebug(mavenProject, "Parsed " + parsedJava.size() + " java source files in test scope.");
@@ -492,8 +491,13 @@ public class MavenMojoProjectParser {
                 .collect(Collectors.toSet());
     }
 
-    private List<J.CompilationUnit> autodetectStyles(List<J.CompilationUnit> sourceFiles, Iterable<NamedStyles> styles) {
-        return map(sourceFiles, cu -> cu.withMarkers(cu.getMarkers().add(Autodetect.detect(sourceFiles))));
+    private List<J.CompilationUnit> applyStyles(List<J.CompilationUnit> sourceFiles, List<NamedStyles> styles) {
+        Autodetect autodetect = Autodetect.detect(sourceFiles);
+        NamedStyles merged = NamedStyles.merge(ListUtils.concat(styles, autodetect));
+        if(merged == null) {
+            return sourceFiles;
+        }
+        return map(sourceFiles, cu -> cu.withMarkers(cu.getMarkers().add(merged)));
     }
 
     private static <S extends SourceFile> UnaryOperator<S> addProvenance(Path baseDir, List<Marker> provenance, @Nullable Collection<Path> generatedSources) {
