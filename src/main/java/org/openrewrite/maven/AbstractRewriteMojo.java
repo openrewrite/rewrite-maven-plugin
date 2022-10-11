@@ -163,9 +163,10 @@ public abstract class AbstractRewriteMojo extends ConfigurableRewriteMojo {
                             }
                         } else {
                             Path configPath = Paths.get(xmlConfigLocation.getValue());
-                            styles.add(CheckstyleConfigLoader.loadCheckstyleConfig(configPath, emptyMap()));
+                            if(configPath.toFile().exists()) {
+                                styles.add(CheckstyleConfigLoader.loadCheckstyleConfig(configPath, emptyMap()));
+                            }
                         }
-
                     }
                 }
             } catch (Exception e) {
