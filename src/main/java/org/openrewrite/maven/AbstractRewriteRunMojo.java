@@ -17,6 +17,7 @@ package org.openrewrite.maven;
 
 import org.apache.maven.plugin.MojoExecutionException;
 import org.openrewrite.FileAttributes;
+import org.openrewrite.RecipeRunException;
 import org.openrewrite.Result;
 import org.openrewrite.binary.Binary;
 import org.openrewrite.ipc.http.HttpUrlConnectionSender;
@@ -31,7 +32,7 @@ import java.nio.file.Path;
 
 /**
  * Run the configured recipes and apply the changes locally.
- *
+ * <p>
  * Base mojo for rewrite:run and rewrite:runNoFork.
  */
 public class AbstractRewriteRunMojo extends AbstractRewriteMojo {
@@ -46,35 +47,40 @@ public class AbstractRewriteRunMojo extends AbstractRewriteMojo {
         }
 
         ResultsContainer results = listResults();
+        RecipeRunException firstException = results.getFirstException();
+        if (firstException != null) {
+            getLog().error("The recipe produced an error. Please report this to the recipe author.");
+            throw firstException;
+        }
 
         if (results.isNotEmpty()) {
             for (Result result : results.generated) {
                 assert result.getAfter() != null;
                 getLog().warn("Generated new file " +
-                        result.getAfter().getSourcePath().normalize() +
-                        " by:");
+                              result.getAfter().getSourcePath().normalize() +
+                              " by:");
                 logRecipesThatMadeChanges(result);
             }
             for (Result result : results.deleted) {
                 assert result.getBefore() != null;
                 getLog().warn("Deleted file " +
-                        result.getBefore().getSourcePath().normalize() +
-                        " by:");
+                              result.getBefore().getSourcePath().normalize() +
+                              " by:");
                 logRecipesThatMadeChanges(result);
             }
             for (Result result : results.moved) {
                 assert result.getAfter() != null;
                 assert result.getBefore() != null;
                 getLog().warn("File has been moved from " +
-                        result.getBefore().getSourcePath().normalize() + " to " +
-                        result.getAfter().getSourcePath().normalize() + " by:");
+                              result.getBefore().getSourcePath().normalize() + " to " +
+                              result.getAfter().getSourcePath().normalize() + " by:");
                 logRecipesThatMadeChanges(result);
             }
             for (Result result : results.refactoredInPlace) {
                 assert result.getBefore() != null;
                 getLog().warn("Changes have been made to " +
-                        result.getBefore().getSourcePath().normalize() +
-                        " by:");
+                              result.getBefore().getSourcePath().normalize() +
+                              " by:");
                 logRecipesThatMadeChanges(result);
             }
 
@@ -105,15 +111,15 @@ public class AbstractRewriteRunMojo extends AbstractRewriteMojo {
                     File afterParentDir = afterLocation.toFile().getParentFile();
                     // Rename the directory if its name case has been changed, e.g. camel case to lower case.
                     if (afterParentDir.exists()
-                            && afterParentDir.getAbsolutePath().equalsIgnoreCase((originalParentDir.getAbsolutePath()))
-                            && !afterParentDir.getAbsolutePath().equals(originalParentDir.getAbsolutePath())) {
+                        && afterParentDir.getAbsolutePath().equalsIgnoreCase((originalParentDir.getAbsolutePath()))
+                        && !afterParentDir.getAbsolutePath().equals(originalParentDir.getAbsolutePath())) {
                         if (!originalParentDir.renameTo(afterParentDir)) {
                             throw new RuntimeException("Unable to rename directory from " + originalParentDir.getAbsolutePath() + " To: " + afterParentDir.getAbsolutePath());
                         }
                     } else if (!afterParentDir.exists() && !afterParentDir.mkdirs()) {
                         throw new RuntimeException("Unable to create directory " + afterParentDir.getAbsolutePath());
                     }
-                    if(result.getAfter() instanceof Quark) {
+                    if (result.getAfter() instanceof Quark) {
                         // We don't know the contents of a Quark, but we can move it
                         Files.move(originalLocation, results.getProjectRoot().resolve(result.getAfter().getSourcePath()));
                     } else {
@@ -163,7 +169,7 @@ public class AbstractRewriteRunMojo extends AbstractRewriteMojo {
         } else {
             Charset charset = result.getAfter().getCharset() == null ? StandardCharsets.UTF_8 : result.getAfter().getCharset();
             try (BufferedWriter sourceFileWriter = Files.newBufferedWriter(targetPath, charset)) {
-                sourceFileWriter.write(new String(result.getAfter().printAll().getBytes(charset), charset));
+                sourceFileWriter.write(new String(result.getAfter().printAll(new SanitizedMarkerPrinter()).getBytes(charset), charset));
             } catch (IOException e) {
                 throw new UncheckedIOException("Unable to rewrite source files", e);
             }

@@ -16,7 +16,8 @@
 package org.openrewrite.maven;
 
 import org.apache.maven.plugin.MojoExecutionException;
-import org.apache.maven.plugins.annotations.*;
+import org.apache.maven.plugins.annotations.Parameter;
+import org.openrewrite.RecipeRunException;
 import org.openrewrite.Result;
 import org.openrewrite.internal.lang.Nullable;
 
@@ -54,6 +55,12 @@ public class AbstractRewriteDryRunMojo extends AbstractRewriteMojo {
         }
 
         ResultsContainer results = listResults();
+
+        RecipeRunException firstException = results.getFirstException();
+        if (firstException != null) {
+            getLog().error("The recipe produced an error. Please report this to the recipe author.");
+            throw firstException;
+        }
 
         if (results.isNotEmpty()) {
             for (Result result : results.generated) {

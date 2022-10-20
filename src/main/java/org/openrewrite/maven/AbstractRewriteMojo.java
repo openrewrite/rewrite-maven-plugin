@@ -19,6 +19,7 @@ import org.openrewrite.config.ClasspathScanningLoader;
 import org.openrewrite.config.Environment;
 import org.openrewrite.config.RecipeDescriptor;
 import org.openrewrite.config.YamlResourceLoader;
+import org.openrewrite.internal.lang.Nullable;
 import org.openrewrite.java.style.CheckstyleConfigLoader;
 import org.openrewrite.marker.Generated;
 import org.openrewrite.style.NamedStyles;
@@ -279,6 +280,31 @@ public abstract class AbstractRewriteMojo extends ConfigurableRewriteMojo {
                     refactoredInPlace.add(result);
                 }
             }
+        }
+
+        @Nullable
+        public RecipeRunException getFirstException() {
+            for (Result result : generated) {
+                for (RecipeRunException recipeError : result.getRecipeErrors()) {
+                    return recipeError;
+                }
+            }
+            for (Result result : deleted) {
+                for (RecipeRunException recipeError : result.getRecipeErrors()) {
+                    return recipeError;
+                }
+            }
+            for (Result result : moved) {
+                for (RecipeRunException recipeError : result.getRecipeErrors()) {
+                    return recipeError;
+                }
+            }
+            for (Result result : refactoredInPlace) {
+                for (RecipeRunException recipeError : result.getRecipeErrors()) {
+                    return recipeError;
+                }
+            }
+            return null;
         }
 
         public Path getProjectRoot() {
