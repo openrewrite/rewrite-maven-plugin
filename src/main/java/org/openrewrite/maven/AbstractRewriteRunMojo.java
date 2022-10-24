@@ -17,7 +17,6 @@ package org.openrewrite.maven;
 
 import org.apache.maven.plugin.MojoExecutionException;
 import org.openrewrite.FileAttributes;
-import org.openrewrite.RecipeRunException;
 import org.openrewrite.Result;
 import org.openrewrite.binary.Binary;
 import org.openrewrite.ipc.http.HttpUrlConnectionSender;
@@ -47,10 +46,14 @@ public class AbstractRewriteRunMojo extends AbstractRewriteMojo {
         }
 
         ResultsContainer results = listResults();
-        RecipeRunException firstException = results.getFirstException();
+        Throwable firstException = results.getFirstException();
         if (firstException != null) {
             getLog().error("The recipe produced an error. Please report this to the recipe author.");
-            throw firstException;
+            if(firstException instanceof RuntimeException) {
+                throw (RuntimeException)firstException;
+            } else {
+                throw new RuntimeException(firstException);
+            }
         }
 
         if (results.isNotEmpty()) {

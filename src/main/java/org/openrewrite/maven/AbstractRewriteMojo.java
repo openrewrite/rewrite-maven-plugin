@@ -19,6 +19,7 @@ import org.openrewrite.config.ClasspathScanningLoader;
 import org.openrewrite.config.Environment;
 import org.openrewrite.config.RecipeDescriptor;
 import org.openrewrite.config.YamlResourceLoader;
+import org.openrewrite.internal.RecipeRunException;
 import org.openrewrite.internal.lang.Nullable;
 import org.openrewrite.java.style.CheckstyleConfigLoader;
 import org.openrewrite.marker.Generated;
@@ -283,24 +284,24 @@ public abstract class AbstractRewriteMojo extends ConfigurableRewriteMojo {
         }
 
         @Nullable
-        public RecipeRunException getFirstException() {
+        public Throwable getFirstException() {
             for (Result result : generated) {
-                for (RecipeRunException recipeError : result.getRecipeErrors()) {
+                for (Throwable recipeError : result.getRecipeErrors()) {
                     return recipeError;
                 }
             }
             for (Result result : deleted) {
-                for (RecipeRunException recipeError : result.getRecipeErrors()) {
+                for (Throwable recipeError : result.getRecipeErrors()) {
                     return recipeError;
                 }
             }
             for (Result result : moved) {
-                for (RecipeRunException recipeError : result.getRecipeErrors()) {
+                for (Throwable recipeError : result.getRecipeErrors()) {
                     return recipeError;
                 }
             }
             for (Result result : refactoredInPlace) {
-                for (RecipeRunException recipeError : result.getRecipeErrors()) {
+                for (Throwable recipeError : result.getRecipeErrors()) {
                     return recipeError;
                 }
             }
