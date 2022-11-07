@@ -91,6 +91,8 @@ public abstract class ConfigurableRewriteMojo extends AbstractMojo {
             //If not defined, use a default set of masks
             return new HashSet<>(Arrays.asList(
                     "**/META-INF/services/**",
+                    "**/META-INF/spring.factories",
+                    "**/META-INF/spring/**",
                     "**/.gitignore",
                     "**/.gitattributes",
                     "**/.java-version",
@@ -100,7 +102,8 @@ public abstract class ConfigurableRewriteMojo extends AbstractMojo {
                     "**/*.bat",
                     "**/*.ksh",
                     "**/*.txt",
-                    "**/*.jsp"
+                    "**/*.jsp",
+                    "Dockerfile"
             ));
         } else {
             Set<String> masks = toSet(rewritePlainTextMasks);
