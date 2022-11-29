@@ -103,6 +103,7 @@ public abstract class ConfigurableRewriteMojo extends AbstractMojo {
                     "**/*.ksh",
                     "**/*.txt",
                     "**/*.jsp",
+                    "**/*.sql",
                     "Dockerfile"
             ));
         } else {
