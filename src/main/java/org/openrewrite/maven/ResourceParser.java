@@ -8,6 +8,7 @@ import org.openrewrite.hcl.HclParser;
 import org.openrewrite.json.JsonParser;
 import org.openrewrite.properties.PropertiesParser;
 import org.openrewrite.protobuf.ProtoParser;
+import org.openrewrite.text.PlainText;
 import org.openrewrite.text.PlainTextParser;
 import org.openrewrite.quark.QuarkParser;
 import org.openrewrite.tree.ParsingExecutionContextView;
@@ -57,7 +58,15 @@ public class ResourceParser {
 
         try {
             sourceFiles.addAll(parseSourceFiles(searchDir, alreadyParsed, ctx));
-            sourceFiles.addAll(ParsingExecutionContextView.view(ctx).pollParseFailures());
+            List<PlainText> parseFailures = ParsingExecutionContextView.view(ctx).pollParseFailures();
+            if(parseFailures.size() > 0) {
+                logger.warn("There were problems parsing " + parseFailures.size() + " + sources:");
+                for(PlainText parseFailure : parseFailures) {
+                    logger.warn("  " + parseFailure.getSourcePath());
+                }
+                logger.warn("Execution will continue but these files are unlikely to be affected by refactoring recipes");
+                sourceFiles.addAll(parseFailures);
+            }
         } catch (IOException e) {
             logger.error(e.getMessage(), e);
             throw new UncheckedIOException(e);
