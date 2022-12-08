@@ -13,13 +13,13 @@ import org.apache.maven.project.MavenProject;
 import org.apache.maven.repository.RepositorySystem;
 import org.apache.maven.rtinfo.RuntimeInformation;
 import org.apache.maven.settings.crypto.SettingsDecrypter;
+import org.codehaus.plexus.classworlds.realm.ClassRealm;
 import org.codehaus.plexus.util.xml.Xpp3Dom;
 import org.openrewrite.*;
 import org.openrewrite.config.ClasspathScanningLoader;
 import org.openrewrite.config.Environment;
 import org.openrewrite.config.RecipeDescriptor;
 import org.openrewrite.config.YamlResourceLoader;
-import org.openrewrite.internal.RecipeRunException;
 import org.openrewrite.internal.lang.Nullable;
 import org.openrewrite.java.style.CheckstyleConfigLoader;
 import org.openrewrite.marker.Generated;
@@ -65,12 +65,16 @@ public abstract class AbstractRewriteMojo extends ConfigurableRewriteMojo {
     private static final String RECIPE_NOT_FOUND_EXCEPTION_MSG = "Could not find recipe '%s' among available recipes";
 
     protected Environment environment() throws MojoExecutionException {
+        return environment(getRecipeArtifactCoordinatesClassloader());
+    }
+
+    protected Environment environment(@Nullable ClassLoader recipeClassLoader) throws MojoExecutionException {
         Environment.Builder env = Environment.builder(project.getProperties());
-        if (getRecipeArtifactCoordinates().isEmpty()) {
+        if (recipeClassLoader == null) {
             env.scanRuntimeClasspath()
                     .scanUserHome();
         } else {
-            env.load(new ClasspathScanningLoader(project.getProperties(), getRecipeClassloader()));
+            env.load(new ClasspathScanningLoader(project.getProperties(), recipeClassLoader));
         }
 
         Path absoluteConfigLocation = Paths.get(configLocation);
@@ -142,7 +146,11 @@ public abstract class AbstractRewriteMojo extends ConfigurableRewriteMojo {
                 return new ResultsContainer(baseDir, emptyList());
             }
 
-            Environment env = environment();
+            URLClassLoader recipeArtifactCoordinatesClassloader = getRecipeArtifactCoordinatesClassloader();
+            if (recipeArtifactCoordinatesClassloader != null) {
+                merge(getClass().getClassLoader(), recipeArtifactCoordinatesClassloader);
+            }
+            Environment env = environment(recipeArtifactCoordinatesClassloader);
 
             List<NamedStyles> styles;
             styles = env.activateStyles(getActiveStyles());
@@ -233,7 +241,11 @@ public abstract class AbstractRewriteMojo extends ConfigurableRewriteMojo {
         }
     }
 
-    protected URLClassLoader getRecipeClassloader() throws MojoExecutionException {
+    @Nullable
+    protected URLClassLoader getRecipeArtifactCoordinatesClassloader() throws MojoExecutionException {
+        if (getRecipeArtifactCoordinates().isEmpty()) {
+            return null;
+        }
         ArtifactResolver resolver = new ArtifactResolver(repositorySystem, mavenSession);
 
         Set<Artifact> artifacts = new HashSet<>();
@@ -255,6 +267,29 @@ public abstract class AbstractRewriteMojo extends ConfigurableRewriteMojo {
                 urls.toArray(new URL[0]),
                 AbstractRewriteMojo.class.getClassLoader()
         );
+    }
+
+    private void merge(ClassLoader targetClassLoader, URLClassLoader sourceClassLoader) {
+        ClassRealm targetClassRealm;
+        try {
+            targetClassRealm = (ClassRealm) targetClassLoader;
+        } catch (ClassCastException e) {
+            getLog().warn("Could not merge ClassLoaders due to unexpected targetClassLoader type", e);
+            return;
+        }
+        Set<String> existingVersionlessJars = new HashSet<>();
+        for (URL existingUrl : targetClassRealm.getURLs()) {
+            existingVersionlessJars.add(stripVersion(existingUrl));
+        }
+        for (URL newUrl : sourceClassLoader.getURLs()) {
+            if (!existingVersionlessJars.contains(stripVersion(newUrl))) {
+                targetClassRealm.addURL(newUrl);
+            }
+        }
+    }
+
+    private String stripVersion(URL jarUrl) {
+        return jarUrl.toString().replaceAll("/[^/]+/[^/]+\\.jar", "");
     }
 
     public static class ResultsContainer {

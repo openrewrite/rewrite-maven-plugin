@@ -47,4 +47,17 @@ public class RewriteDryRunIT {
                 .anySatisfy(line -> assertThat(line).contains("org.openrewrite.java.format.AutoFormat"));
     }
 
+    @MavenTest
+    @SystemProperties({
+            @SystemProperty(value = "rewrite.recipeArtifactCoordinates", content = "org.openrewrite.recipe:rewrite-testing-frameworks:1.31.0"),
+            @SystemProperty(value = "activeRecipes", content = "org.openrewrite.java.testing.cleanup.AssertTrueNullToAssertNull")
+    })
+    void no_plugin_in_pom(MavenExecutionResult result) {
+        assertThat(result)
+                .isSuccessful()
+                .out()
+                .warn()
+                .anySatisfy(line -> assertThat(line).contains("org.openrewrite.java.testing.cleanup.AssertTrueNullToAssertNull"));
+    }
+
 }
