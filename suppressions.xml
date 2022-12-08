@@ -7,4 +7,23 @@
         <packageUrl regex="true">^pkg:maven/com\.fasterxml\.jackson\.core/jackson\-databind@.*$</packageUrl>
         <cve>CVE-2022-42003</cve>
     </suppress>
+    <suppress until="2023-01-07Z">
+        <notes><![CDATA[
+        file name: woodstox-core-6.3.1.jar
+        Severity: HIGH
+        False positive. We do not use woodstox and it will be updated with the next spring cloud
+        dependencies.
+    ]]></notes>
+        <packageUrl regex="true">^pkg:maven/com\.fasterxml\.woodstox/woodstox\-core@.*$</packageUrl>
+        <vulnerabilityName>CVE-2022-40152</vulnerabilityName>
+    </suppress>
+    <suppress until="2023-01-07Z">
+        <notes><![CDATA[
+            file name: snakeyaml-1.33.jar
+            Severity: HIGH
+            False positive: We are not parsing untrusted user input. Not used directly in this repository.
+        ]]></notes>
+        <packageUrl regex="true">^pkg:maven/org\.yaml/snakeyaml@.*$</packageUrl>
+        <cve>CVE-2022-1471</cve>
+    </suppress>
 </suppressions>
