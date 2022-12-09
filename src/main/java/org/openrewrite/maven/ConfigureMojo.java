@@ -61,14 +61,12 @@ public class ConfigureMojo extends AbstractRewriteMojo {
         Path baseDir = getBaseDir();
 
         ExecutionContext ctx = executionContext();
-        MavenParser mp = MavenParser.builder()
-                .mavenConfig(baseDir.resolve(".mvn/maven.config"))
-                .build();
-        List<Xml.Document> pom = mp.parse(Collections.singleton(project.getFile().toPath()), baseDir, ctx);
+        Xml.Document maven = new MavenMojoProjectParser(getLog(), baseDir, pomCacheEnabled, pomCacheDirectory, runtime, skipMavenParsing, getExclusions(), getPlainTextMasks(), sizeThresholdMb, mavenSession, settingsDecrypter).parseMaven(project, Collections.emptyList(), ctx);
+        List<Xml.Document> poms = Arrays.asList(maven);
         List<Result> results = new ChangePluginConfiguration(groupId, artifactId, getConfiguration())
                 .doNext(new ChangePluginDependencies(groupId, artifactId, dependencies))
                 .doNext(new ChangePluginExecutions(groupId, artifactId, getExecutions()))
-                .run(pom).getResults();
+                .run(poms).getResults();
         if (results.isEmpty()) {
             getLog().warn("No changes made to plugin " + artifactId + " configuration");
             return;

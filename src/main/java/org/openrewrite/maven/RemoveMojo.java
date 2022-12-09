@@ -15,6 +15,7 @@ import java.nio.charset.Charset;
 import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
 import java.nio.file.Path;
+import java.util.Arrays;
 import java.util.Collections;
 import java.util.List;
 
@@ -40,10 +41,8 @@ public class RemoveMojo extends AbstractRewriteMojo {
     public void execute() throws MojoExecutionException, MojoFailureException {
         Path baseDir = getBaseDir();
         ExecutionContext ctx = executionContext();
-        MavenParser mp = MavenParser.builder()
-                .mavenConfig(baseDir.resolve(".mvn/maven.config"))
-                .build();
-        List<Xml.Document> poms = mp.parse(Collections.singleton(project.getFile().toPath()), baseDir, ctx);
+        Xml.Document maven = new MavenMojoProjectParser(getLog(), baseDir, pomCacheEnabled, pomCacheDirectory, runtime, skipMavenParsing, getExclusions(), getPlainTextMasks(), sizeThresholdMb, mavenSession, settingsDecrypter).parseMaven(project, Collections.emptyList(), ctx);
+        List<Xml.Document> poms = Arrays.asList(maven);
         List<Result> results = new RemovePlugin(groupId, artifactId)
                 .run(poms)
                 .getResults();
