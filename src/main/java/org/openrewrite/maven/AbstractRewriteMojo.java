@@ -21,17 +21,18 @@ import org.openrewrite.config.Environment;
 import org.openrewrite.config.RecipeDescriptor;
 import org.openrewrite.config.YamlResourceLoader;
 import org.openrewrite.internal.lang.Nullable;
+import org.openrewrite.ipc.http.HttpSender;
+import org.openrewrite.ipc.http.HttpUrlConnectionSender;
 import org.openrewrite.java.style.CheckstyleConfigLoader;
 import org.openrewrite.marker.Generated;
 import org.openrewrite.style.NamedStyles;
 
-import java.io.File;
-import java.io.FileInputStream;
-import java.io.IOException;
-import java.io.InputStream;
+import java.io.*;
 import java.net.MalformedURLException;
+import java.net.URI;
 import java.net.URL;
 import java.net.URLClassLoader;
+import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.util.*;
@@ -68,6 +69,37 @@ public abstract class AbstractRewriteMojo extends ConfigurableRewriteMojo {
         return environment(getRecipeArtifactCoordinatesClassloader());
     }
 
+    static class Config {
+        final InputStream inputStream;
+        final URI uri;
+
+        Config(InputStream inputStream, URI uri) {
+            this.inputStream = inputStream;
+            this.uri = uri;
+        }
+    }
+
+    @Nullable
+    Config getConfig() throws IOException {
+        URI uri = URI.create(configLocation);
+        if(uri.getScheme() != null && uri.getScheme().startsWith("http")) {
+            HttpSender httpSender = new HttpUrlConnectionSender();
+            return new Config(httpSender.get(configLocation).send().getBody(), uri);
+        } else {
+            Path absoluteConfigLocation = Paths.get(configLocation);
+            if (!absoluteConfigLocation.isAbsolute()) {
+                absoluteConfigLocation = project.getBasedir().toPath().resolve(configLocation);
+            }
+            File rewriteConfig = absoluteConfigLocation.toFile();
+
+            if (rewriteConfig.exists()) {
+                return new Config(Files.newInputStream(rewriteConfig.toPath()), rewriteConfig.toURI());
+            }
+        }
+
+        return null;
+    }
+
     protected Environment environment(@Nullable ClassLoader recipeClassLoader) throws MojoExecutionException {
         Environment.Builder env = Environment.builder(project.getProperties());
         if (recipeClassLoader == null) {
@@ -77,18 +109,15 @@ public abstract class AbstractRewriteMojo extends ConfigurableRewriteMojo {
             env.load(new ClasspathScanningLoader(project.getProperties(), recipeClassLoader));
         }
 
-        Path absoluteConfigLocation = Paths.get(configLocation);
-        if (!absoluteConfigLocation.isAbsolute()) {
-            absoluteConfigLocation = project.getBasedir().toPath().resolve(configLocation);
-        }
-        File rewriteConfig = absoluteConfigLocation.toFile();
-
-        if (rewriteConfig.exists()) {
-            try (FileInputStream is = new FileInputStream(rewriteConfig)) {
-                env.load(new YamlResourceLoader(is, rewriteConfig.toURI(), project.getProperties()));
-            } catch (IOException e) {
-                throw new MojoExecutionException("Unable to load rewrite configuration", e);
+        try {
+            Config rewriteConfig = getConfig();
+            if (rewriteConfig != null) {
+                try (InputStream is = rewriteConfig.inputStream) {
+                    env.load(new YamlResourceLoader(is, rewriteConfig.uri, project.getProperties()));
+                }
             }
+        } catch (IOException e) {
+            throw new MojoExecutionException("Unable to load rewrite configuration", e);
         }
 
         return env.build();
@@ -173,7 +202,7 @@ public abstract class AbstractRewriteMojo extends ConfigurableRewriteMojo {
                             }
                         } else {
                             Path configPath = Paths.get(xmlConfigLocation.getValue());
-                            if(configPath.toFile().exists()) {
+                            if (configPath.toFile().exists()) {
                                 styles.add(CheckstyleConfigLoader.loadCheckstyleConfig(configPath, emptyMap()));
                             }
                         }
@@ -184,10 +213,10 @@ public abstract class AbstractRewriteMojo extends ConfigurableRewriteMojo {
             }
 
             Recipe recipe = env.activateRecipes(getActiveRecipes());
-            if(recipe.getRecipeList().size() == 0) {
+            if (recipe.getRecipeList().size() == 0) {
                 getLog().warn("No recipes were activated. " +
-                        "Activate a recipe with <activeRecipes><recipe>com.fully.qualified.RecipeClassName</recipe></activeRecipes> in this plugin's <configuration> in your pom.xml, " +
-                        "or on the command line with -Drewrite.activeRecipes=com.fully.qualified.RecipeClassName");
+                              "Activate a recipe with <activeRecipes><recipe>com.fully.qualified.RecipeClassName</recipe></activeRecipes> in this plugin's <configuration> in your pom.xml, " +
+                              "or on the command line with -Drewrite.activeRecipes=com.fully.qualified.RecipeClassName");
                 return new ResultsContainer(baseDir, emptyList());
             }
 
@@ -198,7 +227,7 @@ public abstract class AbstractRewriteMojo extends ConfigurableRewriteMojo {
             if (!failedValidations.isEmpty()) {
                 failedValidations.forEach(failedValidation -> getLog().error(
                         "Recipe validation error in " + failedValidation.getProperty() + ": " +
-                                failedValidation.getMessage(), failedValidation.getException()));
+                        failedValidation.getMessage(), failedValidation.getException()));
                 if (failOnInvalidActiveRecipes) {
                     throw new MojoExecutionException("Recipe validation errors detected as part of one or more activeRecipe(s). Please check error logs.");
                 } else {
