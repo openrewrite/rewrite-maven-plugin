@@ -414,7 +414,7 @@ public class MavenMojoProjectParser {
     private static boolean isJvm64Bit() {
         //It appears most JVM vendors set this property. Only return false if the
         //property has been set AND it is set to 32.
-        return !System.getProperty("sun.arch.data.model", "64").equals("32");
+        return !"32".equals(System.getProperty("sun.arch.data.model", "64"));
     }
 
     private MavenSettings buildSettings() {

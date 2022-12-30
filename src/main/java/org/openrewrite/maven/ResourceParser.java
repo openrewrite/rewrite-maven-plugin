@@ -181,7 +181,7 @@ public class ResourceParser {
     }
 
     private boolean isOverSizeThreshold(long fileSize) {
-        return (sizeThresholdMb > 0 && fileSize > sizeThresholdMb * 1024L * 1024L);
+        return sizeThresholdMb > 0 && fileSize > sizeThresholdMb * 1024L * 1024L;
     }
 
     private boolean isExcluded(Path path) {

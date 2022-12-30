@@ -213,7 +213,7 @@ public abstract class AbstractRewriteMojo extends ConfigurableRewriteMojo {
             }
 
             Recipe recipe = env.activateRecipes(getActiveRecipes());
-            if (recipe.getRecipeList().size() == 0) {
+            if (recipe.getRecipeList().isEmpty()) {
                 getLog().warn("No recipes were activated. " +
                               "Activate a recipe with <activeRecipes><recipe>com.fully.qualified.RecipeClassName</recipe></activeRecipes> in this plugin's <configuration> in your pom.xml, " +
                               "or on the command line with -Drewrite.activeRecipes=com.fully.qualified.RecipeClassName");

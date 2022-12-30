@@ -84,7 +84,7 @@ public abstract class ConfigurableRewriteMojo extends AbstractMojo {
 
     @Nullable
     @Parameter(property = "rewrite.plainTextMasks")
-    private String rewritePlainTextMasks = null;
+    private String rewritePlainTextMasks;
 
     protected Set<String> getPlainTextMasks() {
         if (plainTextMasks.isEmpty() && rewritePlainTextMasks == null) {

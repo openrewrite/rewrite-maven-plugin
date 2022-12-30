@@ -18,7 +18,7 @@ public class RecipeDescriptorTree implements Comparable<RecipeDescriptorTree> {
     private String displayName;
     private RecipeDescriptorTree parent;
     private final List<RecipeDescriptorTree> children = new ArrayList<>();
-    private RecipeDescriptor recipeDescriptor = null;
+    private RecipeDescriptor recipeDescriptor;
 
     public RecipeDescriptorTree() {
         this(null);
