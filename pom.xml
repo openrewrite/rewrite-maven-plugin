@@ -78,7 +78,7 @@
         <rocksdbjni.version>7.8.3</rocksdbjni.version>
         <itf-maven.version>0.11.0</itf-maven.version>
         <junit-jupiter.version>5.9.1</junit-jupiter.version>
-        <maven-dependencies.version>3.8.6</maven-dependencies.version>
+        <maven-dependencies.version>3.8.7</maven-dependencies.version>
         <maven-release-plugin.version>3.0.0-M7</maven-release-plugin.version>
         <maven-plugin-tools.version>3.7.0</maven-plugin-tools.version>
     </properties>
