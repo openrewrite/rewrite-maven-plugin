@@ -560,7 +560,7 @@
                     <plugin>
                         <groupId>org.openrewrite.maven</groupId>
                         <artifactId>rewrite-maven-plugin</artifactId>
-                        <version>4.31.3</version>
+                        <version>4.38.2</version>
                         <configuration>
                             <activeRecipes>
                                 <recipe>org.openrewrite.java.format.AutoFormat</recipe>
