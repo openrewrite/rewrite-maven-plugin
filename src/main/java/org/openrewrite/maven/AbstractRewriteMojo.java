@@ -30,6 +30,7 @@ import org.openrewrite.style.NamedStyles;
 import java.io.*;
 import java.net.MalformedURLException;
 import java.net.URI;
+import java.net.URISyntaxException;
 import java.net.URL;
 import java.net.URLClassLoader;
 import java.nio.file.Files;
@@ -81,10 +82,12 @@ public abstract class AbstractRewriteMojo extends ConfigurableRewriteMojo {
 
     @Nullable
     Config getConfig() throws IOException {
-        URI uri = URI.create(configLocation);
-        if(uri.getScheme() != null && uri.getScheme().startsWith("http")) {
+        URI uri = toUri(configLocation);
+        if (uri != null && uri.getScheme() != null && uri.getScheme().startsWith("http")) {
             HttpSender httpSender = new HttpUrlConnectionSender();
-            return new Config(httpSender.get(configLocation).send().getBody(), uri);
+            try (HttpSender.Response response = httpSender.get(configLocation).send()) {
+                return new Config(response.getBody(), uri);
+            }
         } else {
             Path absoluteConfigLocation = Paths.get(configLocation);
             if (!absoluteConfigLocation.isAbsolute()) {
@@ -98,6 +101,15 @@ public abstract class AbstractRewriteMojo extends ConfigurableRewriteMojo {
         }
 
         return null;
+    }
+
+    @Nullable
+    private URI toUri(String location) {
+        try {
+            return new URI(location);
+        } catch (URISyntaxException e) {
+            return null;
+        }
     }
 
     protected Environment environment(@Nullable ClassLoader recipeClassLoader) throws MojoExecutionException {
