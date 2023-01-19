@@ -25,9 +25,10 @@ import io.micrometer.core.instrument.internal.DefaultGauge;
 import io.micrometer.core.instrument.internal.DefaultLongTaskTimer;
 import io.micrometer.core.instrument.internal.DefaultMeter;
 import io.micrometer.core.instrument.util.TimeUtils;
-import io.micrometer.core.lang.NonNullApi;
-import io.micrometer.core.lang.Nullable;
+
 import org.apache.maven.plugin.logging.Log;
+import org.openrewrite.internal.lang.NonNullApi;
+import org.openrewrite.internal.lang.Nullable;
 
 import java.time.Duration;
 import java.util.concurrent.TimeUnit;

@@ -474,8 +474,8 @@ public class MavenMojoProjectParser {
         List<RawRepositories.Repository> transformedRepositories = repositoriesToMap.stream().map(r -> new RawRepositories.Repository(
                 r.getId(),
                 r.getUrl(),
-                r.getReleases() == null ? null : new RawRepositories.ArtifactPolicy(r.getReleases().isEnabled()),
-                r.getSnapshots() == null ? null : new RawRepositories.ArtifactPolicy(r.getSnapshots().isEnabled())
+                r.getReleases() == null ? null : new RawRepositories.ArtifactPolicy(Boolean.toString(r.getReleases().isEnabled())),
+                r.getSnapshots() == null ? null : new RawRepositories.ArtifactPolicy(Boolean.toString(r.getSnapshots().isEnabled()))
         )).collect(toList());
         rawRepositories.setRepositories(transformedRepositories);
         return rawRepositories;

@@ -28,10 +28,7 @@ import org.openrewrite.marker.Generated;
 import org.openrewrite.style.NamedStyles;
 
 import java.io.*;
-import java.net.MalformedURLException;
-import java.net.URI;
-import java.net.URL;
-import java.net.URLClassLoader;
+import java.net.*;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
@@ -81,20 +78,26 @@ public abstract class AbstractRewriteMojo extends ConfigurableRewriteMojo {
 
     @Nullable
     Config getConfig() throws IOException {
-        URI uri = URI.create(configLocation);
-        if(uri.getScheme() != null && uri.getScheme().startsWith("http")) {
-            HttpSender httpSender = new HttpUrlConnectionSender();
-            return new Config(httpSender.get(configLocation).send().getBody(), uri);
-        } else {
-            Path absoluteConfigLocation = Paths.get(configLocation);
-            if (!absoluteConfigLocation.isAbsolute()) {
-                absoluteConfigLocation = project.getBasedir().toPath().resolve(configLocation);
+        try {
+            URI uri = new URI(configLocation);
+            if(uri.getScheme() != null && uri.getScheme().startsWith("http")) {
+                HttpSender httpSender = new HttpUrlConnectionSender();
+                try(HttpSender.Response response = httpSender.get(configLocation).send()) {
+                    return new Config(response.getBody(), uri);
+                }
             }
-            File rewriteConfig = absoluteConfigLocation.toFile();
+        } catch (URISyntaxException e) {
+            // Try to load as a path
+        }
 
-            if (rewriteConfig.exists()) {
-                return new Config(Files.newInputStream(rewriteConfig.toPath()), rewriteConfig.toURI());
-            }
+        Path absoluteConfigLocation = Paths.get(configLocation);
+        if (!absoluteConfigLocation.isAbsolute()) {
+            absoluteConfigLocation = project.getBasedir().toPath().resolve(configLocation);
+        }
+        File rewriteConfig = absoluteConfigLocation.toFile();
+
+        if (rewriteConfig.exists()) {
+            return new Config(Files.newInputStream(rewriteConfig.toPath()), rewriteConfig.toURI());
         }
 
         return null;
