@@ -59,7 +59,7 @@ public class ResourceParser {
         try {
             sourceFiles.addAll(parseSourceFiles(searchDir, alreadyParsed, ctx));
             List<PlainText> parseFailures = ParsingExecutionContextView.view(ctx).pollParseFailures();
-            if(parseFailures.size() > 0) {
+            if(!parseFailures.isEmpty()) {
                 logger.warn("There were problems parsing " + parseFailures.size() + " + sources:");
                 for(PlainText parseFailure : parseFailures) {
                     logger.warn("  " + parseFailure.getSourcePath());
