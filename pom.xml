@@ -64,7 +64,7 @@
     </scm>
 
     <properties>
-        <rewrite.version>7.35.0-SNAPSHOT</rewrite.version>
+        <rewrite.version>7.35.0</rewrite.version>
 
         <!-- using 'ssh' url scheme by default, which assumes a human is performing git operations leveraging an ssh key -->
         <developerConnectionUrl>scm:git:ssh://git@github.com/openrewrite/rewrite-maven-plugin.git
@@ -254,7 +254,7 @@
 
         <!-- JUnit Jupiter, and using itf-jupiter-extension to get itf support for executing everything as Maven tests -->
         <dependency>
-            
+
             <groupId>org.junit.jupiter</groupId>
             <artifactId>junit-jupiter-api</artifactId>
             <version>${junit-jupiter.version}</version>
