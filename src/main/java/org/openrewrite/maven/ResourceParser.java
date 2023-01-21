@@ -53,7 +53,7 @@ public class ResourceParser {
         if (!searchDir.toFile().exists()) {
             return sourceFiles;
         }
-        Consumer<Throwable> errorConsumer = t -> logger.error("Error parsing", t);
+        Consumer<Throwable> errorConsumer = t -> logger.debug("Error parsing", t);
         InMemoryExecutionContext ctx = new InMemoryExecutionContext(errorConsumer);
 
         try {
