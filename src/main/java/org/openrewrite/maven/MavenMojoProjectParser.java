@@ -1,5 +1,6 @@
 package org.openrewrite.maven;
 
+import org.apache.commons.lang3.SystemUtils;
 import org.apache.maven.artifact.DependencyResolutionRequiredException;
 import org.apache.maven.execution.MavenExecutionRequest;
 import org.apache.maven.execution.MavenSession;
@@ -28,6 +29,7 @@ import org.openrewrite.marker.Generated;
 import org.openrewrite.marker.GitProvenance;
 import org.openrewrite.marker.Marker;
 import org.openrewrite.marker.ci.BuildEnvironment;
+import org.openrewrite.marker.OperatingSystem;
 import org.openrewrite.maven.cache.CompositeMavenPomCache;
 import org.openrewrite.maven.cache.InMemoryMavenPomCache;
 import org.openrewrite.maven.cache.MavenPomCache;
@@ -54,6 +56,8 @@ import static java.util.Collections.emptyList;
 import static java.util.stream.Collectors.toList;
 import static org.openrewrite.Tree.randomId;
 import static org.openrewrite.internal.ListUtils.map;
+import static org.openrewrite.marker.OperatingSystem.Type.Unix;
+import static org.openrewrite.marker.OperatingSystem.Type.Windows;
 
 // -----------------------------------------------------------------------------------------------------------------
 // Notes About Provenance Information:
@@ -178,6 +182,7 @@ public class MavenMojoProjectParser {
         return Stream.of(
                 buildEnvironment,
                 gitProvenance(baseDir, buildEnvironment),
+                detectOs(),
                 buildTool,
                 new JavaVersion(randomId(), javaRuntimeVersion, javaVendor, sourceCompatibility, targetCompatibility),
                 new JavaProject(randomId(), mavenProject.getName(), new JavaProject.Publication(
@@ -554,5 +559,15 @@ public class MavenMojoProjectParser {
 
     private void logDebug(MavenProject mavenProject, String message) {
         logger.debug("Project [" + mavenProject.getName() + "] " + message);
+    }
+
+    private OperatingSystem detectOs() {
+        String osStr = SystemUtils.OS_NAME.toLowerCase();
+        UUID uuid = UUID.randomUUID();
+        if (osStr.contains("windows")) {
+            return new OperatingSystem(uuid, Windows);
+        } else {
+            return new OperatingSystem(uuid, Unix);
+        }
     }
 }
