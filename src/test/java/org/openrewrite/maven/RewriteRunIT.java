@@ -12,7 +12,7 @@ import static com.soebes.itf.extension.assertj.MavenITAssertions.assertThat;
 @DisabledOnOs(OS.WINDOWS)
 @MavenGoal("${project.groupId}:${project.artifactId}:${project.version}:run")
 @SuppressWarnings("NewClassNamingConvention")
-public class RewriteRunIT {
+class RewriteRunIT {
 
     @MavenTest
     void multi_module_project(MavenExecutionResult result) {

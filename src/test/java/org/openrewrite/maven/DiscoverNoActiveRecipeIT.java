@@ -12,7 +12,7 @@ import static com.soebes.itf.extension.assertj.MavenITAssertions.assertThat;
 @MavenJupiterExtension
 @MavenOption(MavenCLIOptions.NO_TRANSFER_PROGRESS)
 @MavenGoal("${project.groupId}:${project.artifactId}:${project.version}:discover")
-public class DiscoverNoActiveRecipeIT {
+class DiscoverNoActiveRecipeIT {
 
     @MavenTest
     void single_project(MavenExecutionResult result) {

@@ -10,7 +10,7 @@ import static com.soebes.itf.extension.assertj.MavenITAssertions.assertThat;
 @MavenOption(MavenCLIOptions.NO_TRANSFER_PROGRESS)
 @MavenGoal("${project.groupId}:${project.artifactId}:${project.version}:cyclonedx")
 @SuppressWarnings("NewClassNamingConvention")
-public class RewriteCycloneDxIT {
+class RewriteCycloneDxIT {
 
     @MavenTest
     @Disabled("module b consistently fails to resolve the locally-built artifact a due to aether resolution errors")
