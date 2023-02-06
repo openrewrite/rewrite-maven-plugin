@@ -143,7 +143,7 @@ The `pom.xml` file contains a `bootstrap` profile to use the `rewrite-maven-plug
 
 ### Resource guides
 
-- https://blog.soebes.de/blog/2020/08/18/itf-part-i/
+- https://blog.soebes.io/posts/2020/08/2020-08-17-itf-part-i/
 - https://carlosvin.github.io/posts/creating-custom-maven-plugin/en/#_dependency_injection
 - https://developer.okta.com/blog/2019/09/23/tutorial-build-a-maven-plugin
 - https://medium.com/swlh/step-by-step-guide-to-developing-a-custom-maven-plugin-b6e3a0e09966
