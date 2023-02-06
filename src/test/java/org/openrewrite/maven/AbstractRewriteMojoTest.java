@@ -15,7 +15,7 @@ import java.nio.file.Path;
 
 import static org.assertj.core.api.Assertions.assertThat;
 
-public class AbstractRewriteMojoTest {
+class AbstractRewriteMojoTest {
 
     @ParameterizedTest
     @ValueSource(strings = {"rewrite.yml", "https://httpstat.us/200"})
@@ -32,7 +32,7 @@ public class AbstractRewriteMojoTest {
             }
         };
 
-        if(!loc.startsWith("http")) {
+        if (!loc.startsWith("http")) {
             Files.write(temp.resolve(loc), "rewrite".getBytes(StandardCharsets.UTF_8));
         }
 
