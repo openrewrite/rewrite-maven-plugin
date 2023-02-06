@@ -14,7 +14,7 @@ import static com.soebes.itf.extension.assertj.MavenITAssertions.assertThat;
         @SystemProperty(value = "rootOnly", content = "false")
 })
 @SuppressWarnings("NewClassNamingConvention")
-public class InitMojoIT {
+class InitMojoIT {
 
     @MavenTest
     void single_project(MavenExecutionResult result) {

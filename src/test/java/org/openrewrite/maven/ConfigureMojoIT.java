@@ -13,7 +13,7 @@ import static com.soebes.itf.extension.assertj.MavenITAssertions.assertThat;
         @SystemProperty(value = "dependencies", content = "org.openrewrite.recipe:rewrite-spring:4.14.1")
 })
 @SuppressWarnings("NewClassNamingConvention")
-public class ConfigureMojoIT {
+class ConfigureMojoIT {
 
     @MavenTest
     void single_project(MavenExecutionResult result) {

@@ -2,14 +2,13 @@ package org.openrewrite.maven;
 
 import com.soebes.itf.jupiter.extension.*;
 import com.soebes.itf.jupiter.maven.MavenExecutionResult;
-import org.junit.jupiter.api.Disabled;
 
 import static com.soebes.itf.extension.assertj.MavenITAssertions.assertThat;
 
 @MavenJupiterExtension
 @MavenOption(MavenCLIOptions.NO_TRANSFER_PROGRESS)
 @SuppressWarnings("NewClassNamingConvention")
-public class BasicIT {
+class BasicIT {
 
     @MavenTest
     void groupid_artifactid_should_be_ok(MavenExecutionResult result) {

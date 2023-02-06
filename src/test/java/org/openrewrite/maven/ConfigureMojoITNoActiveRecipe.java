@@ -5,8 +5,6 @@ import com.soebes.itf.jupiter.extension.MavenGoal;
 import com.soebes.itf.jupiter.extension.MavenJupiterExtension;
 import com.soebes.itf.jupiter.extension.MavenOption;
 import com.soebes.itf.jupiter.extension.MavenTest;
-import com.soebes.itf.jupiter.extension.SystemProperties;
-import com.soebes.itf.jupiter.extension.SystemProperty;
 import com.soebes.itf.jupiter.maven.MavenExecutionResult;
 
 import static com.soebes.itf.extension.assertj.MavenITAssertions.assertThat;
@@ -15,7 +13,7 @@ import static com.soebes.itf.extension.assertj.MavenITAssertions.assertThat;
 @MavenOption(MavenCLIOptions.NO_TRANSFER_PROGRESS)
 @MavenGoal("${project.groupId}:${project.artifactId}:${project.version}:discover")
 @SuppressWarnings("NewClassNamingConvention")
-public class ConfigureMojoITNoActiveRecipe {
+class ConfigureMojoITNoActiveRecipe {
 
     @MavenTest
     void single_project(MavenExecutionResult result) {
