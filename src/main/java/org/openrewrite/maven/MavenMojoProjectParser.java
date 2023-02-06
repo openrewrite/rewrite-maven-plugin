@@ -29,7 +29,7 @@ import org.openrewrite.marker.Generated;
 import org.openrewrite.marker.GitProvenance;
 import org.openrewrite.marker.Marker;
 import org.openrewrite.marker.ci.BuildEnvironment;
-import org.openrewrite.marker.OperatingSystem;
+import org.openrewrite.marker.ci.OperatingSystem;
 import org.openrewrite.maven.cache.CompositeMavenPomCache;
 import org.openrewrite.maven.cache.InMemoryMavenPomCache;
 import org.openrewrite.maven.cache.MavenPomCache;
@@ -56,8 +56,6 @@ import static java.util.Collections.emptyList;
 import static java.util.stream.Collectors.toList;
 import static org.openrewrite.Tree.randomId;
 import static org.openrewrite.internal.ListUtils.map;
-import static org.openrewrite.marker.OperatingSystem.Type.Unix;
-import static org.openrewrite.marker.OperatingSystem.Type.Windows;
 
 // -----------------------------------------------------------------------------------------------------------------
 // Notes About Provenance Information:
@@ -67,7 +65,7 @@ import static org.openrewrite.marker.OperatingSystem.Type.Windows;
 //
 // BuildTool     - What build tool was used to compile the source file (This will always be Maven)
 // JavaVersion   - What Java version/vendor was used when compiling the source file.
-// JavaProject   - For each maven module/sub-module, the same JavaProject will be associated with ALL source files belonging to that module.
+// JavaProject   - For each maven module/submodule, the same JavaProject will be associated with ALL source files belonging to that module.
 //
 // Optional:
 //
@@ -563,11 +561,10 @@ public class MavenMojoProjectParser {
 
     private OperatingSystem detectOs() {
         String osStr = SystemUtils.OS_NAME.toLowerCase();
-        UUID uuid = UUID.randomUUID();
         if (osStr.contains("windows")) {
-            return new OperatingSystem(uuid, Windows);
+            return OperatingSystem.WINDOWS;
         } else {
-            return new OperatingSystem(uuid, Unix);
+            return OperatingSystem.UNIX;
         }
     }
 }
