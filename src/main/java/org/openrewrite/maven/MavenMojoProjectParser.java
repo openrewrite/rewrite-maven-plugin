@@ -1,6 +1,5 @@
 package org.openrewrite.maven;
 
-import org.apache.commons.lang3.SystemUtils;
 import org.apache.maven.artifact.DependencyResolutionRequiredException;
 import org.apache.maven.execution.MavenExecutionRequest;
 import org.apache.maven.execution.MavenSession;
@@ -180,7 +179,7 @@ public class MavenMojoProjectParser {
         return Stream.of(
                 buildEnvironment,
                 gitProvenance(baseDir, buildEnvironment),
-                detectOs(),
+                OperatingSystem.current(),
                 buildTool,
                 new JavaVersion(randomId(), javaRuntimeVersion, javaVendor, sourceCompatibility, targetCompatibility),
                 new JavaProject(randomId(), mavenProject.getName(), new JavaProject.Publication(
@@ -557,14 +556,5 @@ public class MavenMojoProjectParser {
 
     private void logDebug(MavenProject mavenProject, String message) {
         logger.debug("Project [" + mavenProject.getName() + "] " + message);
-    }
-
-    private OperatingSystem detectOs() {
-        String osStr = SystemUtils.OS_NAME.toLowerCase();
-        if (osStr.contains("windows")) {
-            return OperatingSystem.WINDOWS;
-        } else {
-            return OperatingSystem.UNIX;
-        }
     }
 }
