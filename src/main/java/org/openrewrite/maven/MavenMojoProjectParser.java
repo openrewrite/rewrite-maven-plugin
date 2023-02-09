@@ -27,8 +27,9 @@ import org.openrewrite.marker.BuildTool;
 import org.openrewrite.marker.Generated;
 import org.openrewrite.marker.GitProvenance;
 import org.openrewrite.marker.Marker;
+import org.openrewrite.marker.OsProvenance;
+import org.openrewrite.marker.Provenance;
 import org.openrewrite.marker.ci.BuildEnvironment;
-import org.openrewrite.marker.ci.OperatingSystem;
 import org.openrewrite.maven.cache.CompositeMavenPomCache;
 import org.openrewrite.maven.cache.InMemoryMavenPomCache;
 import org.openrewrite.maven.cache.MavenPomCache;
@@ -46,7 +47,13 @@ import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.PathMatcher;
 import java.nio.file.Paths;
-import java.util.*;
+import java.util.ArrayList;
+import java.util.Collection;
+import java.util.Collections;
+import java.util.HashSet;
+import java.util.List;
+import java.util.Objects;
+import java.util.Set;
 import java.util.function.UnaryOperator;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
@@ -178,8 +185,10 @@ public class MavenMojoProjectParser {
         BuildEnvironment buildEnvironment = BuildEnvironment.build(System::getenv);
         return Stream.of(
                 buildEnvironment,
-                gitProvenance(baseDir, buildEnvironment),
-                OperatingSystem.current(),
+                Provenance.builder()
+                        .gitProvenance(gitProvenance(baseDir, buildEnvironment))
+                        .osProvenance(OsProvenance.current())
+                        .build(),
                 buildTool,
                 new JavaVersion(randomId(), javaRuntimeVersion, javaVendor, sourceCompatibility, targetCompatibility),
                 new JavaProject(randomId(), mavenProject.getName(), new JavaProject.Publication(
