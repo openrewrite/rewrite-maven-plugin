@@ -104,7 +104,8 @@ public abstract class ConfigurableRewriteMojo extends AbstractMojo {
                     "**/*.txt",
                     "**/*.jsp",
                     "**/*.sql",
-                    "**/Dockerfile"
+                    "**/Dockerfile",
+                    "**/Jenkinsfile"
             ));
         } else {
             Set<String> masks = toSet(rewritePlainTextMasks);
