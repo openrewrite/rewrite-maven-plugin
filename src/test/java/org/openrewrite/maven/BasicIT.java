@@ -7,7 +7,6 @@ import static com.soebes.itf.extension.assertj.MavenITAssertions.assertThat;
 
 @MavenJupiterExtension
 @MavenOption(MavenCLIOptions.NO_TRANSFER_PROGRESS)
-@SuppressWarnings("NewClassNamingConvention")
 class BasicIT {
 
     @MavenTest
@@ -33,6 +32,8 @@ class BasicIT {
                 .isSuccessful()
                 .out()
                 .warn()
+                // Ignore warning logged on Mac OS X; https://github.com/openrewrite/rewrite-maven-plugin/issues/506
+                .filteredOn(warn -> !"Unable to initialize RocksdbMavenPomCache, falling back to InMemoryMavenPomCache".equals(warn))
                 .isEmpty();
     }
 
