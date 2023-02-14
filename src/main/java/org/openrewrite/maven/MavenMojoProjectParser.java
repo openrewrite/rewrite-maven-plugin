@@ -27,7 +27,7 @@ import org.openrewrite.marker.BuildTool;
 import org.openrewrite.marker.Generated;
 import org.openrewrite.marker.GitProvenance;
 import org.openrewrite.marker.Marker;
-import org.openrewrite.marker.OsProvenance;
+import org.openrewrite.marker.OperatingSystemProvenance;
 import org.openrewrite.marker.ci.BuildEnvironment;
 import org.openrewrite.maven.cache.CompositeMavenPomCache;
 import org.openrewrite.maven.cache.InMemoryMavenPomCache;
@@ -179,7 +179,7 @@ public class MavenMojoProjectParser {
         return Stream.of(
                 buildEnvironment,
                 gitProvenance(baseDir, buildEnvironment),
-                OsProvenance.current(),
+                OperatingSystemProvenance.current(),
                 buildTool,
                 new JavaVersion(randomId(), javaRuntimeVersion, javaVendor, sourceCompatibility, targetCompatibility),
                 new JavaProject(randomId(), mavenProject.getName(), new JavaProject.Publication(
