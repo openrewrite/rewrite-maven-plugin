@@ -176,6 +176,12 @@
             <artifactId>checkstyle</artifactId>
             <!--suppress MavenPackageUpdate Pinned to 9.3, because 10.x does not support Java 8. -->
             <version>9.3</version>
+            <exclusions>
+                <exclusion>
+                    <groupId>org.antlr</groupId>
+                    <artifactId>antlr4-runtime</artifactId>
+                </exclusion>
+            </exclusions>
         </dependency>
         <dependency>
             <groupId>com.fasterxml.jackson.module</groupId>
