@@ -419,7 +419,7 @@ public class MavenMojoProjectParser {
         return !"32".equals(System.getProperty("sun.arch.data.model", "64"));
     }
 
-    private MavenSettings buildSettings() {
+    public MavenSettings buildSettings() {
         MavenExecutionRequest mer = mavenSession.getRequest();
 
         MavenSettings.Profiles profiles = new MavenSettings.Profiles();
