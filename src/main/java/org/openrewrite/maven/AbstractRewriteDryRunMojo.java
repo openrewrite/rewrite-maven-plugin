@@ -18,7 +18,6 @@ package org.openrewrite.maven;
 import org.apache.maven.plugin.MojoExecutionException;
 import org.apache.maven.plugins.annotations.Parameter;
 import org.openrewrite.Result;
-import org.openrewrite.internal.RecipeRunException;
 import org.openrewrite.internal.lang.Nullable;
 
 import java.io.BufferedWriter;
@@ -47,6 +46,10 @@ public class AbstractRewriteDryRunMojo extends AbstractRewriteMojo {
 
     @Override
     public void execute() throws MojoExecutionException {
+        if (rewriteSkip) {
+            getLog().info("Skipping execution");
+            return;
+        }
 
         //If the plugin is configured to run over all projects (at the end of the build) only proceed if the plugin
         //is being run on the last project.

@@ -47,6 +47,9 @@ public abstract class ConfigurableRewriteMojo extends AbstractMojo {
     @Parameter(property = "rewrite.pomCacheDirectory", alias = "pomCacheDirectory")
     protected String pomCacheDirectory;
 
+    @Parameter(property = "rewrite.skip", defaultValue = "false")
+    protected boolean rewriteSkip;
+
     /**
      * When enabled, skip parsing Maven `pom.xml`s, and any transitive poms, as source files.
      * This can be an efficiency improvement in certain situations.
