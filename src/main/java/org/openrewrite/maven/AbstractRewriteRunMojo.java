@@ -38,6 +38,10 @@ public class AbstractRewriteRunMojo extends AbstractRewriteMojo {
 
     @Override
     public void execute() throws MojoExecutionException {
+        if (rewriteSkip) {
+            getLog().info("Skipping execution");
+            return;
+        }
 
         //If the plugin is configured to run over all projects (at the end of the build) only proceed if the plugin
         //is being run on the last project.
