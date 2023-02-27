@@ -28,6 +28,7 @@ import java.nio.charset.Charset;
 import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
 import java.nio.file.Path;
+import java.util.List;
 
 /**
  * Run the configured recipes and apply the changes locally.
@@ -140,6 +141,14 @@ public class AbstractRewriteRunMojo extends AbstractRewriteMojo {
                     assert result.getBefore() != null;
                     assert result.getAfter() != null;
                     writeAfter(results.getProjectRoot(), result);
+                }
+                List<Path> emptyDirectories = results.newlyEmptyDirectories();
+                if(!emptyDirectories.isEmpty()) {
+                    getLog().info("Removing " + emptyDirectories.size() + " newly empty directories:");
+                    for(Path emptyDirectory : emptyDirectories) {
+                        getLog().info("  " + emptyDirectory);
+                        Files.delete(emptyDirectory);
+                    }
                 }
             } catch (IOException e) {
                 throw new RuntimeException("Unable to rewrite source files", e);
