@@ -13,7 +13,7 @@ public class RewriteDumpMavenSettings extends AbstractRewriteMojo {
 
     @Override
     public void execute() throws MojoExecutionException, MojoFailureException {
-        Path baseDir = getBaseDir();
+        Path baseDir = getBuildRoot();
         MavenMojoProjectParser projectParser = new MavenMojoProjectParser(getLog(), baseDir, pomCacheEnabled, pomCacheDirectory, runtime, skipMavenParsing, getExclusions(), getPlainTextMasks(), sizeThresholdMb, mavenSession, settingsDecrypter);
         MavenSettings mavenSettings = projectParser.buildSettings();
 

@@ -132,7 +132,7 @@ public abstract class AbstractRewriteMojo extends ConfigurableRewriteMojo {
         });
     }
 
-    protected Path getBaseDir() {
+    protected Path getBuildRoot() {
         Path localRepositoryFolder = Paths.get(mavenSession.getLocalRepository().getBasedir()).normalize();
         Set<Path> baseFolders = new HashSet<>();
 
@@ -148,6 +148,26 @@ public abstract class AbstractRewriteMojo extends ConfigurableRewriteMojo {
             return Paths.get(mavenSession.getExecutionRootDirectory());
         }
     }
+
+
+    /**
+     * Attempt to determine the root of the git repository for the given project.
+     * Many Gradle builds co-locate the build root with the git repository root, but that is not required.
+     * If no git repository can be located in any folder containing the build, the build root will be returned.
+     */
+    protected Path repositoryRoot() {
+        Path buildRoot = getBuildRoot();
+        Path maybeBaseDir = buildRoot;
+        while(maybeBaseDir != null && !Files.exists(maybeBaseDir.resolve(".git"))) {
+            maybeBaseDir = maybeBaseDir.getParent();
+        }
+        if(maybeBaseDir == null) {
+            return buildRoot;
+        }
+        return maybeBaseDir;
+    }
+
+
 
     private void collectBasePaths(MavenProject project, Set<Path> paths, Path localRepository) {
 
@@ -170,11 +190,11 @@ public abstract class AbstractRewriteMojo extends ConfigurableRewriteMojo {
                 metricsUri, metricsUsername, metricsPassword)) {
             Metrics.addRegistry(meterRegistryProvider.registry());
 
-            Path baseDir = getBaseDir();
+            Path repositoryRoot = repositoryRoot();
             getLog().info(String.format("Using active recipe(s) %s", getActiveRecipes()));
             getLog().info(String.format("Using active styles(s) %s", getActiveStyles()));
             if (getActiveRecipes().isEmpty()) {
-                return new ResultsContainer(baseDir, emptyList());
+                return new ResultsContainer(repositoryRoot, emptyList());
             }
 
             URLClassLoader recipeArtifactCoordinatesClassloader = getRecipeArtifactCoordinatesClassloader();
@@ -219,7 +239,7 @@ public abstract class AbstractRewriteMojo extends ConfigurableRewriteMojo {
                 getLog().warn("No recipes were activated. " +
                               "Activate a recipe with <activeRecipes><recipe>com.fully.qualified.RecipeClassName</recipe></activeRecipes> in this plugin's <configuration> in your pom.xml, " +
                               "or on the command line with -Drewrite.activeRecipes=com.fully.qualified.RecipeClassName");
-                return new ResultsContainer(baseDir, emptyList());
+                return new ResultsContainer(repositoryRoot, emptyList());
             }
 
             getLog().info("Validating active recipes...");
@@ -239,7 +259,7 @@ public abstract class AbstractRewriteMojo extends ConfigurableRewriteMojo {
             ExecutionContext ctx = executionContext();
 
             //Parse and collect source files from each project in the maven session.
-            MavenMojoProjectParser projectParser = new MavenMojoProjectParser(getLog(), baseDir, pomCacheEnabled, pomCacheDirectory, runtime, skipMavenParsing, getExclusions(), getPlainTextMasks(), sizeThresholdMb, mavenSession, settingsDecrypter);
+            MavenMojoProjectParser projectParser = new MavenMojoProjectParser(getLog(), repositoryRoot, pomCacheEnabled, pomCacheDirectory, runtime, skipMavenParsing, getExclusions(), getPlainTextMasks(), sizeThresholdMb, mavenSession, settingsDecrypter);
 
             List<SourceFile> sourceFiles = new ArrayList<>();
             if (runPerSubmodule) {
@@ -266,7 +286,7 @@ public abstract class AbstractRewriteMojo extends ConfigurableRewriteMojo {
 
             Metrics.removeRegistry(meterRegistryProvider.registry());
 
-            return new ResultsContainer(baseDir, results);
+            return new ResultsContainer(repositoryRoot, results);
         } catch (DependencyResolutionRequiredException e) {
             throw new MojoExecutionException("Dependency resolution required", e);
         }

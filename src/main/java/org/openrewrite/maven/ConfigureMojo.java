@@ -58,7 +58,7 @@ public class ConfigureMojo extends AbstractRewriteMojo {
 
     @Override
     public void execute() throws MojoExecutionException, MojoFailureException {
-        Path baseDir = getBaseDir();
+        Path baseDir = getBuildRoot();
 
         ExecutionContext ctx = executionContext();
         Xml.Document maven = new MavenMojoProjectParser(getLog(), baseDir, pomCacheEnabled, pomCacheDirectory, runtime, skipMavenParsing, getExclusions(), getPlainTextMasks(), sizeThresholdMb, mavenSession, settingsDecrypter).parseMaven(project, Collections.emptyList(), ctx);

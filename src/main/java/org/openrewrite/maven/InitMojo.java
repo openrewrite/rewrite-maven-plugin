@@ -61,7 +61,7 @@ public class InitMojo extends AbstractRewriteMojo {
 
     @Override
     public void execute() throws MojoExecutionException {
-        Path baseDir = getBaseDir();
+        Path baseDir = getBuildRoot();
         if (rootOnly && !project.getBasedir().toPath().equals(baseDir)) {
             getLog().warn("Skipping non-root project " + project.getFile().getPath());
             return;
