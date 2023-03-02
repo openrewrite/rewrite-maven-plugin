@@ -32,4 +32,13 @@ class RewriteRunIT {
                 .anySatisfy(line -> assertThat(line).contains("org.openrewrite.java.format.AutoFormat"));
     }
 
+    @MavenTest
+    void cloud_suitability_project(MavenExecutionResult result) {
+        assertThat(result)
+                .isSuccessful()
+                .out()
+                .warn()
+                .anySatisfy(line -> assertThat(line).contains("some.jks"));
+    }
+
 }
