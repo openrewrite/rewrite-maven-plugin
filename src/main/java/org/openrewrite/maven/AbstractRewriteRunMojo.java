@@ -182,6 +182,8 @@ public class AbstractRewriteRunMojo extends AbstractRewriteMojo {
             } catch (IOException e) {
                 throw new UncheckedIOException("Unable to rewrite source files", e);
             }
+        } else if (result.getAfter() instanceof Quark) {
+            // Don't attempt to write to a Quark; it has already been logged as change that has been made
         } else {
             Charset charset = result.getAfter().getCharset() == null ? StandardCharsets.UTF_8 : result.getAfter().getCharset();
             try (BufferedWriter sourceFileWriter = Files.newBufferedWriter(targetPath, charset)) {
