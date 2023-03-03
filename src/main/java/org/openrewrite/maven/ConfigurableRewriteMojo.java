@@ -106,6 +106,7 @@ public abstract class ConfigurableRewriteMojo extends AbstractMojo {
                     "**/*.ksh",
                     "**/*.txt",
                     "**/*.jsp",
+                    "**/*.qute.java",
                     "**/*.sql",
                     "**/Dockerfile",
                     "**/Jenkinsfile"

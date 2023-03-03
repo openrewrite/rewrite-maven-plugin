@@ -167,10 +167,7 @@ public abstract class AbstractRewriteMojo extends ConfigurableRewriteMojo {
         return maybeBaseDir;
     }
 
-
-
     private void collectBasePaths(MavenProject project, Set<Path> paths, Path localRepository) {
-
         Path baseDir = project.getBasedir() == null ? null : project.getBasedir().toPath().normalize();
         if (baseDir == null || baseDir.startsWith(localRepository) || paths.contains(baseDir)) {
             return;

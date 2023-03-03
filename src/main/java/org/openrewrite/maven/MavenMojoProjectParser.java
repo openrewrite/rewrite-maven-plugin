@@ -81,8 +81,10 @@ public class MavenMojoProjectParser {
     private final Log logger;
     private final Path baseDir;
     private final boolean pomCacheEnabled;
+
     @Nullable
     private final String pomCacheDirectory;
+
     private final boolean skipMavenParsing;
 
     private final BuildTool buildTool;
@@ -131,7 +133,7 @@ public class MavenMojoProjectParser {
                 .typeCache(typeCache)
                 .logCompilationWarningsAndErrors(false)
                 .build();
-        ResourceParser rp = new ResourceParser(baseDir, logger, exclusions, plainTextMasks, sizeThresholdMb, pathsToOtherMavenProjects(mavenProject));
+        ResourceParser rp = new ResourceParser(baseDir, logger, exclusions, plainTextMasks, sizeThresholdMb, pathsToOtherMavenProjects(mavenProject), javaParser);
 
         sourceFiles.addAll(processMainSources(mavenProject, javaParser, rp, projectProvenance, alreadyParsed, styles, ctx));
         sourceFiles.addAll(processTestSources(mavenProject, javaParser, rp, projectProvenance, alreadyParsed, styles, ctx));
@@ -210,7 +212,7 @@ public class MavenMojoProjectParser {
 
         alreadyParsed.addAll(mainJavaSources);
 
-        logInfo(mavenProject, "Parsing Source Files");
+        logInfo(mavenProject, "Parsing source files");
         List<Path> dependencies = mavenProject.getCompileClasspathElements().stream()
                 .distinct()
                 .map(Paths::get)
@@ -311,12 +313,12 @@ public class MavenMojoProjectParser {
                 .parse(allPoms, baseDir, ctx);
 
         if (logger.isDebugEnabled()) {
-            logDebug(mavenProject, "Base Directory : '" + baseDir + "'");
+            logDebug(mavenProject, "Base directory : '" + baseDir + "'");
             if (allPoms.isEmpty()) {
                 logDebug(mavenProject, "There were no collected pom paths.");
             } else {
                 for (Path path : allPoms) {
-                    logDebug(mavenProject, "  Collected Pom : '" + path + "'");
+                    logDebug(mavenProject, "  Collected Maven POM : '" + path + "'");
                 }
             }
             if (mavens.isEmpty()) {

@@ -5,6 +5,7 @@ import org.openrewrite.ExecutionContext;
 import org.openrewrite.InMemoryExecutionContext;
 import org.openrewrite.SourceFile;
 import org.openrewrite.hcl.HclParser;
+import org.openrewrite.java.JavaParser;
 import org.openrewrite.json.JsonParser;
 import org.openrewrite.properties.PropertiesParser;
 import org.openrewrite.protobuf.ProtoParser;
@@ -33,9 +34,16 @@ public class ResourceParser {
     private final Collection<Path> excludedDirectories;
     private final Collection<PathMatcher> plainTextMasks;
 
-    public ResourceParser(Path baseDir, Log logger, Collection<String> exclusions, Collection<String> plainTextMasks, int sizeThresholdMb, Collection<Path> excludedDirectories) {
+    /**
+     * Sometimes java files will exist in the src/main/resources directory. For example, Drools:
+     */
+    private final JavaParser javaParser;
+
+    public ResourceParser(Path baseDir, Log logger, Collection<String> exclusions, Collection<String> plainTextMasks, int sizeThresholdMb, Collection<Path> excludedDirectories,
+                          JavaParser javaParser) {
         this.baseDir = baseDir;
         this.logger = logger;
+        this.javaParser = javaParser;
         this.exclusions = pathMatchers(baseDir, exclusions);
         this.sizeThresholdMb = sizeThresholdMb;
         this.excludedDirectories = excludedDirectories;
@@ -59,9 +67,9 @@ public class ResourceParser {
         try {
             sourceFiles.addAll(parseSourceFiles(searchDir, alreadyParsed, ctx));
             List<PlainText> parseFailures = ParsingExecutionContextView.view(ctx).pollParseFailures();
-            if(!parseFailures.isEmpty()) {
+            if (!parseFailures.isEmpty()) {
                 logger.warn("There were problems parsing " + parseFailures.size() + " + sources:");
-                for(PlainText parseFailure : parseFailures) {
+                for (PlainText parseFailure : parseFailures) {
                     logger.warn("  " + parseFailure.getSourcePath());
                 }
                 logger.warn("Execution will continue but these files are unlikely to be affected by refactoring recipes");
@@ -96,10 +104,10 @@ public class ResourceParser {
             @Override
             public FileVisitResult visitFile(Path file, BasicFileAttributes attrs) {
                 if (!attrs.isOther() && !attrs.isSymbolicLink() &&
-                        !alreadyParsed.contains(file) && !isExcluded(file)) {
+                    !alreadyParsed.contains(file) && !isExcluded(file)) {
                     if (isOverSizeThreshold(attrs.size())) {
                         logger.info("Parsing as quark " + file + " as its size + " + attrs.size() / (1024L * 1024L) +
-                                "Mb exceeds size threshold " + sizeThresholdMb + "Mb");
+                                    "Mb exceeds size threshold " + sizeThresholdMb + "Mb");
                         quarkPaths.add(file);
                     } else if (isParsedAsPlainText(file)) {
                         plainTextPaths.add(file);
@@ -112,6 +120,8 @@ public class ResourceParser {
         });
 
         List<S> sourceFiles = new ArrayList<>(resources.size() + quarkPaths.size());
+
+        List<Path> javaPaths = new ArrayList<>();
 
         JsonParser jsonParser = new JsonParser();
         List<Path> jsonPaths = new ArrayList<>();
@@ -136,7 +146,11 @@ public class ResourceParser {
         QuarkParser quarkParser = new QuarkParser();
 
         resources.forEach(path -> {
-            if (jsonParser.accept(path)) {
+            // See https://github.com/quarkusio/quarkus/blob/main/devtools/project-core-extension-codestarts/src/main/resources/codestarts/quarkus/extension-codestarts/resteasy-reactive-codestart/java/src/main/java/org/acme/%7Bresource.class-name%7D.tpl.qute.java
+            // for an example of why we don't want qute files be parsed as java
+            if (javaParser.accept(path) && !path.endsWith(".qute.java")) {
+                javaPaths.add(path);
+            } else if (jsonParser.accept(path)) {
                 jsonPaths.add(path);
             } else if (xmlParser.accept(path)) {
                 xmlPaths.add(path);
@@ -152,6 +166,9 @@ public class ResourceParser {
                 quarkPaths.add(path);
             }
         });
+
+        sourceFiles.addAll((List<S>) javaParser.parse(javaPaths, baseDir, ctx));
+        alreadyParsed.addAll(javaPaths);
 
         sourceFiles.addAll((List<S>) jsonParser.parse(jsonPaths, baseDir, ctx));
         alreadyParsed.addAll(jsonPaths);
