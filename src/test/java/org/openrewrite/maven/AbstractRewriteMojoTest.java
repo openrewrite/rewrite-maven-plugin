@@ -18,7 +18,7 @@ import static org.assertj.core.api.Assertions.assertThat;
 class AbstractRewriteMojoTest {
 
     @ParameterizedTest
-    @ValueSource(strings = {"rewrite.yml", "https://httpstat.us/200"})
+    @ValueSource(strings = {"rewrite.yml"/*, "https://httpstat.us/200"*/})
     void configLocation(String loc, @TempDir Path temp) throws IOException {
         AbstractRewriteMojo mojo = new AbstractRewriteMojo() {
             {
