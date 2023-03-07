@@ -157,7 +157,9 @@ public class AbstractRewriteRunMojo extends AbstractRewriteMojo {
     }
 
     private static void writeAfter(Path root, Result result) {
-        assert result.getAfter() != null;
+        if(result.getAfter() == null || result.getAfter() instanceof Quark) {
+            return;
+        }
         Path targetPath = root.resolve(result.getAfter().getSourcePath());
         File targetFile = targetPath.toFile();
         if (!targetFile.getParentFile().exists()) {
