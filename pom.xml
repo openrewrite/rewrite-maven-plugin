@@ -64,7 +64,7 @@
     </scm>
 
     <properties>
-        <rewrite.version>7.37.0</rewrite.version>
+        <rewrite.version>7.37.3</rewrite.version>
 
         <!-- using 'ssh' url scheme by default, which assumes a human is performing git operations leveraging an ssh key -->
         <developerConnectionUrl>scm:git:ssh://git@github.com/openrewrite/rewrite-maven-plugin.git
