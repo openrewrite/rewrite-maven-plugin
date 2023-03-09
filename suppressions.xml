@@ -1,6 +1,6 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <suppressions xmlns="https://jeremylong.github.io/DependencyCheck/dependency-suppression.1.3.xsd">
-    <suppress until="2023-03-10Z">
+    <suppress until="2023-04-09Z">
         <notes>
             <![CDATA[
                 file name: jackson-databind-2.13.4.jar
@@ -9,7 +9,7 @@
         <packageUrl regex="true">^pkg:maven/com\.fasterxml\.jackson.*$</packageUrl>
         <cve>CVE-2022-42003</cve>
     </suppress>
-    <suppress until="2023-03-10Z">
+    <suppress until="2023-04-09Z">
         <notes><![CDATA[
         file name: woodstox-core-6.3.1.jar
         Severity: HIGH
@@ -19,7 +19,7 @@
         <packageUrl regex="true">^pkg:maven/com\.fasterxml\.woodstox/woodstox\-core@.*$</packageUrl>
         <vulnerabilityName>CVE-2022-40152</vulnerabilityName>
     </suppress>
-    <suppress until="2023-03-10Z">
+    <suppress until="2023-04-09Z">
         <notes><![CDATA[
             file name: snakeyaml-1.33.jar
             Severity: HIGH
@@ -27,5 +27,20 @@
         ]]></notes>
         <packageUrl regex="true">^pkg:maven/org\.yaml/snakeyaml@.*$</packageUrl>
         <cve>CVE-2022-1471</cve>
+    </suppress>
+    <suppress until="2023-04-09Z">
+        <notes><![CDATA[
+            file name: jackson-core-2.13.4.jar
+            This is not actionable, the latest version is 2.14.2 which still contains the vulnerability.
+        ]]></notes>
+        <packageUrl regex="true">^pkg:maven/com\.fasterxml\.jackson\.core/jackson\-core@.*$</packageUrl>
+        <cve>CVE-2022-45688</cve>
+    </suppress>
+    <suppress until="2023-04-09Z">
+        <notes><![CDATA[
+            file name: javax.json-1.1.4.jar
+        ]]></notes>
+        <packageUrl regex="true">^pkg:maven/org\.glassfish/javax\.json@.*$</packageUrl>
+        <cve>CVE-2022-45688</cve>
     </suppress>
 </suppressions>
