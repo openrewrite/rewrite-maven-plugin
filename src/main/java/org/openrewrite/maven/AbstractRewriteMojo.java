@@ -25,6 +25,9 @@ import org.openrewrite.ipc.http.HttpSender;
 import org.openrewrite.ipc.http.HttpUrlConnectionSender;
 import org.openrewrite.java.style.CheckstyleConfigLoader;
 import org.openrewrite.marker.Generated;
+import org.openrewrite.marker.Marker;
+import org.openrewrite.marker.Markup;
+import org.openrewrite.marker.SearchResult;
 import org.openrewrite.style.NamedStyles;
 
 import java.io.*;
@@ -33,6 +36,7 @@ import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.util.*;
+import java.util.function.UnaryOperator;
 import java.util.stream.Stream;
 
 import static java.util.Collections.*;
@@ -361,7 +365,9 @@ public abstract class AbstractRewriteMojo extends ConfigurableRewriteMojo {
                 } else if (result.getBefore() != null && result.getAfter() != null && !result.getBefore().getSourcePath().equals(result.getAfter().getSourcePath())) {
                     moved.add(result);
                 } else {
-                    refactoredInPlace.add(result);
+                    if (!result.diff(Paths.get(""), new FencedMarkerPrinter(), true).isEmpty()) {
+                        refactoredInPlace.add(result);
+                    }
                 }
             }
         }
@@ -427,6 +433,21 @@ public abstract class AbstractRewriteMojo extends ConfigurableRewriteMojo {
                 }
             }
             return emptyDirectories;
+        }
+
+        /**
+         * Only retains output for markers of type {@code SearchResult} and {@code Markup}.
+         */
+        private static class FencedMarkerPrinter implements PrintOutputCapture.MarkerPrinter {
+            @Override
+            public String beforeSyntax(Marker marker, Cursor cursor, UnaryOperator<String> commentWrapper) {
+                return marker instanceof SearchResult || marker instanceof Markup ? "{{" + marker.getId() + "}}" : "";
+            }
+
+            @Override
+            public String afterSyntax(Marker marker, Cursor cursor, UnaryOperator<String> commentWrapper) {
+                return marker instanceof SearchResult || marker instanceof Markup ? "{{" + marker.getId() + "}}" : "";
+            }
         }
     }
 

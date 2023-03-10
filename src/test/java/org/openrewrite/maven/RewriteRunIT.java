@@ -41,4 +41,14 @@ class RewriteRunIT {
                 .anySatisfy(line -> assertThat(line).contains("some.jks"));
     }
 
+    @MavenTest
+    void java_upgrade_project(MavenExecutionResult result) {
+        assertThat(result)
+                .isSuccessful()
+                .out()
+                .warn()
+                .filteredOn(line -> line.contains("Changes have been made"))
+                .hasSize(1);
+    }
+
 }
