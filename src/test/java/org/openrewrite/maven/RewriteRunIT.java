@@ -51,4 +51,14 @@ class RewriteRunIT {
                 .hasSize(1);
     }
 
+    @MavenTest
+    void java_compiler_plugin_project(MavenExecutionResult result) {
+        assertThat(result)
+                .isSuccessful()
+                .out()
+                .warn()
+                .filteredOn(line -> line.contains("Changes have been made"))
+                .hasSize(1);
+    }
+
 }

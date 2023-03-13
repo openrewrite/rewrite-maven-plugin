@@ -3,6 +3,7 @@ package org.openrewrite.maven;
 import org.apache.maven.artifact.DependencyResolutionRequiredException;
 import org.apache.maven.execution.MavenExecutionRequest;
 import org.apache.maven.execution.MavenSession;
+import org.apache.maven.model.Plugin;
 import org.apache.maven.model.Profile;
 import org.apache.maven.model.Repository;
 import org.apache.maven.plugin.MojoExecutionException;
@@ -13,6 +14,7 @@ import org.apache.maven.settings.crypto.DefaultSettingsDecryptionRequest;
 import org.apache.maven.settings.crypto.SettingsDecrypter;
 import org.apache.maven.settings.crypto.SettingsDecryptionRequest;
 import org.apache.maven.settings.crypto.SettingsDecryptionResult;
+import org.codehaus.plexus.util.xml.Xpp3Dom;
 import org.openrewrite.ExecutionContext;
 import org.openrewrite.SourceFile;
 import org.openrewrite.internal.ListUtils;
@@ -165,22 +167,51 @@ public class MavenMojoProjectParser {
 
         String javaRuntimeVersion = System.getProperty("java.runtime.version");
         String javaVendor = System.getProperty("java.vm.vendor");
-        String sourceCompatibility = javaRuntimeVersion;
-        String targetCompatibility = javaRuntimeVersion;
 
-        String propertiesReleaseCompatibility = (String) mavenProject.getProperties().get("maven.compiler.release");
-        if (propertiesReleaseCompatibility != null) {
-            sourceCompatibility = propertiesReleaseCompatibility;
-            targetCompatibility = propertiesReleaseCompatibility;
-        } else {
-            String propertiesSourceCompatibility = (String) mavenProject.getProperties().get("maven.compiler.source");
-            if (propertiesSourceCompatibility != null) {
-                sourceCompatibility = propertiesSourceCompatibility;
+        String sourceCompatibility = null;
+        String targetCompatibility = null;
+
+        Plugin compilerPlugin = mavenProject.getPlugin("org.apache.maven.plugins:maven-compiler-plugin");
+        if (compilerPlugin != null && compilerPlugin.getConfiguration() instanceof Xpp3Dom) {
+            Xpp3Dom dom = (Xpp3Dom) compilerPlugin.getConfiguration();
+            Xpp3Dom release = dom.getChild("release");
+            if (release != null && !release.getValue().isEmpty() && !release.getValue().contains("${")) {
+                sourceCompatibility = release.getValue();
+                targetCompatibility = release.getValue();
+            } else {
+                Xpp3Dom source = dom.getChild("source");
+                if (source != null && !source.getValue().isEmpty() && !source.getValue().contains("${")) {
+                    sourceCompatibility = source.getValue();
+                }
+                Xpp3Dom target = dom.getChild("target");
+                if (target != null && !target.getValue().isEmpty() && !target.getValue().contains("${")) {
+                    targetCompatibility = target.getValue();
+                }
             }
-            String propertiesTargetCompatibility = (String) mavenProject.getProperties().get("maven.compiler.target");
-            if (propertiesTargetCompatibility != null) {
-                targetCompatibility = propertiesTargetCompatibility;
+        }
+
+        if (sourceCompatibility == null || targetCompatibility == null) {
+            String propertiesReleaseCompatibility = (String) mavenProject.getProperties().get("maven.compiler.release");
+            if (propertiesReleaseCompatibility != null) {
+                sourceCompatibility = propertiesReleaseCompatibility;
+                targetCompatibility = propertiesReleaseCompatibility;
+            } else {
+                String propertiesSourceCompatibility = (String) mavenProject.getProperties().get("maven.compiler.source");
+                if (sourceCompatibility == null && propertiesSourceCompatibility != null) {
+                    sourceCompatibility = propertiesSourceCompatibility;
+                }
+                String propertiesTargetCompatibility = (String) mavenProject.getProperties().get("maven.compiler.target");
+                if (targetCompatibility == null && propertiesTargetCompatibility != null) {
+                    targetCompatibility = propertiesTargetCompatibility;
+                }
             }
+        }
+
+        if (sourceCompatibility == null) {
+            sourceCompatibility = javaRuntimeVersion;
+        }
+        if (targetCompatibility == null) {
+            targetCompatibility = sourceCompatibility;
         }
 
         BuildEnvironment buildEnvironment = BuildEnvironment.build(System::getenv);
