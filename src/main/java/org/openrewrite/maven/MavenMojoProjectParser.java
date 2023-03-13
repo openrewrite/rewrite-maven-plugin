@@ -168,13 +168,19 @@ public class MavenMojoProjectParser {
         String sourceCompatibility = javaRuntimeVersion;
         String targetCompatibility = javaRuntimeVersion;
 
-        String propertiesSourceCompatibility = (String) mavenProject.getProperties().get("maven.compiler.source");
-        if (propertiesSourceCompatibility != null) {
-            sourceCompatibility = propertiesSourceCompatibility;
-        }
-        String propertiesTargetCompatibility = (String) mavenProject.getProperties().get("maven.compiler.target");
-        if (propertiesTargetCompatibility != null) {
-            targetCompatibility = propertiesTargetCompatibility;
+        String propertiesReleaseCompatibility = (String) mavenProject.getProperties().get("maven.compiler.release");
+        if (propertiesReleaseCompatibility != null) {
+            sourceCompatibility = propertiesReleaseCompatibility;
+            targetCompatibility = propertiesReleaseCompatibility;
+        } else {
+            String propertiesSourceCompatibility = (String) mavenProject.getProperties().get("maven.compiler.source");
+            if (propertiesSourceCompatibility != null) {
+                sourceCompatibility = propertiesSourceCompatibility;
+            }
+            String propertiesTargetCompatibility = (String) mavenProject.getProperties().get("maven.compiler.target");
+            if (propertiesTargetCompatibility != null) {
+                targetCompatibility = propertiesTargetCompatibility;
+            }
         }
 
         BuildEnvironment buildEnvironment = BuildEnvironment.build(System::getenv);
