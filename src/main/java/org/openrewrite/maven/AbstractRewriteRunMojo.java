@@ -17,6 +17,7 @@ package org.openrewrite.maven;
 
 import org.apache.maven.plugin.MojoExecutionException;
 import org.openrewrite.FileAttributes;
+import org.openrewrite.PrintOutputCapture;
 import org.openrewrite.Result;
 import org.openrewrite.binary.Binary;
 import org.openrewrite.ipc.http.HttpUrlConnectionSender;
@@ -189,7 +190,7 @@ public class AbstractRewriteRunMojo extends AbstractRewriteMojo {
         } else {
             Charset charset = result.getAfter().getCharset() == null ? StandardCharsets.UTF_8 : result.getAfter().getCharset();
             try (BufferedWriter sourceFileWriter = Files.newBufferedWriter(targetPath, charset)) {
-                sourceFileWriter.write(new String(result.getAfter().printAll(new SanitizedMarkerPrinter()).getBytes(charset), charset));
+                sourceFileWriter.write(result.getAfter().printAll(new PrintOutputCapture<>(0, new SanitizedMarkerPrinter())));
             } catch (IOException e) {
                 throw new UncheckedIOException("Unable to rewrite source files", e);
             }
