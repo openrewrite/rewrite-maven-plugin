@@ -79,7 +79,7 @@
         <itf-maven.version>0.12.0</itf-maven.version>
         <maven-dependencies.version>3.9.0</maven-dependencies.version>
         <maven-release-plugin.version>3.0.0-M7</maven-release-plugin.version>
-        <maven-plugin-tools.version>3.7.1</maven-plugin-tools.version>
+        <maven-plugin-tools.version>3.8.1</maven-plugin-tools.version>
         <kotlin.version>1.8.10</kotlin.version>
     </properties>
     <dependencyManagement>
