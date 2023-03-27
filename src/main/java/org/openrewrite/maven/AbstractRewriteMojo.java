@@ -274,9 +274,9 @@ public abstract class AbstractRewriteMojo extends ConfigurableRewriteMojo {
                 Map<MavenProject, List<Marker>> projectProvenances = mavenSession.getProjects().stream()
                         .collect(Collectors.toMap(Function.identity(), projectParser::generateProvenance));
                 Map<MavenProject, Xml.Document> projectMap = projectParser.parseMaven(mavenSession.getProjects(), projectProvenances, ctx);
-                for (Map.Entry<MavenProject, Xml.Document> entry : projectMap.entrySet()) {
-                    List<Marker> projectProvenance = projectProvenances.get(entry.getKey());
-                    sourceFiles.addAll(projectParser.listSourceFiles(entry.getKey(), entry.getValue(), projectProvenance, styles, ctx));
+                for (MavenProject mavenProject : mavenSession.getProjects()) {
+                    List<Marker> projectProvenance = projectProvenances.get(mavenProject);
+                    sourceFiles.addAll(projectParser.listSourceFiles(mavenProject, projectMap.get(mavenProject), projectProvenance, styles, ctx));
                 }
             }
 
