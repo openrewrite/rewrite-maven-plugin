@@ -49,11 +49,12 @@ import java.nio.file.Path;
 import java.nio.file.PathMatcher;
 import java.nio.file.Paths;
 import java.util.*;
+import java.util.function.Function;
 import java.util.function.UnaryOperator;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
 
-import static java.util.Collections.emptyList;
+import static java.util.Collections.*;
 import static java.util.stream.Collectors.toList;
 import static org.openrewrite.Tree.randomId;
 import static org.openrewrite.internal.ListUtils.map;
@@ -113,15 +114,17 @@ public class MavenMojoProjectParser {
     }
 
     public List<SourceFile> listSourceFiles(MavenProject mavenProject, List<NamedStyles> styles,
-            ExecutionContext ctx) throws DependencyResolutionRequiredException, MojoExecutionException {
-
+                                            ExecutionContext ctx) throws DependencyResolutionRequiredException, MojoExecutionException {
         List<Marker> projectProvenance = generateProvenance(mavenProject);
+        Xml.Document maven = parseMaven(mavenProject, projectProvenance, ctx);
+        return listSourceFiles(mavenProject, maven, projectProvenance, styles, ctx);
+    }
+
+    public List<SourceFile> listSourceFiles(MavenProject mavenProject, @Nullable Xml.Document maven, List<Marker> projectProvenance, List<NamedStyles> styles,
+                                            ExecutionContext ctx) throws DependencyResolutionRequiredException, MojoExecutionException {
         List<SourceFile> sourceFiles = new ArrayList<>();
         Set<Path> alreadyParsed = new HashSet<>();
 
-        // First parse the maven project.
-        logInfo(mavenProject, "Resolving Poms...");
-        Xml.Document maven = parseMaven(mavenProject, projectProvenance, ctx);
         if (maven != null) {
             sourceFiles.add(maven);
             alreadyParsed.add(baseDir.resolve(maven.getSourcePath()));
@@ -163,7 +166,7 @@ public class MavenMojoProjectParser {
         return sourceFiles;
     }
 
-    private List<Marker> generateProvenance(MavenProject mavenProject) {
+    public List<Marker> generateProvenance(MavenProject mavenProject) {
 
         String javaRuntimeVersion = System.getProperty("java.runtime.version");
         String javaVendor = System.getProperty("java.vm.vendor");
@@ -320,14 +323,24 @@ public class MavenMojoProjectParser {
 
     @Nullable
     public Xml.Document parseMaven(MavenProject mavenProject, List<Marker> projectProvenance, ExecutionContext ctx) {
+        return parseMaven(singletonList(mavenProject), singletonMap(mavenProject, projectProvenance), ctx).get(mavenProject);
+    }
+
+    public Map<MavenProject, Xml.Document> parseMaven(List<MavenProject> mavenProjects, Map<MavenProject, List<Marker>> projectProvenances, ExecutionContext ctx) {
         J.clearCaches();
         if (skipMavenParsing) {
             logger.info("Skipping Maven parsing...");
-            return null;
+            return emptyMap();
         }
 
-        Set<Path> allPoms = collectPoms(mavenProject, new HashSet<>());
-        mavenSession.getProjectDependencyGraph().getUpstreamProjects(mavenProject, true).forEach(p -> collectPoms(p, allPoms));
+        MavenProject topLevelProject = mavenSession.getTopLevelProject();
+        logInfo(topLevelProject, "Resolving Poms...");
+
+        Set<Path> allPoms = new HashSet<>();
+        mavenProjects.forEach(p -> collectPoms(p, allPoms));
+        for (MavenProject mavenProject : mavenProjects) {
+            mavenSession.getProjectDependencyGraph().getUpstreamProjects(mavenProject, true).forEach(p -> collectPoms(p, allPoms));
+        }
         MavenParser.Builder mavenParserBuilder = MavenParser.builder().mavenConfig(baseDir.resolve(".mvn/maven.config"));
 
         MavenSettings settings = buildSettings();
@@ -340,7 +353,7 @@ public class MavenMojoProjectParser {
             mavenExecutionContext.setPomCache(getPomCache(pomCacheDirectory, logger));
         }
 
-        List<String> activeProfiles = mavenProject.getActiveProfiles().stream().map(Profile::getId).collect(Collectors.toList());
+        List<String> activeProfiles = topLevelProject.getActiveProfiles().stream().map(Profile::getId).collect(Collectors.toList());
         if (!activeProfiles.isEmpty()) {
             mavenParserBuilder.activeProfiles(activeProfiles.toArray(new String[]{}));
         }
@@ -350,36 +363,48 @@ public class MavenMojoProjectParser {
                 .parse(allPoms, baseDir, ctx);
 
         if (logger.isDebugEnabled()) {
-            logDebug(mavenProject, "Base directory : '" + baseDir + "'");
+            logDebug(topLevelProject, "Base directory : '" + baseDir + "'");
             if (allPoms.isEmpty()) {
-                logDebug(mavenProject, "There were no collected pom paths.");
+                logDebug(topLevelProject, "There were no collected pom paths.");
             } else {
                 for (Path path : allPoms) {
-                    logDebug(mavenProject, "  Collected Maven POM : '" + path + "'");
+                    logDebug(topLevelProject, "  Collected Maven POM : '" + path + "'");
                 }
             }
             if (mavens.isEmpty()) {
-                logDebug(mavenProject, "There were no parsed maven source files.");
+                logDebug(topLevelProject, "There were no parsed maven source files.");
             } else {
                 for (Xml.Document source : mavens) {
-                    logDebug(mavenProject, "  Maven Source : '" + baseDir.resolve(source.getSourcePath()) + "'");
+                    logDebug(topLevelProject, "  Maven Source : '" + baseDir.resolve(source.getSourcePath()) + "'");
                 }
             }
         }
 
-        Xml.Document maven = mavens.stream()
-                .filter(o -> pomPath(mavenProject).equals(baseDir.resolve(o.getSourcePath())))
-                .findFirst().orElse(null);
-        if (maven == null) {
-            logError(mavenProject, "Parse resulted in no Maven source files. Maven Project File '" + mavenProject.getFile().toPath() + "'");
-            return null;
+        Map<Path, MavenProject> projectsByPath = mavenProjects.stream().collect(Collectors.toMap(MavenMojoProjectParser::pomPath, Function.identity()));
+        Map<MavenProject, Xml.Document> projectMap = new HashMap<>();
+        for (Xml.Document document : mavens) {
+            Path path = baseDir.resolve(document.getSourcePath());
+            MavenProject mavenProject = projectsByPath.get(path);
+            if (mavenProject != null) {
+                projectMap.put(mavenProject, document);
+            }
+        }
+        for (MavenProject mavenProject : mavenProjects) {
+            if (projectMap.get(mavenProject) == null) {
+                logError(mavenProject, "Parse resulted in no Maven source files. Maven Project File '" + mavenProject.getFile().toPath() + "'");
+                return emptyMap();
+            }
         }
 
-        for (Marker marker : projectProvenance) {
-            maven = maven.withMarkers(maven.getMarkers().addIfAbsent(marker));
+        for (MavenProject mavenProject : mavenProjects) {
+            Xml.Document document = projectMap.get(mavenProject);
+            List<Marker> markers = projectProvenances.getOrDefault(mavenProject, emptyList());
+            for (Marker marker : markers) {
+                projectMap.put(mavenProject, document.withMarkers(document.getMarkers().addIfAbsent(marker)));
+            }
         }
 
-        return maven;
+        return projectMap;
     }
 
     /**
@@ -387,9 +412,8 @@ public class MavenMojoProjectParser {
      *
      * @param project A maven project to examine for any children/parent poms.
      * @param paths A list of paths to poms that have been collected so far.
-     * @return All poms associated with the current pom.
      */
-    private Set<Path> collectPoms(MavenProject project, Set<Path> paths) {
+    private void collectPoms(MavenProject project, Set<Path> paths) {
         paths.add(pomPath(project));
 
         // children
@@ -410,7 +434,6 @@ public class MavenMojoProjectParser {
             }
             parent = parent.getParent();
         }
-        return paths;
     }
 
     private static Path pomPath(MavenProject mavenProject) {

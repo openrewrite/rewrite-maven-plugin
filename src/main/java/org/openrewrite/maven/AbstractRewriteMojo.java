@@ -29,6 +29,7 @@ import org.openrewrite.marker.Marker;
 import org.openrewrite.marker.Markup;
 import org.openrewrite.marker.SearchResult;
 import org.openrewrite.style.NamedStyles;
+import org.openrewrite.xml.tree.Xml;
 
 import java.io.*;
 import java.net.*;
@@ -36,7 +37,9 @@ import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.util.*;
+import java.util.function.Function;
 import java.util.function.UnaryOperator;
+import java.util.stream.Collectors;
 import java.util.stream.Stream;
 
 import static java.util.Collections.*;
@@ -269,8 +272,12 @@ public abstract class AbstractRewriteMojo extends ConfigurableRewriteMojo {
                 sourceFiles.addAll(projectParser.listSourceFiles(project, styles, ctx));
             } else {
                 //If running across all project, iterate and parse source files from each project
-                for (MavenProject projectIndex : mavenSession.getProjects()) {
-                    sourceFiles.addAll(projectParser.listSourceFiles(projectIndex, styles, ctx));
+                Map<MavenProject, List<Marker>> projectProvenances = mavenSession.getProjects().stream()
+                        .collect(Collectors.toMap(Function.identity(), projectParser::generateProvenance));
+                Map<MavenProject, Xml.Document> projectMap = projectParser.parseMaven(mavenSession.getProjects(), projectProvenances, ctx);
+                for (Map.Entry<MavenProject, Xml.Document> entry : projectMap.entrySet()) {
+                    List<Marker> projectProvenance = projectProvenances.get(entry.getKey());
+                    sourceFiles.addAll(projectParser.listSourceFiles(entry.getKey(), entry.getValue(), projectProvenance, styles, ctx));
                 }
             }
 
