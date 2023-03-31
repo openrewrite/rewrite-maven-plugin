@@ -9,6 +9,7 @@ import org.openrewrite.java.JavaParser;
 import org.openrewrite.json.JsonParser;
 import org.openrewrite.properties.PropertiesParser;
 import org.openrewrite.protobuf.ProtoParser;
+import org.openrewrite.python.PythonParser;
 import org.openrewrite.text.PlainText;
 import org.openrewrite.text.PlainTextParser;
 import org.openrewrite.quark.QuarkParser;
@@ -138,6 +139,9 @@ public class ResourceParser {
         ProtoParser protoParser = new ProtoParser();
         List<Path> protoPaths = new ArrayList<>();
 
+        PythonParser pythonParser = PythonParser.builder().build();
+        List<Path> pythonPaths = new ArrayList<>();
+
         HclParser hclParser = HclParser.builder().build();
         List<Path> hclPaths = new ArrayList<>();
 
@@ -160,6 +164,8 @@ public class ResourceParser {
                 propertiesPaths.add(path);
             } else if (protoParser.accept(path)) {
                 protoPaths.add(path);
+            } else if(pythonParser.accept(path)) {
+                pythonPaths.add(path);
             } else if (hclParser.accept(path)) {
                 hclPaths.add(path);
             } else if (quarkParser.accept(path)) {
@@ -184,6 +190,9 @@ public class ResourceParser {
 
         sourceFiles.addAll((List<S>) protoParser.parse(protoPaths, baseDir, ctx));
         alreadyParsed.addAll(protoPaths);
+
+        sourceFiles.addAll((List<S>) pythonParser.parse(pythonPaths, baseDir, ctx));
+        alreadyParsed.addAll(pythonPaths);
 
         sourceFiles.addAll((List<S>) hclParser.parse(hclPaths, baseDir, ctx));
         alreadyParsed.addAll(hclPaths);
