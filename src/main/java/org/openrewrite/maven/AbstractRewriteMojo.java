@@ -134,7 +134,6 @@ public abstract class AbstractRewriteMojo extends ConfigurableRewriteMojo {
 
     protected ExecutionContext executionContext() {
         return new InMemoryExecutionContext(t -> {
-            getLog().warn(t.getMessage());
             getLog().debug(t);
         });
     }
