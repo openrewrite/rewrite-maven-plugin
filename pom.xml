@@ -4,7 +4,7 @@
 
     <groupId>org.openrewrite.maven</groupId>
     <artifactId>rewrite-maven-plugin</artifactId>
-    <version>4.42.1-SNAPSHOT</version>
+    <version>4.43.0-SNAPSHOT</version>
     <name>rewrite-maven-plugin</name>
 
     <packaging>maven-plugin</packaging>
@@ -64,8 +64,8 @@
     </scm>
 
     <properties>
-        <rewrite.version>7.38.0</rewrite.version>
-        <rewrite.python.version>0.2.1</rewrite.python.version>
+        <rewrite.version>7.39.0-SNAPSHOT</rewrite.version>
+        <rewrite.python.version>0.3.0-SNAPSHOT</rewrite.python.version>
 
         <!-- using 'ssh' url scheme by default, which assumes a human is performing git operations leveraging an ssh key -->
         <developerConnectionUrl>scm:git:ssh://git@github.com/openrewrite/rewrite-maven-plugin.git
