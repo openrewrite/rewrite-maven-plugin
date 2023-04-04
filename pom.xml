@@ -64,8 +64,8 @@
     </scm>
 
     <properties>
-        <rewrite.version>7.39.0-SNAPSHOT</rewrite.version>
-        <rewrite.python.version>0.3.0-SNAPSHOT</rewrite.python.version>
+        <rewrite.version>7.39.1</rewrite.version>
+        <rewrite.python.version>0.3.1</rewrite.python.version>
 
         <!-- using 'ssh' url scheme by default, which assumes a human is performing git operations leveraging an ssh key -->
         <developerConnectionUrl>scm:git:ssh://git@github.com/openrewrite/rewrite-maven-plugin.git
