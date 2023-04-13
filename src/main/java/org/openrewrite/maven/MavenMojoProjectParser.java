@@ -15,6 +15,7 @@ import org.apache.maven.settings.crypto.SettingsDecrypter;
 import org.apache.maven.settings.crypto.SettingsDecryptionRequest;
 import org.apache.maven.settings.crypto.SettingsDecryptionResult;
 import org.codehaus.plexus.util.xml.Xpp3Dom;
+import org.jetbrains.annotations.NotNull;
 import org.openrewrite.ExecutionContext;
 import org.openrewrite.SourceFile;
 import org.openrewrite.internal.ListUtils;
@@ -26,6 +27,7 @@ import org.openrewrite.java.marker.JavaSourceSet;
 import org.openrewrite.java.marker.JavaVersion;
 import org.openrewrite.java.style.Autodetect;
 import org.openrewrite.java.tree.J;
+import org.openrewrite.java.tree.JavaSourceFile;
 import org.openrewrite.java.tree.JavaType;
 import org.openrewrite.marker.*;
 import org.openrewrite.marker.ci.BuildEnvironment;
@@ -65,7 +67,7 @@ import static org.openrewrite.internal.ListUtils.map;
 //
 // BuildTool     - What build tool was used to compile the source file (This will always be Maven)
 // JavaVersion   - What Java version/vendor was used when compiling the source file.
-// JavaProject   - For each maven module/sub-module, the same JavaProject will be associated with ALL source files belonging to that module.
+// JavaProject   - For each maven module/submodule, the same JavaProject will be associated with ALL source files belonging to that module.
 //
 // Optional:
 //
@@ -259,19 +261,8 @@ public class MavenMojoProjectParser {
 
         List<J.CompilationUnit> cus = applyStyles(javaParser.parse(mainJavaSources, baseDir, ctx), styles);
 
-        JavaSourceSet mainSourceSetProvenance = JavaSourceSet.build("main", dependencies, typeCache, false);
-        List<JavaType.FullyQualified> classpath = mainSourceSetProvenance.getClasspath();
-        for (J.CompilationUnit cu : cus) {
-            for (JavaType type : cu.getTypesInUse().getTypesInUse()) {
-                if (type instanceof JavaType.FullyQualified) {
-                    classpath.add((JavaType.FullyQualified) type);
-                }
-            }
-        }
-        mainSourceSetProvenance = mainSourceSetProvenance.withClasspath(classpath);
-
         List<Marker> mainProjectProvenance = new ArrayList<>(projectProvenance);
-        mainProjectProvenance.add(mainSourceSetProvenance);
+        mainProjectProvenance.add(sourceSet("main", dependencies, cus));
 
         List<J.CompilationUnit> parsedJava = ListUtils.map(cus,
                 addProvenance(baseDir, mainProjectProvenance, generatedSourcePaths));
@@ -314,23 +305,12 @@ public class MavenMojoProjectParser {
 
         List<J.CompilationUnit> cus = applyStyles(javaParser.parse(testJavaSources, baseDir, ctx), styles);
 
-        JavaSourceSet testSourceSetProvenance = JavaSourceSet.build("test", testDependencies, typeCache, false);
-        List<JavaType.FullyQualified> classpath = testSourceSetProvenance.getClasspath();
-        for (J.CompilationUnit cu : cus) {
-            for (JavaType type : cu.getTypesInUse().getTypesInUse()) {
-                if (type instanceof JavaType.FullyQualified) {
-                    classpath.add((JavaType.FullyQualified) type);
-                }
-            }
-        }
-        testSourceSetProvenance = testSourceSetProvenance.withClasspath(classpath);
-
-        List<Marker> testProjectProvenance = new ArrayList<>(projectProvenance);
-        testProjectProvenance.add(testSourceSetProvenance);
+        List<Marker> markers = new ArrayList<>(projectProvenance);
+        markers.add(sourceSet("test", testDependencies, cus));
 
         List<J.CompilationUnit> parsedJava = ListUtils.map(
                 cus,
-                addProvenance(baseDir, testProjectProvenance, null));
+                addProvenance(baseDir, markers, null));
 
         logDebug(mavenProject, "Parsed " + parsedJava.size() + " java source files in test scope.");
         List<SourceFile> sourceFiles = new ArrayList<>(parsedJava);
@@ -338,11 +318,28 @@ public class MavenMojoProjectParser {
         // Any resources parsed from "test/resources" should also have the test source set added to them.
         List<SourceFile> parsedResourceFiles = ListUtils.map(
                 resourceParser.parse(mavenProject.getBasedir().toPath().resolve("src/test/resources"), alreadyParsed),
-                addProvenance(baseDir, testProjectProvenance, null)
+                addProvenance(baseDir, markers, null)
         );
         logDebug(mavenProject, "Parsed " + parsedResourceFiles.size() + " resource files in test scope.");
         sourceFiles.addAll(parsedResourceFiles);
         return sourceFiles.isEmpty() ? Collections.emptyList() : sourceFiles;
+    }
+
+    @NotNull
+    private static JavaSourceSet sourceSet(String name, List<Path> dependencies, List<? extends JavaSourceFile> cus) {
+        JavaSourceSet testSourceSet = JavaSourceSet.build(name, dependencies, typeCache, false);
+        Set<JavaType.FullyQualified> typesInUse = new LinkedHashSet<>();
+        for (JavaSourceFile cu : cus) {
+            for (JavaType type : cu.getTypesInUse().getTypesInUse()) {
+                if (type instanceof JavaType.FullyQualified) {
+                    typesInUse.add((JavaType.FullyQualified) type);
+                }
+            }
+        }
+        List<JavaType.FullyQualified> classpath = testSourceSet.getClasspath();
+        classpath.addAll(typesInUse);
+        testSourceSet = testSourceSet.withClasspath(classpath);
+        return testSourceSet;
     }
 
     @Nullable

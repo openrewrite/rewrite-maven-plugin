@@ -312,17 +312,20 @@ public abstract class AbstractRewriteMojo extends ConfigurableRewriteMojo {
         }
 
         Set<Artifact> resolvedArtifacts = resolver.resolveArtifactsAndDependencies(artifacts);
-        Set<URL> urls = new HashSet<>();
-        for (Artifact artifact : resolvedArtifacts) {
-            try {
-                urls.add(artifact.getFile().toURI().toURL());
-            } catch (MalformedURLException e) {
-                throw new MojoExecutionException("Failed to resolve artifacts from rewrite.recipeArtifactCoordinates", e);
-            }
-        }
+        URL[] urls = resolvedArtifacts.stream()
+                .map(Artifact::getFile)
+                .map(File::toURI)
+                .map(uri -> {
+                    try {
+                        return uri.toURL();
+                    } catch (MalformedURLException e) {
+                        throw new RuntimeException("Failed to resolve artifacts from rewrite.recipeArtifactCoordinates", e);
+                    }
+                })
+                .toArray(URL[]::new);
 
         return new URLClassLoader(
-                urls.toArray(new URL[0]),
+                urls,
                 AbstractRewriteMojo.class.getClassLoader()
         );
     }
