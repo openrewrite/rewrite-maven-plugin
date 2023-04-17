@@ -147,7 +147,7 @@ public abstract class AbstractRewriteMojo extends ConfigurableRewriteMojo {
         }
 
         if (!baseFolders.isEmpty()) {
-            List<Path> sortedPaths = new ArrayList<>(new ArrayList<>(baseFolders));
+            List<Path> sortedPaths = new ArrayList<>(baseFolders);
             Collections.sort(sortedPaths);
             return sortedPaths.get(0);
         } else {
