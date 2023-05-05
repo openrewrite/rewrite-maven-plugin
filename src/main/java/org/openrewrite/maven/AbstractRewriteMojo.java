@@ -20,6 +20,7 @@ import org.openrewrite.config.ClasspathScanningLoader;
 import org.openrewrite.config.Environment;
 import org.openrewrite.config.RecipeDescriptor;
 import org.openrewrite.config.YamlResourceLoader;
+import org.openrewrite.internal.InMemoryLargeIterable;
 import org.openrewrite.internal.lang.Nullable;
 import org.openrewrite.ipc.http.HttpSender;
 import org.openrewrite.ipc.http.HttpUrlConnectionSender;
@@ -281,7 +282,7 @@ public abstract class AbstractRewriteMojo extends ConfigurableRewriteMojo {
             }
 
             getLog().info("Running recipe(s)...");
-            List<Result> results = recipe.run(sourceFiles, ctx).getResults().stream()
+            List<Result> results = recipe.run(new InMemoryLargeIterable<>(sourceFiles), ctx).getResults().stream()
                     .filter(source -> {
                         // Remove ASTs originating from generated files
                         if (source.getBefore() != null) {

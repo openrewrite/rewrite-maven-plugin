@@ -5,7 +5,9 @@ import org.apache.maven.plugins.annotations.Execute;
 import org.apache.maven.plugins.annotations.Mojo;
 import org.apache.maven.plugins.annotations.Parameter;
 import org.openrewrite.ExecutionContext;
+import org.openrewrite.Recipe;
 import org.openrewrite.Result;
+import org.openrewrite.internal.InMemoryLargeIterable;
 import org.openrewrite.xml.tree.Xml;
 
 import javax.annotation.Nullable;
@@ -70,10 +72,23 @@ public class InitMojo extends AbstractRewriteMojo {
         MavenParser mp = MavenParser.builder()
                 .mavenConfig(baseDir.resolve(".mvn/maven.config"))
                 .build();
-        List<Xml.Document> poms = mp.parse(Collections.singleton(project.getFile().toPath()), baseDir, ctx);
-        List<Result> results = new AddPlugin(groupId, artifactId, getVersion(), getConfiguration(), null, getExecutions())
-                .doNext(new ChangePluginDependencies(groupId, artifactId, dependencies))
-                .run(poms).getResults();
+        Recipe recipe = new Recipe() {
+            @Override
+            public String getDisplayName() {
+                return InitMojo.class.getName();
+            }
+
+            @Override
+            public List<Recipe> getRecipeList() {
+                return Arrays.asList(
+                        new AddPlugin(groupId, artifactId, getVersion(), getConfiguration(), null, getExecutions()),
+                        new ChangePluginDependencies(groupId, artifactId, dependencies)
+                );
+            }
+        };
+
+        List<Xml.Document> poms = mp.parse(Collections.singleton(project.getFile().toPath()), baseDir, ctx).collect(Collectors.toList());
+        List<Result> results = recipe.run(new InMemoryLargeIterable<>(poms), ctx).getResults();
         if (results.isEmpty()) {
             getLog().warn("Plugin " + artifactId + " is already part of the build");
             return;
