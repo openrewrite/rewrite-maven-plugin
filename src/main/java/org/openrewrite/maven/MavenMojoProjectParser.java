@@ -357,7 +357,7 @@ public class MavenMojoProjectParser {
         MavenProject topLevelProject = mavenSession.getTopLevelProject();
         logInfo(topLevelProject, "Resolving Poms...");
 
-        Set<Path> allPoms = new HashSet<>();
+        Set<Path> allPoms = new LinkedHashSet<>();
         mavenProjects.forEach(p -> collectPoms(p, allPoms));
         for (MavenProject mavenProject : mavenProjects) {
             mavenSession.getProjectDependencyGraph().getUpstreamProjects(mavenProject, true).forEach(p -> collectPoms(p, allPoms));
@@ -402,7 +402,7 @@ public class MavenMojoProjectParser {
         }
 
         Map<Path, MavenProject> projectsByPath = mavenProjects.stream().collect(Collectors.toMap(MavenMojoProjectParser::pomPath, Function.identity()));
-        Map<MavenProject, Xml.Document> projectMap = new LinkedHashMap<>();
+        Map<MavenProject, Xml.Document> projectMap = new HashMap<>();
         for (Xml.Document document : mavens) {
             Path path = baseDir.resolve(document.getSourcePath());
             MavenProject mavenProject = projectsByPath.get(path);
