@@ -357,7 +357,7 @@ public class MavenMojoProjectParser {
         MavenProject topLevelProject = mavenSession.getTopLevelProject();
         logInfo(topLevelProject, "Resolving Poms...");
 
-        Set<Path> allPoms = new HashSet<>();
+        Set<Path> allPoms = new LinkedHashSet<>();
         mavenProjects.forEach(p -> collectPoms(p, allPoms));
         for (MavenProject mavenProject : mavenProjects) {
             mavenSession.getProjectDependencyGraph().getUpstreamProjects(mavenProject, true).forEach(p -> collectPoms(p, allPoms));
