@@ -402,7 +402,7 @@ public class MavenMojoProjectParser {
         }
 
         Map<Path, MavenProject> projectsByPath = mavenProjects.stream().collect(Collectors.toMap(MavenMojoProjectParser::pomPath, Function.identity()));
-        Map<MavenProject, Xml.Document> projectMap = new HashMap<>();
+        Map<MavenProject, Xml.Document> projectMap = new LinkedHashMap<>();
         for (Xml.Document document : mavens) {
             Path path = baseDir.resolve(document.getSourcePath());
             MavenProject mavenProject = projectsByPath.get(path);
