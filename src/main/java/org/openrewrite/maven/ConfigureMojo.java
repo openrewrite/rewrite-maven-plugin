@@ -8,7 +8,8 @@ import org.apache.maven.plugins.annotations.Parameter;
 import org.openrewrite.ExecutionContext;
 import org.openrewrite.Recipe;
 import org.openrewrite.Result;
-import org.openrewrite.internal.InMemoryLargeIterable;
+import org.openrewrite.SourceFile;
+import org.openrewrite.internal.InMemoryLargeSourceSet;
 import org.openrewrite.xml.tree.Xml;
 
 import javax.annotation.Nullable;
@@ -76,8 +77,8 @@ public class ConfigureMojo extends AbstractRewriteMojo {
             }
         };
 
-        List<Xml.Document> poms = Collections.singletonList(maven);
-        List<Result> results = recipe.run(new InMemoryLargeIterable<>(poms), ctx).getResults();
+        List<SourceFile> poms = Collections.singletonList(maven);
+        List<Result> results = recipe.run(new InMemoryLargeSourceSet(poms), ctx).getChangeset().getAllResults();
         if (results.isEmpty()) {
             getLog().warn("No changes made to plugin " + artifactId + " configuration");
             return;

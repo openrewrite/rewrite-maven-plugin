@@ -26,7 +26,7 @@ class RewriteDryRunIT {
                 .isSuccessful()
                 .out()
                 .warn()
-                .anySatisfy(line -> assertThat(line).contains("org.openrewrite.java.cleanup.FinalizeLocalVariables"));
+                .anySatisfy(line -> assertThat(line).contains("org.openrewrite.java.cleanup.SimplifyBooleanExpression"));
     }
 
     @MavenTest

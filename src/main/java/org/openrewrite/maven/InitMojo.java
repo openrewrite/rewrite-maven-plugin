@@ -7,8 +7,8 @@ import org.apache.maven.plugins.annotations.Parameter;
 import org.openrewrite.ExecutionContext;
 import org.openrewrite.Recipe;
 import org.openrewrite.Result;
-import org.openrewrite.internal.InMemoryLargeIterable;
-import org.openrewrite.xml.tree.Xml;
+import org.openrewrite.SourceFile;
+import org.openrewrite.internal.InMemoryLargeSourceSet;
 
 import javax.annotation.Nullable;
 import java.io.BufferedWriter;
@@ -87,8 +87,8 @@ public class InitMojo extends AbstractRewriteMojo {
             }
         };
 
-        List<Xml.Document> poms = mp.parse(Collections.singleton(project.getFile().toPath()), baseDir, ctx).collect(Collectors.toList());
-        List<Result> results = recipe.run(new InMemoryLargeIterable<>(poms), ctx).getResults();
+        List<SourceFile> poms = mp.parse(Collections.singleton(project.getFile().toPath()), baseDir, ctx).collect(Collectors.toList());
+        List<Result> results = recipe.run(new InMemoryLargeSourceSet(poms), ctx).getChangeset().getAllResults();
         if (results.isEmpty()) {
             getLog().warn("Plugin " + artifactId + " is already part of the build");
             return;

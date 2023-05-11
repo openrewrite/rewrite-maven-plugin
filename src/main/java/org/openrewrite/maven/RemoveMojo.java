@@ -6,9 +6,9 @@ import org.apache.maven.plugins.annotations.Execute;
 import org.apache.maven.plugins.annotations.Mojo;
 import org.apache.maven.plugins.annotations.Parameter;
 import org.openrewrite.ExecutionContext;
-import org.openrewrite.LargeIterable;
+import org.openrewrite.LargeSourceSet;
 import org.openrewrite.Result;
-import org.openrewrite.internal.InMemoryLargeIterable;
+import org.openrewrite.internal.InMemoryLargeSourceSet;
 import org.openrewrite.xml.tree.Xml;
 
 import java.io.BufferedWriter;
@@ -43,10 +43,11 @@ public class RemoveMojo extends AbstractRewriteMojo {
         Path baseDir = getBuildRoot();
         ExecutionContext ctx = executionContext();
         Xml.Document maven = new MavenMojoProjectParser(getLog(), baseDir, pomCacheEnabled, pomCacheDirectory, runtime, skipMavenParsing, getExclusions(), getPlainTextMasks(), sizeThresholdMb, mavenSession, settingsDecrypter).parseMaven(project, Collections.emptyList(), ctx);
-        LargeIterable<Xml.Document> poms = new InMemoryLargeIterable<>(Collections.singletonList(maven));
+        LargeSourceSet poms = new InMemoryLargeSourceSet(Collections.singletonList(maven));
         List<Result> results = new RemovePlugin(groupId, artifactId)
                 .run(poms, ctx)
-                .getResults();
+                .getChangeset()
+                .getAllResults();
         if (!results.isEmpty()) {
             Result result = results.get(0);
             assert result.getBefore() != null;
