@@ -1,6 +1,5 @@
 package org.openrewrite.maven;
 
-import org.apache.commons.lang3.ObjectUtils;
 import org.apache.maven.artifact.DependencyResolutionRequiredException;
 import org.apache.maven.execution.MavenExecutionRequest;
 import org.apache.maven.execution.MavenSession;
@@ -20,6 +19,7 @@ import org.jetbrains.annotations.NotNull;
 import org.openrewrite.ExecutionContext;
 import org.openrewrite.SourceFile;
 import org.openrewrite.internal.ListUtils;
+import org.openrewrite.internal.StringUtils;
 import org.openrewrite.internal.lang.Nullable;
 import org.openrewrite.java.JavaParser;
 import org.openrewrite.java.internal.JavaTypeCache;
@@ -179,16 +179,16 @@ public class MavenMojoProjectParser {
         if (compilerPlugin != null && compilerPlugin.getConfiguration() instanceof Xpp3Dom) {
             Xpp3Dom dom = (Xpp3Dom) compilerPlugin.getConfiguration();
             Xpp3Dom release = dom.getChild("release");
-            if (release != null && !ObjectUtils.isEmpty(release.getValue()) && !release.getValue().contains("${")) {
+            if (release != null && StringUtils.isNotEmpty(release.getValue()) && !release.getValue().contains("${")) {
                 sourceCompatibility = release.getValue();
                 targetCompatibility = release.getValue();
             } else {
                 Xpp3Dom source = dom.getChild("source");
-                if (source != null && !ObjectUtils.isEmpty(source.getValue()) && !source.getValue().contains("${")) {
+                if (source != null && StringUtils.isNotEmpty(source.getValue()) && !source.getValue().contains("${")) {
                     sourceCompatibility = source.getValue();
                 }
                 Xpp3Dom target = dom.getChild("target");
-                if (target != null && !ObjectUtils.isEmpty(target.getValue()) && !target.getValue().contains("${")) {
+                if (target != null && StringUtils.isNotEmpty(target.getValue()) && !target.getValue().contains("${")) {
                     targetCompatibility = target.getValue();
                 }
             }
