@@ -72,6 +72,11 @@ public class ConfigureMojo extends AbstractRewriteMojo {
             }
 
             @Override
+            public String getDescription() {
+                return ConfigureMojo.class.getName() + " recipe.";
+            }
+
+            @Override
             public List<Recipe> getRecipeList() {
                 return Arrays.asList(new ChangePluginDependencies(groupId, artifactId, dependencies), new ChangePluginExecutions(groupId, artifactId, getExecutions()));
             }
