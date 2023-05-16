@@ -27,6 +27,11 @@ jobs:
           git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
           git config user.name "github-actions[bot]"
 
+      - name: bump-rewrite-properties
+        run: |
+          ./mvnw versions:update-properties -DincludeProperties=rewrite.version,rewrite.python.version
+          git diff-index --quiet HEAD pom.xml || git commit -m "Bump rewrite.version properties" pom.xml && rm pom.xml.versionsBackup
+
       - name: publish-release
         run: ./mvnw --show-version --settings=${{ github.workspace }}/settings.xml --file=pom.xml --activate-profiles=sign-artifacts,release,release-automation help:active-profiles release:prepare release:perform --batch-mode -Dstyle.color=always
         env:
