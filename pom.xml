@@ -244,6 +244,10 @@
                     <artifactId>plexus-component-api</artifactId>
                 </exclusion>
                 <exclusion>
+                    <groupId>org.codehaus.plexus</groupId>
+                    <artifactId>plexus-container-default</artifactId>
+                </exclusion>
+                <exclusion>
                     <groupId>junit</groupId>
                     <artifactId>junit</artifactId>
                 </exclusion>
