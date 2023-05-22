@@ -34,7 +34,7 @@ public class ArtifactResolver {
         this.remoteRepositories = RepositoryUtils.toRepos(session.getCurrentProject().getRemoteArtifactRepositories());
     }
 
-    public Artifact createArtifact( String coordinates) throws MojoExecutionException {
+    public Artifact createArtifact(String coordinates) throws MojoExecutionException {
         String[] parts = coordinates.split(":");
         if (parts.length < 3) {
             throw new MojoExecutionException("Must include at least groupId:artifactId:version in artifact coordinates" + coordinates);
