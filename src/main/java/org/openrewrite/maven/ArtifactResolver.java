@@ -63,7 +63,7 @@ public class ArtifactResolver {
                 elements.add(resolved.getArtifact());
             }
             return elements;
-        } catch ( DependencyResolutionException e) {
+        } catch (DependencyResolutionException e) {
             throw new MojoExecutionException("Failed to resolve requested artifacts transitive dependencies.", e);
         }
     }
