@@ -14,6 +14,7 @@ import org.eclipse.aether.resolution.ArtifactResult;
 import org.eclipse.aether.resolution.DependencyRequest;
 import org.eclipse.aether.resolution.DependencyResolutionException;
 import org.eclipse.aether.resolution.DependencyResult;
+import org.eclipse.aether.util.artifact.JavaScopes;
 
 import java.util.Collections;
 import java.util.HashSet;
@@ -40,7 +41,7 @@ public class ArtifactResolver {
             throw new MojoExecutionException("Must include at least groupId:artifactId:version in artifact coordinates" + coordinates);
         }
 
-        return new DefaultArtifact(parts[0], parts[1], "runtime", "jar", parts[2]);
+        return new DefaultArtifact(parts[0], parts[1], null, "jar", parts[2]);
     }
 
     public Set<Artifact> resolveArtifactsAndDependencies(Set<Artifact> artifacts) throws MojoExecutionException {
@@ -50,7 +51,7 @@ public class ArtifactResolver {
 
         Set<Artifact> elements = new HashSet<>();
         try {
-            List<Dependency> dependencies = artifacts.stream().map(a -> new Dependency(a, null)).collect( Collectors.toList());
+            List<Dependency> dependencies = artifacts.stream().map(a -> new Dependency(a, JavaScopes.RUNTIME)).collect(Collectors.toList());
             CollectRequest collectRequest =
                     new CollectRequest(dependencies, Collections.emptyList(), remoteRepositories);
             DependencyRequest dependencyRequest = new DependencyRequest();
