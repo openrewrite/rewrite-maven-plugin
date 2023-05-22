@@ -1,33 +1,38 @@
 package org.openrewrite.maven;
 
-import org.apache.maven.artifact.Artifact;
-import org.apache.maven.artifact.repository.ArtifactRepository;
-import org.apache.maven.artifact.resolver.ArtifactResolutionRequest;
-import org.apache.maven.artifact.resolver.ArtifactResolutionResult;
+import org.apache.maven.RepositoryUtils;
 import org.apache.maven.execution.MavenSession;
 import org.apache.maven.plugin.MojoExecutionException;
-import org.apache.maven.repository.RepositorySystem;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
+import org.eclipse.aether.RepositorySystem;
+import org.eclipse.aether.RepositorySystemSession;
+import org.eclipse.aether.artifact.Artifact;
+import org.eclipse.aether.artifact.DefaultArtifact;
+import org.eclipse.aether.collection.CollectRequest;
+import org.eclipse.aether.graph.Dependency;
+import org.eclipse.aether.repository.RemoteRepository;
+import org.eclipse.aether.resolution.ArtifactResult;
+import org.eclipse.aether.resolution.DependencyRequest;
+import org.eclipse.aether.resolution.DependencyResolutionException;
+import org.eclipse.aether.resolution.DependencyResult;
+import org.eclipse.aether.util.artifact.JavaScopes;
 
 import java.util.Collections;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Set;
+import java.util.stream.Collectors;
 
 public class ArtifactResolver {
-    private static final Logger LOG = LoggerFactory.getLogger(ArtifactResolver.class);
-
     private final RepositorySystem repositorySystem;
 
-    private final ArtifactRepository localRepository;
+    private final RepositorySystemSession repositorySystemSession;
 
-    private final List<ArtifactRepository> remoteRepositories;
+    private final List<RemoteRepository> remoteRepositories;
 
     public ArtifactResolver(RepositorySystem repositorySystem, MavenSession session) {
         this.repositorySystem = repositorySystem;
-        this.localRepository = session.getLocalRepository();
-        this.remoteRepositories = session.getCurrentProject().getRemoteArtifactRepositories();
+        this.repositorySystemSession = session.getRepositorySession();
+        this.remoteRepositories = RepositoryUtils.toRepos(session.getCurrentProject().getRemoteArtifactRepositories());
     }
 
     public Artifact createArtifact(String coordinates) throws MojoExecutionException {
@@ -36,7 +41,7 @@ public class ArtifactResolver {
             throw new MojoExecutionException("Must include at least groupId:artifactId:version in artifact coordinates" + coordinates);
         }
 
-        return repositorySystem.createArtifact(parts[0], parts[1], parts[2], "runtime", "jar");
+        return new DefaultArtifact(parts[0], parts[1], null, "jar", parts[2]);
     }
 
     public Set<Artifact> resolveArtifactsAndDependencies(Set<Artifact> artifacts) throws MojoExecutionException {
@@ -44,27 +49,22 @@ public class ArtifactResolver {
             return Collections.emptySet();
         }
 
-        Set<Artifact> resultArtifacts = new HashSet<>();
-        Artifact artifact = artifacts.iterator().next();
-        ArtifactResolutionRequest request = new ArtifactResolutionRequest()
-                .setArtifact(artifact)
-                .setArtifactDependencies(artifacts)
-                .setLocalRepository(localRepository)
-                .setRemoteRepositories(remoteRepositories)
-                .setResolveTransitively(true)
-                .setResolveRoot(true);
+        Set<Artifact> elements = new HashSet<>();
+        try {
+            List<Dependency> dependencies = artifacts.stream().map(a -> new Dependency(a, JavaScopes.RUNTIME)).collect(Collectors.toList());
+            CollectRequest collectRequest =
+                    new CollectRequest(dependencies, Collections.emptyList(), remoteRepositories);
+            DependencyRequest dependencyRequest = new DependencyRequest();
+            dependencyRequest.setCollectRequest(collectRequest);
+            DependencyResult dependencyResult =
+                    repositorySystem.resolveDependencies(repositorySystemSession, dependencyRequest);
 
-        ArtifactResolutionResult resolution = repositorySystem.resolve(request);
-        if (!resolution.isSuccess()) {
-            if (resolution.hasMissingArtifacts()) {
-                LOG.warn("Missing artifacts for {}: {}", artifact.getId(), resolution.getMissingArtifacts());
+            for (ArtifactResult resolved : dependencyResult.getArtifactResults()) {
+                elements.add(resolved.getArtifact());
             }
-            resolution.getExceptions().forEach(e -> LOG.warn("Failed to resolve artifacts and/or dependencies for {}: {}", artifact.getId(), e.getMessage()));
-            throw new MojoExecutionException("Failed to resolve requested artifacts transitive dependencies.");
-        } else {
-            resultArtifacts.addAll(resolution.getArtifacts());
+            return elements;
+        } catch (DependencyResolutionException e) {
+            throw new MojoExecutionException("Failed to resolve requested artifacts transitive dependencies.", e);
         }
-
-        return resultArtifacts;
     }
 }
