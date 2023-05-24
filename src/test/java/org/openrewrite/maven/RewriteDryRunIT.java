@@ -7,6 +7,7 @@ import static com.soebes.itf.extension.assertj.MavenITAssertions.assertThat;
 
 @MavenJupiterExtension
 @MavenOption(MavenCLIOptions.NO_TRANSFER_PROGRESS)
+@MavenOption(MavenCLIExtra.MUTE_PLUGIN_VALIDATION_WARNING)
 @MavenOption(MavenCLIOptions.DEBUG)
 @MavenGoal("${project.groupId}:${project.artifactId}:${project.version}:dryRun")
 class RewriteDryRunIT {
