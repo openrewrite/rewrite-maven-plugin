@@ -28,8 +28,6 @@ import org.openrewrite.java.marker.JavaSourceSet;
 import org.openrewrite.java.marker.JavaVersion;
 import org.openrewrite.java.style.Autodetect;
 import org.openrewrite.java.tree.J;
-import org.openrewrite.java.tree.JavaSourceFile;
-import org.openrewrite.java.tree.JavaType;
 import org.openrewrite.marker.*;
 import org.openrewrite.marker.ci.BuildEnvironment;
 import org.openrewrite.maven.cache.CompositeMavenPomCache;
@@ -263,7 +261,7 @@ public class MavenMojoProjectParser {
         List<J.CompilationUnit> cus = applyStyles(javaParser.parse(mainJavaSources, baseDir, ctx).collect(toList()), styles);
 
         List<Marker> mainProjectProvenance = new ArrayList<>(projectProvenance);
-        mainProjectProvenance.add(sourceSet("main", dependencies, cus));
+        mainProjectProvenance.add(sourceSet("main", dependencies));
 
         List<J.CompilationUnit> parsedJava = ListUtils.map(cus,
                 addProvenance(baseDir, mainProjectProvenance, generatedSourcePaths));
@@ -307,7 +305,7 @@ public class MavenMojoProjectParser {
         List<J.CompilationUnit> cus = applyStyles(javaParser.parse(testJavaSources, baseDir, ctx).collect(toList()), styles);
 
         List<Marker> markers = new ArrayList<>(projectProvenance);
-        markers.add(sourceSet("test", testDependencies, cus));
+        markers.add(sourceSet("test", testDependencies));
 
         List<J.CompilationUnit> parsedJava = ListUtils.map(
                 cus,
@@ -327,20 +325,8 @@ public class MavenMojoProjectParser {
     }
 
     @NotNull
-    private static JavaSourceSet sourceSet(String name, List<Path> dependencies, List<? extends JavaSourceFile> cus) {
-        JavaSourceSet sourceSet = JavaSourceSet.build(name, dependencies, typeCache, false);
-        Set<JavaType.FullyQualified> typesInUse = new LinkedHashSet<>();
-        for (JavaSourceFile cu : cus) {
-            for (JavaType type : cu.getTypesInUse().getTypesInUse()) {
-                if (type instanceof JavaType.FullyQualified) {
-                    typesInUse.add((JavaType.FullyQualified) type);
-                }
-            }
-        }
-        List<JavaType.FullyQualified> classpath = sourceSet.getClasspath();
-        classpath.addAll(typesInUse);
-        sourceSet = sourceSet.withClasspath(classpath);
-        return sourceSet;
+    private static JavaSourceSet sourceSet(String name, List<Path> dependencies) {
+        return JavaSourceSet.build(name, dependencies, typeCache, false);
     }
 
     @Nullable
