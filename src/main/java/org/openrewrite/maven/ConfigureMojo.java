@@ -6,7 +6,10 @@ import org.apache.maven.plugins.annotations.Execute;
 import org.apache.maven.plugins.annotations.Mojo;
 import org.apache.maven.plugins.annotations.Parameter;
 import org.openrewrite.ExecutionContext;
+import org.openrewrite.Recipe;
 import org.openrewrite.Result;
+import org.openrewrite.SourceFile;
+import org.openrewrite.internal.InMemoryLargeSourceSet;
 import org.openrewrite.xml.tree.Xml;
 
 import javax.annotation.Nullable;
@@ -62,11 +65,25 @@ public class ConfigureMojo extends AbstractRewriteMojo {
 
         ExecutionContext ctx = executionContext();
         Xml.Document maven = new MavenMojoProjectParser(getLog(), baseDir, pomCacheEnabled, pomCacheDirectory, runtime, skipMavenParsing, getExclusions(), getPlainTextMasks(), sizeThresholdMb, mavenSession, settingsDecrypter).parseMaven(project, Collections.emptyList(), ctx);
-        List<Xml.Document> poms = Arrays.asList(maven);
-        List<Result> results = new ChangePluginConfiguration(groupId, artifactId, getConfiguration())
-                .doNext(new ChangePluginDependencies(groupId, artifactId, dependencies))
-                .doNext(new ChangePluginExecutions(groupId, artifactId, getExecutions()))
-                .run(poms).getResults();
+        Recipe recipe = new Recipe() {
+            @Override
+            public String getDisplayName() {
+                return ConfigureMojo.class.getName();
+            }
+
+            @Override
+            public String getDescription() {
+                return ConfigureMojo.class.getName() + " recipe.";
+            }
+
+            @Override
+            public List<Recipe> getRecipeList() {
+                return Arrays.asList(new ChangePluginDependencies(groupId, artifactId, dependencies), new ChangePluginExecutions(groupId, artifactId, getExecutions()));
+            }
+        };
+
+        List<SourceFile> poms = Collections.singletonList(maven);
+        List<Result> results = recipe.run(new InMemoryLargeSourceSet(poms), ctx).getChangeset().getAllResults();
         if (results.isEmpty()) {
             getLog().warn("No changes made to plugin " + artifactId + " configuration");
             return;

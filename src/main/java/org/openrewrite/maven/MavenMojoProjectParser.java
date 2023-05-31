@@ -28,8 +28,6 @@ import org.openrewrite.java.marker.JavaSourceSet;
 import org.openrewrite.java.marker.JavaVersion;
 import org.openrewrite.java.style.Autodetect;
 import org.openrewrite.java.tree.J;
-import org.openrewrite.java.tree.JavaSourceFile;
-import org.openrewrite.java.tree.JavaType;
 import org.openrewrite.marker.*;
 import org.openrewrite.marker.ci.BuildEnvironment;
 import org.openrewrite.maven.cache.CompositeMavenPomCache;
@@ -220,16 +218,16 @@ public class MavenMojoProjectParser {
 
         BuildEnvironment buildEnvironment = BuildEnvironment.build(System::getenv);
         return Stream.of(
-                buildEnvironment,
-                gitProvenance(baseDir, buildEnvironment),
-                OperatingSystemProvenance.current(),
-                buildTool,
-                new JavaVersion(randomId(), javaRuntimeVersion, javaVendor, sourceCompatibility, targetCompatibility),
-                new JavaProject(randomId(), mavenProject.getName(), new JavaProject.Publication(
-                        mavenProject.getGroupId(),
-                        mavenProject.getArtifactId(),
-                        mavenProject.getVersion()
-                )))
+                        buildEnvironment,
+                        gitProvenance(baseDir, buildEnvironment),
+                        OperatingSystemProvenance.current(),
+                        buildTool,
+                        new JavaVersion(randomId(), javaRuntimeVersion, javaVendor, sourceCompatibility, targetCompatibility),
+                        new JavaProject(randomId(), mavenProject.getName(), new JavaProject.Publication(
+                                mavenProject.getGroupId(),
+                                mavenProject.getArtifactId(),
+                                mavenProject.getVersion()
+                        )))
                 .filter(Objects::nonNull)
                 .collect(toList());
     }
@@ -260,10 +258,10 @@ public class MavenMojoProjectParser {
                 .collect(toList());
         javaParser.setClasspath(dependencies);
 
-        List<J.CompilationUnit> cus = applyStyles(javaParser.parse(mainJavaSources, baseDir, ctx), styles);
+        List<J.CompilationUnit> cus = applyStyles(javaParser.parse(mainJavaSources, baseDir, ctx).collect(toList()), styles);
 
         List<Marker> mainProjectProvenance = new ArrayList<>(projectProvenance);
-        mainProjectProvenance.add(sourceSet("main", dependencies, cus));
+        mainProjectProvenance.add(sourceSet("main", dependencies));
 
         List<J.CompilationUnit> parsedJava = ListUtils.map(cus,
                 addProvenance(baseDir, mainProjectProvenance, generatedSourcePaths));
@@ -304,10 +302,10 @@ public class MavenMojoProjectParser {
         List<Path> testJavaSources = listJavaSources(mavenProject.getBuild().getTestSourceDirectory());
         alreadyParsed.addAll(testJavaSources);
 
-        List<J.CompilationUnit> cus = applyStyles(javaParser.parse(testJavaSources, baseDir, ctx), styles);
+        List<J.CompilationUnit> cus = applyStyles(javaParser.parse(testJavaSources, baseDir, ctx).collect(toList()), styles);
 
         List<Marker> markers = new ArrayList<>(projectProvenance);
-        markers.add(sourceSet("test", testDependencies, cus));
+        markers.add(sourceSet("test", testDependencies));
 
         List<J.CompilationUnit> parsedJava = ListUtils.map(
                 cus,
@@ -327,20 +325,8 @@ public class MavenMojoProjectParser {
     }
 
     @NotNull
-    private static JavaSourceSet sourceSet(String name, List<Path> dependencies, List<? extends JavaSourceFile> cus) {
-        JavaSourceSet testSourceSet = JavaSourceSet.build(name, dependencies, typeCache, false);
-        Set<JavaType.FullyQualified> typesInUse = new LinkedHashSet<>();
-        for (JavaSourceFile cu : cus) {
-            for (JavaType type : cu.getTypesInUse().getTypesInUse()) {
-                if (type instanceof JavaType.FullyQualified) {
-                    typesInUse.add((JavaType.FullyQualified) type);
-                }
-            }
-        }
-        List<JavaType.FullyQualified> classpath = testSourceSet.getClasspath();
-        classpath.addAll(typesInUse);
-        testSourceSet = testSourceSet.withClasspath(classpath);
-        return testSourceSet;
+    private static JavaSourceSet sourceSet(String name, List<Path> dependencies) {
+        return JavaSourceSet.build(name, dependencies, typeCache, false);
     }
 
     @Nullable
@@ -382,7 +368,7 @@ public class MavenMojoProjectParser {
 
         List<Xml.Document> mavens = mavenParserBuilder
                 .build()
-                .parse(allPoms, baseDir, ctx);
+                .parse(allPoms, baseDir, ctx).collect(toList());
 
         if (logger.isDebugEnabled()) {
             logDebug(topLevelProject, "Base directory : '" + baseDir + "'");
@@ -433,7 +419,7 @@ public class MavenMojoProjectParser {
      * Recursively navigate the maven project to collect any poms that are local (on disk)
      *
      * @param project A maven project to examine for any children/parent poms.
-     * @param paths A list of paths to poms that have been collected so far.
+     * @param paths   A list of paths to poms that have been collected so far.
      */
     private void collectPoms(MavenProject project, Set<Path> paths) {
         paths.add(pomPath(project));
@@ -461,7 +447,7 @@ public class MavenMojoProjectParser {
     private static Path pomPath(MavenProject mavenProject) {
         Path pomPath = mavenProject.getFile().toPath();
         // org.codehaus.mojo:flatten-maven-plugin produces a synthetic pom unsuitable for our purposes, use the regular pom instead
-        if(pomPath.endsWith(".flattened-pom.xml")) {
+        if (pomPath.endsWith(".flattened-pom.xml")) {
             return mavenProject.getBasedir().toPath().resolve("pom.xml");
         }
         return pomPath;
@@ -578,9 +564,9 @@ public class MavenMojoProjectParser {
     }
 
     private List<J.CompilationUnit> applyStyles(List<J.CompilationUnit> sourceFiles, List<NamedStyles> styles) {
-        Autodetect autodetect = Autodetect.detect(sourceFiles);
-        NamedStyles merged = NamedStyles.merge(ListUtils.concat(styles, autodetect));
-        if(merged == null) {
+        Autodetect.Detector autodetect = Autodetect.detect(sourceFiles.stream());
+        NamedStyles merged = NamedStyles.merge(ListUtils.concat(styles, autodetect.build()));
+        if (merged == null) {
             return sourceFiles;
         }
         return map(sourceFiles, cu -> cu.withMarkers(cu.getMarkers().add(merged)));

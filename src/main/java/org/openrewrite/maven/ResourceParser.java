@@ -10,9 +10,9 @@ import org.openrewrite.json.JsonParser;
 import org.openrewrite.properties.PropertiesParser;
 import org.openrewrite.protobuf.ProtoParser;
 import org.openrewrite.python.PythonParser;
+import org.openrewrite.quark.QuarkParser;
 import org.openrewrite.text.PlainText;
 import org.openrewrite.text.PlainTextParser;
-import org.openrewrite.quark.QuarkParser;
 import org.openrewrite.tree.ParsingExecutionContextView;
 import org.openrewrite.xml.XmlParser;
 import org.openrewrite.yaml.YamlParser;
@@ -24,6 +24,7 @@ import java.nio.file.attribute.BasicFileAttributes;
 import java.util.*;
 import java.util.function.Consumer;
 import java.util.stream.Collectors;
+import java.util.stream.Stream;
 
 public class ResourceParser {
     private static final Set<String> DEFAULT_IGNORED_DIRECTORIES = new HashSet<>(Arrays.asList("build", "target", "out", ".sonar", ".gradle", ".idea", ".project", "node_modules", ".git", ".metadata", ".DS_Store"));
@@ -120,7 +121,7 @@ public class ResourceParser {
             }
         });
 
-        List<S> sourceFiles = new ArrayList<>(resources.size() + quarkPaths.size());
+        Stream<S> sourceFiles = Stream.empty();
 
         List<Path> javaPaths = new ArrayList<>();
 
@@ -173,37 +174,37 @@ public class ResourceParser {
             }
         });
 
-        sourceFiles.addAll((List<S>) javaParser.parse(javaPaths, baseDir, ctx));
+        sourceFiles = Stream.concat(sourceFiles, (Stream<S>) javaParser.parse(javaPaths, baseDir, ctx));
         alreadyParsed.addAll(javaPaths);
 
-        sourceFiles.addAll((List<S>) jsonParser.parse(jsonPaths, baseDir, ctx));
+        sourceFiles = Stream.concat(sourceFiles, (Stream<S>) jsonParser.parse(jsonPaths, baseDir, ctx));
         alreadyParsed.addAll(jsonPaths);
 
-        sourceFiles.addAll((List<S>) xmlParser.parse(xmlPaths, baseDir, ctx));
+        sourceFiles = Stream.concat(sourceFiles, (Stream<S>) xmlParser.parse(xmlPaths, baseDir, ctx));
         alreadyParsed.addAll(xmlPaths);
 
-        sourceFiles.addAll((List<S>) yamlParser.parse(yamlPaths, baseDir, ctx));
+        sourceFiles = Stream.concat(sourceFiles, (Stream<S>) yamlParser.parse(yamlPaths, baseDir, ctx));
         alreadyParsed.addAll(yamlPaths);
 
-        sourceFiles.addAll((List<S>) propertiesParser.parse(propertiesPaths, baseDir, ctx));
+        sourceFiles = Stream.concat(sourceFiles, (Stream<S>) propertiesParser.parse(propertiesPaths, baseDir, ctx));
         alreadyParsed.addAll(propertiesPaths);
 
-        sourceFiles.addAll((List<S>) protoParser.parse(protoPaths, baseDir, ctx));
+        sourceFiles = Stream.concat(sourceFiles, (Stream<S>) protoParser.parse(protoPaths, baseDir, ctx));
         alreadyParsed.addAll(protoPaths);
 
-        sourceFiles.addAll((List<S>) pythonParser.parse(pythonPaths, baseDir, ctx));
+        sourceFiles = Stream.concat(sourceFiles, (Stream<S>) pythonParser.parse(pythonPaths, baseDir, ctx));
         alreadyParsed.addAll(pythonPaths);
 
-        sourceFiles.addAll((List<S>) hclParser.parse(hclPaths, baseDir, ctx));
+        sourceFiles = Stream.concat(sourceFiles, (Stream<S>) hclParser.parse(hclPaths, baseDir, ctx));
         alreadyParsed.addAll(hclPaths);
 
-        sourceFiles.addAll((List<S>) plainTextParser.parse(plainTextPaths, baseDir, ctx));
+        sourceFiles = Stream.concat(sourceFiles, (Stream<S>) plainTextParser.parse(plainTextPaths, baseDir, ctx));
         alreadyParsed.addAll(plainTextPaths);
 
-        sourceFiles.addAll((List<S>) quarkParser.parse(quarkPaths, baseDir, ctx));
+        sourceFiles = Stream.concat(sourceFiles, (Stream<S>) quarkParser.parse(quarkPaths, baseDir, ctx));
         alreadyParsed.addAll(quarkPaths);
 
-        return sourceFiles;
+        return sourceFiles.collect(Collectors.toList());
     }
 
     private boolean isOverSizeThreshold(long fileSize) {

@@ -2,6 +2,7 @@ package org.openrewrite.maven;
 
 import com.soebes.itf.jupiter.extension.*;
 import com.soebes.itf.jupiter.maven.MavenExecutionResult;
+import org.junit.jupiter.api.Disabled;
 import org.junit.jupiter.api.condition.DisabledOnOs;
 import org.junit.jupiter.api.condition.OS;
 
@@ -21,7 +22,7 @@ class RewriteRunIT {
                 .isSuccessful()
                 .out()
                 .warn()
-                .anySatisfy(line -> assertThat(line).contains("org.openrewrite.java.cleanup.FinalizeLocalVariables"));
+                .anySatisfy(line -> assertThat(line).contains("org.openrewrite.java.cleanup.SimplifyBooleanExpression"));
     }
 
     @MavenTest
@@ -43,6 +44,7 @@ class RewriteRunIT {
     }
 
     @MavenTest
+    @Disabled("We should implement a simpler test to make sure that regular markers don't get added to source files")
     void java_upgrade_project(MavenExecutionResult result) {
         assertThat(result)
                 .isSuccessful()

@@ -65,8 +65,8 @@
 
     <properties>
         <!-- Pinned versions, as RELEASE would make it into the published pom.xml -->
-        <rewrite.version>7.40.8</rewrite.version>
-        <rewrite.python.version>0.4.0</rewrite.python.version>
+        <rewrite.version>7.41.0-SNAPSHOT</rewrite.version>
+        <rewrite.python.version>0.5.0-SNAPSHOT</rewrite.python.version>
 
         <!-- using 'ssh' url scheme by default, which assumes a human is performing git operations leveraging an ssh key -->
         <developerConnectionUrl>scm:git:ssh://git@github.com/openrewrite/rewrite-maven-plugin.git
@@ -79,7 +79,7 @@
         <netty.version>4.1.89.Final</netty.version>
         <rocksdbjni.version>8.0.0</rocksdbjni.version>
         <itf-maven.version>0.12.0</itf-maven.version>
-        <maven-dependencies.version>3.9.2</maven-dependencies.version>
+        <maven-dependencies.version>3.9.1</maven-dependencies.version>
         <maven-release-plugin.version>3.0.0</maven-release-plugin.version>
         <maven-plugin-tools.version>3.9.0</maven-plugin-tools.version>
         <kotlin.version>1.8.10</kotlin.version>
@@ -210,7 +210,7 @@
         <dependency>
             <groupId>io.micrometer</groupId>
             <artifactId>micrometer-core</artifactId>
-            <version>1.11.0</version>
+            <version>1.10.6</version>
         </dependency>
         <dependency>
             <groupId>io.rsocket</groupId>
@@ -414,7 +414,7 @@
             <plugin>
                 <groupId>org.apache.maven.plugins</groupId>
                 <artifactId>maven-failsafe-plugin</artifactId>
-                <version>3.1.0</version>
+                <version>3.0.0</version>
                 <executions>
                     <execution>
                         <goals>
@@ -521,7 +521,7 @@
                     <plugin>
                         <groupId>org.apache.maven.plugins</groupId>
                         <artifactId>maven-gpg-plugin</artifactId>
-                        <version>3.1.0</version>
+                        <version>3.0.1</version>
                         <executions>
                             <execution>
                                 <id>sign-artifacts</id>
