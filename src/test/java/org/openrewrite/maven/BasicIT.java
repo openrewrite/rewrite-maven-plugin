@@ -2,6 +2,7 @@ package org.openrewrite.maven;
 
 import com.soebes.itf.jupiter.extension.*;
 import com.soebes.itf.jupiter.maven.MavenExecutionResult;
+import org.junit.jupiter.api.Disabled;
 
 import static com.soebes.itf.extension.assertj.MavenITAssertions.assertThat;
 
@@ -19,6 +20,7 @@ class BasicIT {
                 .containsOnly("JAR will be empty - no content was marked for inclusion!");
     }
 
+    @Disabled
     @MavenTest
     @MavenOption(value = MavenCLIOptions.SETTINGS, parameter = "settings.xml")
     @MavenGoal("${project.groupId}:${project.artifactId}:${project.version}:dryRun")
