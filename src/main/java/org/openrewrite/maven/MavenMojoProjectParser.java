@@ -564,8 +564,8 @@ public class MavenMojoProjectParser {
     }
 
     private List<J.CompilationUnit> applyStyles(List<J.CompilationUnit> sourceFiles, List<NamedStyles> styles) {
-        Autodetect autodetect = Autodetect.detect(sourceFiles);
-        NamedStyles merged = NamedStyles.merge(ListUtils.concat(styles, autodetect));
+        Autodetect.Detector autodetect = Autodetect.detect(sourceFiles.stream());
+        NamedStyles merged = NamedStyles.merge(ListUtils.concat(styles, autodetect.build()));
         if (merged == null) {
             return sourceFiles;
         }
