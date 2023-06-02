@@ -21,6 +21,13 @@ public abstract class ConfigurableRewriteMojo extends AbstractMojo {
     @Parameter(property = "rewrite.activeRecipes")
     protected String rewriteActiveRecipes;
 
+    @Parameter(property = "inactiveRecipes")
+    protected List<String> inactiveRecipes = Collections.emptyList();
+
+    @Nullable
+    @Parameter(property = "rewrite.inactiveRecipes")
+    protected String rewriteInactiveRecipes;
+
     @Parameter(property = "activeStyles")
     protected Set<String> activeStyles = Collections.emptySet();
 
@@ -143,6 +150,9 @@ public abstract class ConfigurableRewriteMojo extends AbstractMojo {
     private volatile Set<String> computedRecipes;
 
     @Nullable
+    private volatile Set<String> computedInactiveRecipes;
+
+    @Nullable
     private volatile Set<String> computedStyles;
 
     @Nullable
@@ -167,6 +177,27 @@ public abstract class ConfigurableRewriteMojo extends AbstractMojo {
         }
 
         return computedRecipes;
+    }
+
+    protected Set<String> getInactiveRecipes() {
+        if (computedInactiveRecipes == null) {
+            synchronized (this) {
+                if (computedInactiveRecipes == null) {
+                    Set<String> res = toLinkedHashSet(rewriteInactiveRecipes);
+                    if (res.isEmpty()) {
+                        res.addAll(
+                                inactiveRecipes
+                                        .stream()
+                                        .filter(Objects::nonNull)
+                                        .collect(Collectors.toList())
+                        );
+                    }
+                    computedInactiveRecipes = Collections.unmodifiableSet(res);
+                }
+            }
+        }
+
+        return computedInactiveRecipes;
     }
 
     protected Set<String> getActiveStyles() {

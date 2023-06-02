@@ -239,6 +239,7 @@ public abstract class AbstractRewriteMojo extends ConfigurableRewriteMojo {
             }
 
             Recipe recipe = env.activateRecipes(getActiveRecipes());
+            inactiveRecipes(recipe);
             if (recipe.getRecipeList().isEmpty()) {
                 getLog().warn("No recipes were activated. " +
                               "Activate a recipe with <activeRecipes><recipe>com.fully.qualified.RecipeClassName</recipe></activeRecipes> in this plugin's <configuration> in your pom.xml, " +
@@ -297,6 +298,37 @@ public abstract class AbstractRewriteMojo extends ConfigurableRewriteMojo {
             return new ResultsContainer(repositoryRoot, results);
         } catch (DependencyResolutionRequiredException e) {
             throw new MojoExecutionException("Dependency resolution required", e);
+        }
+    }
+
+    private void inactiveRecipes(Recipe rootRecipe) {
+        // processed recipe
+        Set<Recipe> processed = new HashSet<>();
+        Queue<Recipe> queue = new LinkedList<>();
+        queue.offer(rootRecipe);
+        while (!queue.isEmpty()) {
+            Recipe recipe = queue.poll();
+
+            if (processed.contains(recipe)) {
+                continue;
+            }
+
+            Iterator<Recipe> iterator = recipe.getRecipeList().iterator();
+            while (iterator.hasNext()) {
+                Recipe r = iterator.next();
+                if (getInactiveRecipes().contains(r.getName())) {
+                    try {
+                        iterator.remove();
+                    } catch (UnsupportedOperationException uoe) {
+                        // maybe unmodifiableCollection
+                        getLog().warn("InactiveRecipe " + r.getName() + " for " +
+                                recipe.getName() + " failed. ", uoe);
+                    }
+                }
+            }
+
+            recipe.getRecipeList().stream().forEach(r -> queue.offer(r));
+            processed.add(recipe);
         }
     }
 
