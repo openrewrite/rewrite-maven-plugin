@@ -50,3 +50,4 @@ jobs:
         run: |
           ./mvnw versions:update-properties -DincludeProperties=rewrite.version,rewrite.python.version -DallowSnapshots=true
           git diff-index --quiet HEAD pom.xml || git commit -m "Bump rewrite.version properties" pom.xml && rm -f pom.xml.versionsBackup
+          git push origin main
