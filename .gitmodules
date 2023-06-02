@@ -1,0 +1,3 @@
+[submodule "src/test/resources-its/org/openrewrite/maven/RewriteCycloneDxIT/correct_version_of_netty_handler_should_be_reported_in_selenese_runner_java_3e84e8e"]
+	path = src/test/resources-its/org/openrewrite/maven/RewriteCycloneDxIT/correct_version_of_netty_handler_should_be_reported_in_selenese_runner_java_3e84e8e
+	url = git@github.com:vmi/selenese-runner-java.git

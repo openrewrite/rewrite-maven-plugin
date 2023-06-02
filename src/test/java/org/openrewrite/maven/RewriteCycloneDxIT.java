@@ -4,6 +4,13 @@ import com.soebes.itf.jupiter.extension.*;
 import com.soebes.itf.jupiter.maven.MavenExecutionResult;
 import org.junit.jupiter.api.Disabled;
 
+import java.io.IOException;
+import java.net.URISyntaxException;
+import java.nio.charset.Charset;
+import java.nio.file.Files;
+import java.nio.file.Path;
+import java.nio.file.Paths;
+
 import static com.soebes.itf.extension.assertj.MavenITAssertions.assertThat;
 
 @MavenJupiterExtension
@@ -78,5 +85,29 @@ class RewriteCycloneDxIT {
         assertThat(result).out().warn().isEmpty();
     }
 
+    @MavenTest
+    void correct_version_of_netty_handler_should_be_reported_in_selenese_runner_java_3e84e8e(MavenExecutionResult result) throws IOException, URISyntaxException {
+        assertThat(result)
+                .isSuccessful()
+                .project()
+                .hasTarget()
+                .withFile("selenese-runner-java-4.2.0-cyclonedx.xml")
+                .exists();
 
+        Path seleneseRunnerJavaSBOM = Paths.get("target/maven-it/org/openrewrite/maven/RewriteCycloneDxIT/correct_version_of_netty_handler_should_be_reported_in_selenese_runner_java_3e84e8e/project/target/selenese-runner-java-4.2.0-cyclonedx.xml");
+        byte[] xmlBytes = Files.readAllBytes(seleneseRunnerJavaSBOM);
+        String sbomContents = new String(xmlBytes, Charset.defaultCharset());
+
+
+        String expectedString = "        <component bom-ref=\"pkg:maven/io.netty/netty-handler@4.1.79.Final?type=jar\" type=\"library\">\n" +
+                "            <group>io.netty</group>\n" +
+                "            <name>netty-handler</name>\n" +
+                "            <version>4.1.79.Final</version>\n" +
+                "            <scope>required</scope>\n" +
+                "            <purl>pkg:maven/io.netty/netty-handler@4.1.79.Final?type=jar</purl>\n" +
+                "        </component>";
+
+        assertThat(sbomContents).contains(expectedString);
+
+    }
 }
