@@ -65,7 +65,7 @@
 
     <properties>
         <!-- Pinned versions, as RELEASE would make it into the published pom.xml -->
-        <rewrite.version>7.41.0-SNAPSHOT</rewrite.version>
+        <rewrite.version>8.0.0</rewrite.version>
         <rewrite.python.version>0.5.0-SNAPSHOT</rewrite.python.version>
 
         <!-- using 'ssh' url scheme by default, which assumes a human is performing git operations leveraging an ssh key -->
