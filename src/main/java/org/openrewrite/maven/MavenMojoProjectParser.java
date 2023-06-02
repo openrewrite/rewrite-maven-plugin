@@ -335,7 +335,6 @@ public class MavenMojoProjectParser {
     }
 
     public Map<MavenProject, Xml.Document> parseMaven(List<MavenProject> mavenProjects, Map<MavenProject, List<Marker>> projectProvenances, ExecutionContext ctx) {
-        // J.clearCaches();
         if (skipMavenParsing) {
             logger.info("Skipping Maven parsing...");
             return emptyMap();
