@@ -2,7 +2,6 @@ package org.openrewrite.maven;
 
 import com.soebes.itf.jupiter.extension.*;
 import com.soebes.itf.jupiter.maven.MavenExecutionResult;
-import org.junit.jupiter.api.Disabled;
 
 import static com.soebes.itf.extension.assertj.MavenITAssertions.assertThat;
 
@@ -49,10 +48,9 @@ class RewriteDryRunIT {
                 .anySatisfy(line -> assertThat(line).contains("org.openrewrite.java.format.AutoFormat"));
     }
 
-    @Disabled("Enable again once 8.0 has been released")
     @MavenTest
     @SystemProperties({
-            @SystemProperty(value = "rewrite.recipeArtifactCoordinates", content = "org.openrewrite.recipe:rewrite-testing-frameworks:1.38.0"),
+            @SystemProperty(value = "rewrite.recipeArtifactCoordinates", content = "org.openrewrite.recipe:rewrite-testing-frameworks:2.0.0"),
             @SystemProperty(value = "activeRecipes", content = "org.openrewrite.java.testing.cleanup.AssertTrueNullToAssertNull")
     })
     void no_plugin_in_pom(MavenExecutionResult result) {
