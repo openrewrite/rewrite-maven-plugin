@@ -25,14 +25,14 @@ import org.openrewrite.internal.lang.Nullable;
 import org.openrewrite.ipc.http.HttpSender;
 import org.openrewrite.ipc.http.HttpUrlConnectionSender;
 import org.openrewrite.java.style.CheckstyleConfigLoader;
-import org.openrewrite.marker.Generated;
-import org.openrewrite.marker.Marker;
-import org.openrewrite.marker.Markup;
-import org.openrewrite.marker.SearchResult;
+import org.openrewrite.marker.*;
 import org.openrewrite.style.NamedStyles;
 import org.openrewrite.xml.tree.Xml;
 
-import java.io.*;
+import java.io.File;
+import java.io.IOException;
+import java.io.InputStream;
+import java.io.UncheckedIOException;
 import java.net.*;
 import java.nio.file.Files;
 import java.nio.file.Path;
@@ -43,7 +43,8 @@ import java.util.function.UnaryOperator;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
 
-import static java.util.Collections.*;
+import static java.util.Collections.emptyList;
+import static java.util.Collections.emptyMap;
 import static java.util.stream.Collectors.joining;
 import static java.util.stream.Collectors.toList;
 
@@ -89,7 +90,7 @@ public abstract class AbstractRewriteMojo extends ConfigurableRewriteMojo {
     Config getConfig() throws IOException {
         try {
             URI uri = new URI(configLocation);
-            if(uri.getScheme() != null && uri.getScheme().startsWith("http")) {
+            if (uri.getScheme() != null && uri.getScheme().startsWith("http")) {
                 HttpSender httpSender = new HttpUrlConnectionSender();
                 return new Config(httpSender.get(configLocation).send().getBody(), uri);
             }
@@ -165,10 +166,10 @@ public abstract class AbstractRewriteMojo extends ConfigurableRewriteMojo {
     protected Path repositoryRoot() {
         Path buildRoot = getBuildRoot();
         Path maybeBaseDir = buildRoot;
-        while(maybeBaseDir != null && !Files.exists(maybeBaseDir.resolve(".git"))) {
+        while (maybeBaseDir != null && !Files.exists(maybeBaseDir.resolve(".git"))) {
             maybeBaseDir = maybeBaseDir.getParent();
         }
-        if(maybeBaseDir == null) {
+        if (maybeBaseDir == null) {
             return buildRoot;
         }
         return maybeBaseDir;
@@ -385,26 +386,43 @@ public abstract class AbstractRewriteMojo extends ConfigurableRewriteMojo {
         @Nullable
         public Throwable getFirstException() {
             for (Result result : generated) {
-                for (Throwable recipeError : result.getRecipeErrors()) {
-                    return recipeError;
+                for (String recipeError : getRecipeErrors(result)) {
+                    return new RuntimeException(recipeError);
                 }
             }
             for (Result result : deleted) {
-                for (Throwable recipeError : result.getRecipeErrors()) {
-                    return recipeError;
+                for (String recipeError : getRecipeErrors(result)) {
+                    return new RuntimeException(recipeError);
                 }
             }
             for (Result result : moved) {
-                for (Throwable recipeError : result.getRecipeErrors()) {
-                    return recipeError;
+                for (String recipeError : getRecipeErrors(result)) {
+                    return new RuntimeException(recipeError);
                 }
             }
             for (Result result : refactoredInPlace) {
-                for (Throwable recipeError : result.getRecipeErrors()) {
-                    return recipeError;
+                for (String recipeError : getRecipeErrors(result)) {
+                    return new RuntimeException(recipeError);
                 }
             }
             return null;
+        }
+
+
+        public List<String> getRecipeErrors(Result result) {
+            List<String> exceptions = new ArrayList<>();
+            new TreeVisitor<Tree, Integer>() {
+                @Nullable
+                @Override
+                public Tree visit(@Nullable Tree tree, Integer p) {
+                    if (tree != null) {
+                        Markers markers = tree.getMarkers();
+                        markers.findFirst(Markup.Error.class).ifPresent(e -> exceptions.add(e.getDetail()));
+                    }
+                    return super.visit(tree, p);
+                }
+            }.visit(result.getAfter(), 0);
+            return exceptions;
         }
 
         public Path getProjectRoot() {
@@ -428,13 +446,13 @@ public abstract class AbstractRewriteMojo extends ConfigurableRewriteMojo {
                 assert result.getBefore() != null;
                 maybeEmptyDirectories.add(projectRoot.resolve(result.getBefore().getSourcePath()).getParent());
             }
-            if(maybeEmptyDirectories.isEmpty()) {
+            if (maybeEmptyDirectories.isEmpty()) {
                 return Collections.emptyList();
             }
             List<Path> emptyDirectories = new ArrayList<>(maybeEmptyDirectories.size());
-            for(Path maybeEmptyDirectory : maybeEmptyDirectories) {
-                try(Stream<Path> contents = Files.list(maybeEmptyDirectory)) {
-                    if(contents.findAny().isPresent()) {
+            for (Path maybeEmptyDirectory : maybeEmptyDirectories) {
+                try (Stream<Path> contents = Files.list(maybeEmptyDirectory)) {
+                    if (contents.findAny().isPresent()) {
                         continue;
                     }
                     Files.delete(maybeEmptyDirectory);
