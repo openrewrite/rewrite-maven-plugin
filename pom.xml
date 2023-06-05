@@ -80,7 +80,7 @@
         <rocksdbjni.version>8.0.0</rocksdbjni.version>
         <itf-maven.version>0.12.0</itf-maven.version>
         <maven-dependencies.version>3.9.1</maven-dependencies.version>
-        <maven-release-plugin.version>3.0.0</maven-release-plugin.version>
+        <maven-release-plugin.version>3.0.1</maven-release-plugin.version>
         <maven-plugin-tools.version>3.9.0</maven-plugin-tools.version>
         <kotlin.version>1.8.10</kotlin.version>
     </properties>
