@@ -384,40 +384,43 @@ public abstract class AbstractRewriteMojo extends ConfigurableRewriteMojo {
         }
 
         @Nullable
-        public Throwable getFirstException() {
+        public RuntimeException getFirstException() {
             for (Result result : generated) {
-                for (String recipeError : getRecipeErrors(result)) {
-                    return new RuntimeException(recipeError);
+                for (RuntimeException error : getRecipeErrors(result)) {
+                    return error;
                 }
             }
             for (Result result : deleted) {
-                for (String recipeError : getRecipeErrors(result)) {
-                    return new RuntimeException(recipeError);
+                for (RuntimeException error : getRecipeErrors(result)) {
+                    return error;
                 }
             }
             for (Result result : moved) {
-                for (String recipeError : getRecipeErrors(result)) {
-                    return new RuntimeException(recipeError);
+                for (RuntimeException error : getRecipeErrors(result)) {
+                    return error;
                 }
             }
             for (Result result : refactoredInPlace) {
-                for (String recipeError : getRecipeErrors(result)) {
-                    return new RuntimeException(recipeError);
+                for (RuntimeException error : getRecipeErrors(result)) {
+                    return error;
                 }
             }
             return null;
         }
 
-
-        public List<String> getRecipeErrors(Result result) {
-            List<String> exceptions = new ArrayList<>();
+        private List<RuntimeException> getRecipeErrors(Result result) {
+            List<RuntimeException> exceptions = new ArrayList<>();
             new TreeVisitor<Tree, Integer>() {
                 @Nullable
                 @Override
                 public Tree visit(@Nullable Tree tree, Integer p) {
                     if (tree != null) {
                         Markers markers = tree.getMarkers();
-                        markers.findFirst(Markup.Error.class).ifPresent(e -> exceptions.add(e.getDetail()));
+                        markers.findFirst(Markup.Error.class).ifPresent(e -> {
+                            Optional<SourceFile> sourceFile = Optional.ofNullable(getCursor().firstEnclosing(SourceFile.class));
+                            String sourcePath = sourceFile.map(SourceFile::getSourcePath).map(Path::toString).orElse("<unknown>");
+                            exceptions.add(new RuntimeException("Error while visiting " + sourcePath + ": " + e.getMessage()));
+                        });
                     }
                     return super.visit(tree, p);
                 }
