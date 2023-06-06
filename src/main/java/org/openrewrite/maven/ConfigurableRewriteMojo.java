@@ -1,11 +1,23 @@
 package org.openrewrite.maven;
 
+import com.puppycrawl.tools.checkstyle.Checker;
+import org.apache.maven.model.Plugin;
 import org.apache.maven.plugin.AbstractMojo;
 import org.apache.maven.plugins.annotations.Parameter;
+import org.apache.maven.project.MavenProject;
+import org.codehaus.plexus.util.xml.Xpp3Dom;
+import org.openrewrite.config.Environment;
 import org.openrewrite.internal.lang.Nullable;
+import org.openrewrite.java.style.CheckstyleConfigLoader;
+import org.openrewrite.style.NamedStyles;
 
+import java.io.InputStream;
+import java.nio.file.Path;
+import java.nio.file.Paths;
 import java.util.*;
 import java.util.stream.Collectors;
+
+import static java.util.Collections.emptyMap;
 
 @SuppressWarnings("FieldMayBeFinal")
 public abstract class ConfigurableRewriteMojo extends AbstractMojo {
@@ -183,6 +195,41 @@ public abstract class ConfigurableRewriteMojo extends AbstractMojo {
         }
 
         return computedStyles;
+    }
+
+    protected List<NamedStyles> loadStyles(MavenProject project, Environment env) {
+        List<NamedStyles> styles = env.activateStyles(getActiveStyles());
+        try {
+            Plugin checkstylePlugin = project.getPlugin("org.apache.maven.plugins:maven-checkstyle-plugin");
+            if (checkstyleConfigFile != null && !checkstyleConfigFile.isEmpty()) {
+                styles.add(CheckstyleConfigLoader.loadCheckstyleConfig(Paths.get(checkstyleConfigFile), emptyMap()));
+            } else if (checkstyleDetectionEnabled && checkstylePlugin != null) {
+                Object checkstyleConfRaw = checkstylePlugin.getConfiguration();
+                if (checkstyleConfRaw instanceof Xpp3Dom) {
+                    Xpp3Dom xmlCheckstyleConf = (Xpp3Dom) checkstyleConfRaw;
+                    Xpp3Dom xmlConfigLocation = xmlCheckstyleConf.getChild("configLocation");
+
+                    if (xmlConfigLocation == null) {
+                        // When no config location is specified, the maven-checkstyle-plugin falls back on sun_checks.xml
+                        try (InputStream is = Checker.class.getResourceAsStream("/sun_checks.xml")) {
+                            if (is != null) {
+                                styles.add(CheckstyleConfigLoader.loadCheckstyleConfig(is, emptyMap()));
+                            }
+                        }
+                    } else {
+                        // resolve location against plugin location (could be in parent pom)
+                        Path configPath = Paths.get(checkstylePlugin.getLocation("").getSource().getLocation())
+                                .resolveSibling(xmlConfigLocation.getValue());
+                        if (configPath.toFile().exists()) {
+                            styles.add(CheckstyleConfigLoader.loadCheckstyleConfig(configPath, emptyMap()));
+                        }
+                    }
+                }
+            }
+        } catch (Exception e) {
+            getLog().warn("Unable to parse checkstyle configuration. Checkstyle will not inform rewrite execution.", e);
+        }
+        return styles;
     }
 
     protected Set<String> getRecipeArtifactCoordinates() {

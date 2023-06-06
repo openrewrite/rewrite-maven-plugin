@@ -1,10 +1,8 @@
 package org.openrewrite.maven;
 
-import com.puppycrawl.tools.checkstyle.Checker;
 import io.micrometer.core.instrument.Metrics;
 import org.apache.maven.artifact.DependencyResolutionRequiredException;
 import org.apache.maven.execution.MavenSession;
-import org.apache.maven.model.Plugin;
 import org.apache.maven.plugin.MojoExecutionException;
 import org.apache.maven.plugins.annotations.Component;
 import org.apache.maven.plugins.annotations.Parameter;
@@ -12,7 +10,6 @@ import org.apache.maven.project.MavenProject;
 import org.apache.maven.rtinfo.RuntimeInformation;
 import org.apache.maven.settings.crypto.SettingsDecrypter;
 import org.codehaus.plexus.classworlds.realm.ClassRealm;
-import org.codehaus.plexus.util.xml.Xpp3Dom;
 import org.eclipse.aether.RepositorySystem;
 import org.eclipse.aether.artifact.Artifact;
 import org.openrewrite.*;
@@ -21,10 +18,11 @@ import org.openrewrite.config.Environment;
 import org.openrewrite.config.RecipeDescriptor;
 import org.openrewrite.config.YamlResourceLoader;
 import org.openrewrite.internal.InMemoryLargeSourceSet;
+import org.openrewrite.internal.ListUtils;
 import org.openrewrite.internal.lang.Nullable;
 import org.openrewrite.ipc.http.HttpSender;
 import org.openrewrite.ipc.http.HttpUrlConnectionSender;
-import org.openrewrite.java.style.CheckstyleConfigLoader;
+import org.openrewrite.java.tree.JavaSourceFile;
 import org.openrewrite.marker.*;
 import org.openrewrite.style.NamedStyles;
 import org.openrewrite.xml.tree.Xml;
@@ -44,7 +42,6 @@ import java.util.stream.Collectors;
 import java.util.stream.Stream;
 
 import static java.util.Collections.emptyList;
-import static java.util.Collections.emptyMap;
 import static java.util.stream.Collectors.joining;
 import static java.util.stream.Collectors.toList;
 
@@ -208,37 +205,6 @@ public abstract class AbstractRewriteMojo extends ConfigurableRewriteMojo {
             }
             Environment env = environment(recipeArtifactCoordinatesClassloader);
 
-            List<NamedStyles> styles;
-            styles = env.activateStyles(getActiveStyles());
-            try {
-                Plugin checkstylePlugin = project.getPlugin("org.apache.maven.plugins:maven-checkstyle-plugin");
-                if (checkstyleConfigFile != null && !checkstyleConfigFile.isEmpty()) {
-                    styles.add(CheckstyleConfigLoader.loadCheckstyleConfig(Paths.get(checkstyleConfigFile), emptyMap()));
-                } else if (checkstyleDetectionEnabled && checkstylePlugin != null) {
-                    Object checkstyleConfRaw = checkstylePlugin.getConfiguration();
-                    if (checkstyleConfRaw instanceof Xpp3Dom) {
-                        Xpp3Dom xmlCheckstyleConf = (Xpp3Dom) checkstyleConfRaw;
-                        Xpp3Dom xmlConfigLocation = xmlCheckstyleConf.getChild("configLocation");
-
-                        if (xmlConfigLocation == null) {
-                            // When no config location is specified, the maven-checkstyle-plugin falls back on sun_checks.xml
-                            try (InputStream is = Checker.class.getResourceAsStream("/sun_checks.xml")) {
-                                if (is != null) {
-                                    styles.add(CheckstyleConfigLoader.loadCheckstyleConfig(is, emptyMap()));
-                                }
-                            }
-                        } else {
-                            Path configPath = Paths.get(xmlConfigLocation.getValue());
-                            if (configPath.toFile().exists()) {
-                                styles.add(CheckstyleConfigLoader.loadCheckstyleConfig(configPath, emptyMap()));
-                            }
-                        }
-                    }
-                }
-            } catch (Exception e) {
-                getLog().warn("Unable to parse checkstyle configuration. Checkstyle will not inform rewrite execution.", e);
-            }
-
             Recipe recipe = env.activateRecipes(getActiveRecipes());
             if (recipe.getRecipeList().isEmpty()) {
                 getLog().warn("No recipes were activated. " +
@@ -261,37 +227,11 @@ public abstract class AbstractRewriteMojo extends ConfigurableRewriteMojo {
                     getLog().error("Recipe validation errors detected as part of one or more activeRecipe(s). Execution will continue regardless.");
                 }
             }
+
             ExecutionContext ctx = executionContext();
+            LargeSourceSet sourceSet = loadSourceSet(repositoryRoot, env, ctx);
 
-            //Parse and collect source files from each project in the maven session.
-            MavenMojoProjectParser projectParser = new MavenMojoProjectParser(getLog(), repositoryRoot, pomCacheEnabled, pomCacheDirectory, runtime, skipMavenParsing, getExclusions(), getPlainTextMasks(), sizeThresholdMb, mavenSession, settingsDecrypter);
-
-            List<SourceFile> sourceFiles = new ArrayList<>();
-            if (runPerSubmodule) {
-                //If running per submodule, parse the source files for only the current project.
-                projectParser.resetTypeCache();
-                sourceFiles.addAll(projectParser.listSourceFiles(project, styles, ctx));
-            } else {
-                //If running across all project, iterate and parse source files from each project
-                Map<MavenProject, List<Marker>> projectProvenances = mavenSession.getProjects().stream()
-                        .collect(Collectors.toMap(Function.identity(), projectParser::generateProvenance));
-                Map<MavenProject, Xml.Document> projectMap = projectParser.parseMaven(mavenSession.getProjects(), projectProvenances, ctx);
-                for (MavenProject mavenProject : mavenSession.getProjects()) {
-                    List<Marker> projectProvenance = projectProvenances.get(mavenProject);
-                    sourceFiles.addAll(projectParser.listSourceFiles(mavenProject, projectMap.get(mavenProject), projectProvenance, styles, ctx));
-                }
-            }
-
-            getLog().info("Running recipe(s)...");
-            List<Result> results = recipe.run(new InMemoryLargeSourceSet(sourceFiles), ctx).getChangeset().getAllResults().stream()
-                    .filter(source -> {
-                        // Remove ASTs originating from generated files
-                        if (source.getBefore() != null) {
-                            return !source.getBefore().getMarkers().findFirst(Generated.class).isPresent();
-                        }
-                        return true;
-                    })
-                    .collect(toList());
+            List<Result> results = runRecipe(recipe, sourceSet, ctx);
 
             Metrics.removeRegistry(meterRegistryProvider.registry());
 
@@ -299,6 +239,68 @@ public abstract class AbstractRewriteMojo extends ConfigurableRewriteMojo {
         } catch (DependencyResolutionRequiredException e) {
             throw new MojoExecutionException("Dependency resolution required", e);
         }
+    }
+
+    protected LargeSourceSet loadSourceSet(Path repositoryRoot, Environment env, ExecutionContext ctx) throws DependencyResolutionRequiredException, MojoExecutionException {
+        List<NamedStyles> styles = loadStyles(project, env);
+
+        //Parse and collect source files from each project in the maven session.
+        MavenMojoProjectParser projectParser = new MavenMojoProjectParser(getLog(), repositoryRoot, pomCacheEnabled, pomCacheDirectory, runtime, skipMavenParsing, getExclusions(), getPlainTextMasks(), sizeThresholdMb, mavenSession, settingsDecrypter);
+
+        Stream<SourceFile> sourceFiles = Stream.empty();
+        if (runPerSubmodule) {
+            //If running per submodule, parse the source files for only the current project.
+            projectParser.resetTypeCache();
+            sourceFiles = Stream.concat(sourceFiles, projectParser.listSourceFiles(project, styles, ctx));
+        } else {
+            //If running across all project, iterate and parse source files from each project
+            Map<MavenProject, List<Marker>> projectProvenances = mavenSession.getProjects().stream()
+                    .collect(Collectors.toMap(Function.identity(), projectParser::generateProvenance));
+            Map<MavenProject, Xml.Document> projectMap = projectParser.parseMaven(mavenSession.getProjects(), projectProvenances, ctx);
+            for (MavenProject mavenProject : mavenSession.getProjects()) {
+                List<Marker> projectProvenance = projectProvenances.get(mavenProject);
+                sourceFiles = Stream.concat(sourceFiles, projectParser.listSourceFiles(mavenProject, projectMap.get(mavenProject), projectProvenance, styles, ctx));
+            }
+        }
+
+        List<SourceFile> sourceFileList = sourcesWithAutoDetectedStyles(sourceFiles);
+        return new InMemoryLargeSourceSet(sourceFileList);
+    }
+
+    protected List<Result> runRecipe(Recipe recipe, LargeSourceSet sourceSet, ExecutionContext ctx) {
+        getLog().info("Running recipe(s)...");
+        return recipe.run(sourceSet, ctx).getChangeset().getAllResults().stream()
+                .filter(source -> {
+                    // Remove ASTs originating from generated files
+                    if (source.getBefore() != null) {
+                        return !source.getBefore().getMarkers().findFirst(Generated.class).isPresent();
+                    }
+                    return true;
+                })
+                .collect(toList());
+    }
+
+    private List<SourceFile> sourcesWithAutoDetectedStyles(Stream<SourceFile> sourceFiles) {
+        org.openrewrite.java.style.Autodetect.Detector javaDetector = org.openrewrite.java.style.Autodetect.detect(sourceFiles);
+        org.openrewrite.xml.style.Autodetect.Detector xmlDetector = org.openrewrite.xml.style.Autodetect.detect(javaDetector);
+        List<SourceFile> sourceFileList = xmlDetector.collect(toList());
+
+        Map<Class<? extends Tree>, NamedStyles> stylesByType = new HashMap<>();
+        stylesByType.put(JavaSourceFile.class, javaDetector.build());
+        stylesByType.put(Xml.Document.class, xmlDetector.build());
+
+        return ListUtils.map(sourceFileList, applyAutodetectedStyle(stylesByType));
+    }
+
+    private UnaryOperator<SourceFile> applyAutodetectedStyle(Map<Class<? extends Tree>, NamedStyles> stylesByType) {
+        return before -> {
+            for (Map.Entry<Class<? extends Tree>, NamedStyles> styleTypeEntry : stylesByType.entrySet()) {
+                if (styleTypeEntry.getKey().isAssignableFrom(before.getClass())) {
+                    before = before.withMarkers(before.getMarkers().add(styleTypeEntry.getValue()));
+                }
+            }
+            return before;
+        };
     }
 
     @Nullable
@@ -411,18 +413,15 @@ public abstract class AbstractRewriteMojo extends ConfigurableRewriteMojo {
         private List<RuntimeException> getRecipeErrors(Result result) {
             List<RuntimeException> exceptions = new ArrayList<>();
             new TreeVisitor<Tree, Integer>() {
-                @Nullable
                 @Override
-                public Tree visit(@Nullable Tree tree, Integer p) {
-                    if (tree != null) {
-                        Markers markers = tree.getMarkers();
-                        markers.findFirst(Markup.Error.class).ifPresent(e -> {
-                            Optional<SourceFile> sourceFile = Optional.ofNullable(getCursor().firstEnclosing(SourceFile.class));
-                            String sourcePath = sourceFile.map(SourceFile::getSourcePath).map(Path::toString).orElse("<unknown>");
-                            exceptions.add(new RuntimeException("Error while visiting " + sourcePath + ": " + e.getMessage()));
-                        });
-                    }
-                    return super.visit(tree, p);
+                public Tree preVisit(Tree tree, Integer integer) {
+                    Markers markers = tree.getMarkers();
+                    markers.findFirst(Markup.Error.class).ifPresent(e -> {
+                        Optional<SourceFile> sourceFile = Optional.ofNullable(getCursor().firstEnclosing(SourceFile.class));
+                        String sourcePath = sourceFile.map(SourceFile::getSourcePath).map(Path::toString).orElse("<unknown>");
+                        exceptions.add(new RuntimeException("Error while visiting " + sourcePath + ": " + e.getDetail()));
+                    });
+                    return tree;
                 }
             }.visit(result.getAfter(), 0);
             return exceptions;

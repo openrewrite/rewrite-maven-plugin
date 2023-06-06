@@ -58,8 +58,8 @@ public class ResourceParser {
                 .collect(Collectors.toList());
     }
 
-    public List<SourceFile> parse(Path searchDir, Collection<Path> alreadyParsed) {
-        List<SourceFile> sourceFiles = new ArrayList<>();
+    public Stream<SourceFile> parse(Path searchDir, Collection<Path> alreadyParsed) {
+        Stream<SourceFile> sourceFiles = Stream.empty();
         if (!searchDir.toFile().exists()) {
             return sourceFiles;
         }
@@ -67,7 +67,7 @@ public class ResourceParser {
         InMemoryExecutionContext ctx = new InMemoryExecutionContext(errorConsumer);
 
         try {
-            sourceFiles.addAll(parseSourceFiles(searchDir, alreadyParsed, ctx));
+            sourceFiles = Stream.concat(sourceFiles, parseSourceFiles(searchDir, alreadyParsed, ctx));
             List<PlainText> parseFailures = ParsingExecutionContextView.view(ctx).pollParseFailures();
             if (!parseFailures.isEmpty()) {
                 logger.warn("There were problems parsing " + parseFailures.size() + " + sources:");
@@ -75,7 +75,7 @@ public class ResourceParser {
                     logger.warn("  " + parseFailure.getSourcePath());
                 }
                 logger.warn("Execution will continue but these files are unlikely to be affected by refactoring recipes");
-                sourceFiles.addAll(parseFailures);
+                sourceFiles = Stream.concat(sourceFiles, parseFailures.stream());
             }
         } catch (IOException e) {
             logger.error(e.getMessage(), e);
@@ -86,7 +86,7 @@ public class ResourceParser {
     }
 
     @SuppressWarnings({"DuplicatedCode", "unchecked"})
-    public <S extends SourceFile> List<S> parseSourceFiles(
+    public <S extends SourceFile> Stream<S> parseSourceFiles(
             Path searchDir,
             Collection<Path> alreadyParsed,
             ExecutionContext ctx) throws IOException {
@@ -204,7 +204,7 @@ public class ResourceParser {
         sourceFiles = Stream.concat(sourceFiles, (Stream<S>) quarkParser.parse(quarkPaths, baseDir, ctx));
         alreadyParsed.addAll(quarkPaths);
 
-        return sourceFiles.collect(Collectors.toList());
+        return sourceFiles;
     }
 
     private boolean isOverSizeThreshold(long fileSize) {
