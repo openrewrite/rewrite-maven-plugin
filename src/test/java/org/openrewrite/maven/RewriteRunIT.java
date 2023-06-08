@@ -35,6 +35,15 @@ class RewriteRunIT {
     }
 
     @MavenTest
+    void recipe_project(MavenExecutionResult result) {
+        assertThat(result)
+                .isFailure()
+                .out()
+                .error()
+                .anySatisfy(line -> assertThat(line).contains("/sample/ThrowingRecipe.java", "This recipe throws an exception"));
+    }
+
+    @MavenTest
     void cloud_suitability_project(MavenExecutionResult result) {
         assertThat(result)
                 .isSuccessful()

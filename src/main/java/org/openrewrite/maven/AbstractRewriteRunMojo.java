@@ -20,6 +20,7 @@ import org.openrewrite.FileAttributes;
 import org.openrewrite.PrintOutputCapture;
 import org.openrewrite.Result;
 import org.openrewrite.binary.Binary;
+import org.openrewrite.internal.lang.Nullable;
 import org.openrewrite.ipc.http.HttpUrlConnectionSender;
 import org.openrewrite.quark.Quark;
 import org.openrewrite.remote.Remote;
@@ -52,14 +53,10 @@ public class AbstractRewriteRunMojo extends AbstractRewriteMojo {
         }
 
         ResultsContainer results = listResults();
-        Throwable firstException = results.getFirstException();
+        @Nullable RuntimeException firstException = results.getFirstException();
         if (firstException != null) {
             getLog().error("The recipe produced an error. Please report this to the recipe author.");
-            if(firstException instanceof RuntimeException) {
-                throw (RuntimeException)firstException;
-            } else {
-                throw new RuntimeException(firstException);
-            }
+            throw firstException;
         }
 
         if (results.isNotEmpty()) {
@@ -144,9 +141,9 @@ public class AbstractRewriteRunMojo extends AbstractRewriteMojo {
                     writeAfter(results.getProjectRoot(), result);
                 }
                 List<Path> emptyDirectories = results.newlyEmptyDirectories();
-                if(!emptyDirectories.isEmpty()) {
+                if (!emptyDirectories.isEmpty()) {
                     getLog().info("Removing " + emptyDirectories.size() + " newly empty directories:");
-                    for(Path emptyDirectory : emptyDirectories) {
+                    for (Path emptyDirectory : emptyDirectories) {
                         getLog().info("  " + emptyDirectory);
                         Files.delete(emptyDirectory);
                     }
@@ -158,7 +155,7 @@ public class AbstractRewriteRunMojo extends AbstractRewriteMojo {
     }
 
     private static void writeAfter(Path root, Result result) {
-        if(result.getAfter() == null || result.getAfter() instanceof Quark) {
+        if (result.getAfter() == null || result.getAfter() instanceof Quark) {
             return;
         }
         Path targetPath = root.resolve(result.getAfter().getSourcePath());
