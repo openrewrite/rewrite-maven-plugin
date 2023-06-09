@@ -35,6 +35,7 @@ import org.openrewrite.maven.cache.RocksdbMavenPomCache;
 import org.openrewrite.maven.internal.RawRepositories;
 import org.openrewrite.maven.tree.ProfileActivation;
 import org.openrewrite.style.NamedStyles;
+import org.openrewrite.text.PlainText;
 import org.openrewrite.tree.ParsingExecutionContextView;
 import org.openrewrite.xml.tree.Xml;
 
@@ -159,7 +160,24 @@ public class MavenMojoProjectParser {
         logDebug(mavenProject, "Parsed " + (alreadyParsed.size() - sourcesParsedBefore) + " additional files found within the project.");
         sourceFiles = Stream.concat(sourceFiles, parsedResourceFiles);
 
-        return sourceFiles;
+        // by appending the parse failures to the end of the stream, the code above will be executed last
+        return Stream.concat(sourceFiles, parseFailures(ctx));
+    }
+
+    private Stream<SourceFile> parseFailures(ExecutionContext ctx) {
+        return Stream.of(ParsingExecutionContextView.view(ctx))
+                .flatMap(ctxView -> {
+                    List<PlainText> parseFailures = ctxView.pollParseFailures();
+                    if (!parseFailures.isEmpty()) {
+                        logger.warn("There were problems parsing " + parseFailures.size() + " + sources:");
+                        for (PlainText parseFailure : parseFailures) {
+                            logger.warn("  " + parseFailure.getSourcePath());
+                        }
+                        logger.warn("Execution will continue but these files are unlikely to be affected by refactoring recipes");
+                        return parseFailures.stream();
+                    }
+                    return Stream.empty();
+                });
     }
 
     public List<Marker> generateProvenance(MavenProject mavenProject) {
