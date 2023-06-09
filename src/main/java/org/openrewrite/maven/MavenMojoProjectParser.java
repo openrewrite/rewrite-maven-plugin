@@ -76,8 +76,6 @@ public class MavenMojoProjectParser {
     @Nullable
     static MavenPomCache pomCache;
 
-    static JavaTypeCache typeCache = new JavaTypeCache();
-
     private final Log logger;
     private final Path baseDir;
     private final boolean pomCacheEnabled;
@@ -131,15 +129,13 @@ public class MavenMojoProjectParser {
         if (mavenSourceEncoding != null) {
             ParsingExecutionContextView.view(ctx).setCharset(Charset.forName(mavenSourceEncoding.toString()));
         }
-        JavaParser javaParser = JavaParser.fromJavaVersion()
+        JavaParser.Builder<? extends JavaParser, ?> javaParserBuilder = JavaParser.fromJavaVersion()
                 .styles(styles)
-                .typeCache(typeCache)
-                .logCompilationWarningsAndErrors(false)
-                .build();
-        ResourceParser rp = new ResourceParser(baseDir, logger, exclusions, plainTextMasks, sizeThresholdMb, pathsToOtherMavenProjects(mavenProject), javaParser);
+                .logCompilationWarningsAndErrors(false);
+        ResourceParser rp = new ResourceParser(baseDir, logger, exclusions, plainTextMasks, sizeThresholdMb, pathsToOtherMavenProjects(mavenProject), javaParserBuilder.clone());
 
-        sourceFiles = Stream.concat(sourceFiles, processMainSources(mavenProject, javaParser, rp, projectProvenance, alreadyParsed, ctx));
-        sourceFiles = Stream.concat(sourceFiles, processTestSources(mavenProject, javaParser, rp, projectProvenance, alreadyParsed, ctx));
+        sourceFiles = Stream.concat(sourceFiles, processMainSources(mavenProject, javaParserBuilder.clone(), rp, projectProvenance, alreadyParsed, ctx));
+        sourceFiles = Stream.concat(sourceFiles, processTestSources(mavenProject, javaParserBuilder.clone(), rp, projectProvenance, alreadyParsed, ctx));
         Collection<PathMatcher> exclusionMatchers = exclusions.stream()
                 .map(pattern -> baseDir.getFileSystem().getPathMatcher("glob:" + pattern))
                 .collect(toList());
@@ -249,7 +245,7 @@ public class MavenMojoProjectParser {
 
     private Stream<SourceFile> processMainSources(
             MavenProject mavenProject,
-            JavaParser javaParser,
+            JavaParser.Builder<? extends JavaParser, ?> javaParserBuilder,
             ResourceParser resourceParser,
             List<Marker> projectProvenance,
             Set<Path> alreadyParsed,
@@ -270,12 +266,15 @@ public class MavenMojoProjectParser {
                 .distinct()
                 .map(Paths::get)
                 .collect(toList());
-        javaParser.setClasspath(dependencies);
+        javaParserBuilder.classpath(dependencies);
+        JavaTypeCache typeCache = new JavaTypeCache();
+        javaParserBuilder.typeCache(typeCache);
 
+        JavaParser javaParser = javaParserBuilder.build();
         Stream<? extends SourceFile> cus = javaParser.parse(mainJavaSources, baseDir, ctx);
 
         List<Marker> mainProjectProvenance = new ArrayList<>(projectProvenance);
-        mainProjectProvenance.add(sourceSet("main", dependencies));
+        mainProjectProvenance.add(sourceSet("main", dependencies, typeCache));
 
         cus = cus.map(cu -> {
             Markers markers = cu.getMarkers();
@@ -304,7 +303,7 @@ public class MavenMojoProjectParser {
 
     private Stream<SourceFile> processTestSources(
             MavenProject mavenProject,
-            JavaParser javaParser,
+            JavaParser.Builder<? extends JavaParser, ?> javaParserBuilder,
             ResourceParser resourceParser,
             List<Marker> projectProvenance,
             Set<Path> alreadyParsed,
@@ -315,15 +314,18 @@ public class MavenMojoProjectParser {
                 .map(Paths::get)
                 .collect(toList());
 
-        javaParser.setClasspath(testDependencies);
+        javaParserBuilder.classpath(testDependencies);
+        JavaTypeCache typeCache = new JavaTypeCache();
+        javaParserBuilder.typeCache(typeCache);
 
         List<Path> testJavaSources = listJavaSources(mavenProject.getBuild().getTestSourceDirectory());
         alreadyParsed.addAll(testJavaSources);
 
+        JavaParser javaParser = javaParserBuilder.build();
         Stream<J.CompilationUnit> cus = javaParser.parse(testJavaSources, baseDir, ctx);
 
         List<Marker> markers = new ArrayList<>(projectProvenance);
-        markers.add(sourceSet("test", testDependencies));
+        markers.add(sourceSet("test", testDependencies, typeCache));
 
         Stream<SourceFile> parsedJava = cus.map(addProvenance(baseDir, markers, null));
 
@@ -340,7 +342,7 @@ public class MavenMojoProjectParser {
     }
 
     @NotNull
-    private static JavaSourceSet sourceSet(String name, List<Path> dependencies) {
+    private static JavaSourceSet sourceSet(String name, List<Path> dependencies, JavaTypeCache typeCache) {
         return JavaSourceSet.build(name, dependencies, typeCache, false);
     }
 
@@ -602,13 +604,6 @@ public class MavenMojoProjectParser {
         } catch (IOException e) {
             throw new MojoExecutionException("Unable to list Java source files", e);
         }
-    }
-
-    /**
-     * Used to reset the type cache.
-     */
-    public void resetTypeCache() {
-        typeCache.clear();
     }
 
     @Nullable
