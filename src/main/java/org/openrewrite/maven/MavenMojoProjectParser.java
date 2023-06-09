@@ -17,6 +17,7 @@ import org.apache.maven.settings.crypto.SettingsDecryptionResult;
 import org.codehaus.plexus.util.xml.Xpp3Dom;
 import org.jetbrains.annotations.NotNull;
 import org.openrewrite.ExecutionContext;
+import org.openrewrite.ParseError;
 import org.openrewrite.SourceFile;
 import org.openrewrite.internal.StringUtils;
 import org.openrewrite.internal.lang.Nullable;
@@ -35,7 +36,6 @@ import org.openrewrite.maven.cache.RocksdbMavenPomCache;
 import org.openrewrite.maven.internal.RawRepositories;
 import org.openrewrite.maven.tree.ProfileActivation;
 import org.openrewrite.style.NamedStyles;
-import org.openrewrite.text.PlainText;
 import org.openrewrite.tree.ParsingExecutionContextView;
 import org.openrewrite.xml.tree.Xml;
 
@@ -173,23 +173,14 @@ public class MavenMojoProjectParser {
         sourceFiles = Stream.concat(sourceFiles, parsedResourceFiles);
 
         // by appending the parse failures to the end of the stream, the code above will be executed last
-        return Stream.concat(sourceFiles, parseFailures(ctx));
+        return sourceFiles.map(this::logParseErrors);
     }
 
-    private Stream<SourceFile> parseFailures(ExecutionContext ctx) {
-        return Stream.of(ParsingExecutionContextView.view(ctx))
-                .flatMap(ctxView -> {
-                    List<PlainText> parseFailures = ctxView.pollParseFailures();
-                    if (!parseFailures.isEmpty()) {
-                        logger.warn("There were problems parsing " + parseFailures.size() + " sources:");
-                        for (PlainText parseFailure : parseFailures) {
-                            logger.warn("  " + parseFailure.getSourcePath());
-                        }
-                        logger.warn("Execution will continue but these files are unlikely to be affected by refactoring recipes");
-                        return parseFailures.stream();
-                    }
-                    return Stream.empty();
-                });
+    private SourceFile logParseErrors(SourceFile source) {
+        if (source instanceof ParseError) {
+            logger.warn("There were problems parsing " + source.getSourcePath());
+        }
+        return source;
     }
 
     public List<Marker> generateProvenance(MavenProject mavenProject) {
@@ -338,7 +329,7 @@ public class MavenMojoProjectParser {
         alreadyParsed.addAll(testJavaSources);
 
         JavaParser javaParser = javaParserBuilder.build();
-        Stream<J.CompilationUnit> cus = javaParser.parse(testJavaSources, baseDir, ctx);
+        Stream<SourceFile> cus = javaParser.parse(testJavaSources, baseDir, ctx);
 
         List<Marker> markers = new ArrayList<>(projectProvenance);
         markers.add(sourceSet("test", testDependencies, typeCache));
@@ -398,7 +389,7 @@ public class MavenMojoProjectParser {
             mavenParserBuilder.activeProfiles(activeProfiles.toArray(new String[]{}));
         }
 
-        List<Xml.Document> mavens = mavenParserBuilder
+        List<SourceFile> mavens = mavenParserBuilder
                 .build()
                 .parse(allPoms, baseDir, ctx).collect(toList());
 
@@ -414,7 +405,7 @@ public class MavenMojoProjectParser {
             if (mavens.isEmpty()) {
                 logDebug(topLevelProject, "There were no parsed maven source files.");
             } else {
-                for (Xml.Document source : mavens) {
+                for (SourceFile source : mavens) {
                     logDebug(topLevelProject, "  Maven Source : '" + baseDir.resolve(source.getSourcePath()) + "'");
                 }
             }
@@ -422,11 +413,11 @@ public class MavenMojoProjectParser {
 
         Map<Path, MavenProject> projectsByPath = mavenProjects.stream().collect(Collectors.toMap(MavenMojoProjectParser::pomPath, Function.identity()));
         Map<MavenProject, Xml.Document> projectMap = new HashMap<>();
-        for (Xml.Document document : mavens) {
+        for (SourceFile document : mavens) {
             Path path = baseDir.resolve(document.getSourcePath());
             MavenProject mavenProject = projectsByPath.get(path);
             if (mavenProject != null) {
-                projectMap.put(mavenProject, document);
+                projectMap.put(mavenProject, (Xml.Document) document);
             }
         }
         for (MavenProject mavenProject : mavenProjects) {
