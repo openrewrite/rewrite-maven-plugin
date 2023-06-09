@@ -181,7 +181,7 @@ public class MavenMojoProjectParser {
                 .flatMap(ctxView -> {
                     List<PlainText> parseFailures = ctxView.pollParseFailures();
                     if (!parseFailures.isEmpty()) {
-                        logger.warn("There were problems parsing " + parseFailures.size() + " + sources:");
+                        logger.warn("There were problems parsing " + parseFailures.size() + " sources:");
                         for (PlainText parseFailure : parseFailures) {
                             logger.warn("  " + parseFailure.getSourcePath());
                         }
