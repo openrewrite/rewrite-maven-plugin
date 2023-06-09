@@ -92,9 +92,10 @@ public class MavenMojoProjectParser {
     private final int sizeThresholdMb;
     private final MavenSession mavenSession;
     private final SettingsDecrypter settingsDecrypter;
+    private final boolean runPerSubmodule;
 
     @SuppressWarnings("BooleanParameter")
-    public MavenMojoProjectParser(Log logger, Path baseDir, boolean pomCacheEnabled, @Nullable String pomCacheDirectory, RuntimeInformation runtime, boolean skipMavenParsing, Collection<String> exclusions, Collection<String> plainTextMasks, int sizeThresholdMb, MavenSession session, SettingsDecrypter settingsDecrypter) {
+    public MavenMojoProjectParser(Log logger, Path baseDir, boolean pomCacheEnabled, @Nullable String pomCacheDirectory, RuntimeInformation runtime, boolean skipMavenParsing, Collection<String> exclusions, Collection<String> plainTextMasks, int sizeThresholdMb, MavenSession session, SettingsDecrypter settingsDecrypter, boolean runPerSubmodule) {
         this.logger = logger;
         this.baseDir = baseDir;
         this.pomCacheEnabled = pomCacheEnabled;
@@ -106,13 +107,28 @@ public class MavenMojoProjectParser {
         this.sizeThresholdMb = sizeThresholdMb;
         this.mavenSession = session;
         this.settingsDecrypter = settingsDecrypter;
+        this.runPerSubmodule = runPerSubmodule;
     }
 
     public Stream<SourceFile> listSourceFiles(MavenProject mavenProject, List<NamedStyles> styles,
                                               ExecutionContext ctx) throws DependencyResolutionRequiredException, MojoExecutionException {
-        List<Marker> projectProvenance = generateProvenance(mavenProject);
-        Xml.Document maven = parseMaven(mavenProject, projectProvenance, ctx);
-        return listSourceFiles(mavenProject, maven, projectProvenance, styles, ctx);
+        if (runPerSubmodule) {
+            //If running per submodule, parse the source files for only the current project.
+            List<Marker> projectProvenance = generateProvenance(mavenProject);
+            Xml.Document maven = parseMaven(mavenProject, projectProvenance, ctx);
+            return listSourceFiles(mavenProject, maven, projectProvenance, styles, ctx);
+        } else {
+            Stream<SourceFile> sourceFiles = Stream.empty();
+            //If running across all project, iterate and parse source files from each project
+            Map<MavenProject, List<Marker>> projectProvenances = mavenSession.getProjects().stream()
+                    .collect(Collectors.toMap(Function.identity(), this::generateProvenance));
+            Map<MavenProject, Xml.Document> projectMap = parseMaven(mavenSession.getProjects(), projectProvenances, ctx);
+            for (MavenProject project : mavenSession.getProjects()) {
+                List<Marker> projectProvenance = projectProvenances.get(project);
+                sourceFiles = Stream.concat(sourceFiles, listSourceFiles(project, projectMap.get(project), projectProvenance, styles, ctx));
+            }
+            return sourceFiles;
+        }
     }
 
     public Stream<SourceFile> listSourceFiles(MavenProject mavenProject, @Nullable Xml.Document maven, List<Marker> projectProvenance, List<NamedStyles> styles,

@@ -42,7 +42,7 @@ public class RemoveMojo extends AbstractRewriteMojo {
     public void execute() throws MojoExecutionException, MojoFailureException {
         Path baseDir = getBuildRoot();
         ExecutionContext ctx = executionContext();
-        Xml.Document maven = new MavenMojoProjectParser(getLog(), baseDir, pomCacheEnabled, pomCacheDirectory, runtime, skipMavenParsing, getExclusions(), getPlainTextMasks(), sizeThresholdMb, mavenSession, settingsDecrypter).parseMaven(project, Collections.emptyList(), ctx);
+        Xml.Document maven = new MavenMojoProjectParser(getLog(), baseDir, pomCacheEnabled, pomCacheDirectory, runtime, skipMavenParsing, getExclusions(), getPlainTextMasks(), sizeThresholdMb, mavenSession, settingsDecrypter, runPerSubmodule).parseMaven(project, Collections.emptyList(), ctx);
         LargeSourceSet poms = new InMemoryLargeSourceSet(Collections.singletonList(maven));
         List<Result> results = new RemovePlugin(groupId, artifactId)
                 .run(poms, ctx)

@@ -36,9 +36,7 @@ import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.util.*;
-import java.util.function.Function;
 import java.util.function.UnaryOperator;
-import java.util.stream.Collectors;
 import java.util.stream.Stream;
 
 import static java.util.Collections.emptyList;
@@ -245,23 +243,9 @@ public abstract class AbstractRewriteMojo extends ConfigurableRewriteMojo {
         List<NamedStyles> styles = loadStyles(project, env);
 
         //Parse and collect source files from each project in the maven session.
-        MavenMojoProjectParser projectParser = new MavenMojoProjectParser(getLog(), repositoryRoot, pomCacheEnabled, pomCacheDirectory, runtime, skipMavenParsing, getExclusions(), getPlainTextMasks(), sizeThresholdMb, mavenSession, settingsDecrypter);
+        MavenMojoProjectParser projectParser = new MavenMojoProjectParser(getLog(), repositoryRoot, pomCacheEnabled, pomCacheDirectory, runtime, skipMavenParsing, getExclusions(), getPlainTextMasks(), sizeThresholdMb, mavenSession, settingsDecrypter, runPerSubmodule);
 
-        Stream<SourceFile> sourceFiles = Stream.empty();
-        if (runPerSubmodule) {
-            //If running per submodule, parse the source files for only the current project.
-            sourceFiles = Stream.concat(sourceFiles, projectParser.listSourceFiles(project, styles, ctx));
-        } else {
-            //If running across all project, iterate and parse source files from each project
-            Map<MavenProject, List<Marker>> projectProvenances = mavenSession.getProjects().stream()
-                    .collect(Collectors.toMap(Function.identity(), projectParser::generateProvenance));
-            Map<MavenProject, Xml.Document> projectMap = projectParser.parseMaven(mavenSession.getProjects(), projectProvenances, ctx);
-            for (MavenProject mavenProject : mavenSession.getProjects()) {
-                List<Marker> projectProvenance = projectProvenances.get(mavenProject);
-                sourceFiles = Stream.concat(sourceFiles, projectParser.listSourceFiles(mavenProject, projectMap.get(mavenProject), projectProvenance, styles, ctx));
-            }
-        }
-
+        Stream<SourceFile> sourceFiles = projectParser.listSourceFiles(project, styles, ctx);
         List<SourceFile> sourceFileList = sourcesWithAutoDetectedStyles(sourceFiles);
         return new InMemoryLargeSourceSet(sourceFileList);
     }
