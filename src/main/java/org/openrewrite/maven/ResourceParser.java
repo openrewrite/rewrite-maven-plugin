@@ -11,9 +11,7 @@ import org.openrewrite.properties.PropertiesParser;
 import org.openrewrite.protobuf.ProtoParser;
 import org.openrewrite.python.PythonParser;
 import org.openrewrite.quark.QuarkParser;
-import org.openrewrite.text.PlainText;
 import org.openrewrite.text.PlainTextParser;
-import org.openrewrite.tree.ParsingExecutionContextView;
 import org.openrewrite.xml.XmlParser;
 import org.openrewrite.yaml.YamlParser;
 
@@ -68,15 +66,6 @@ public class ResourceParser {
 
         try {
             sourceFiles = Stream.concat(sourceFiles, parseSourceFiles(searchDir, alreadyParsed, ctx));
-            List<PlainText> parseFailures = ParsingExecutionContextView.view(ctx).pollParseFailures();
-            if (!parseFailures.isEmpty()) {
-                logger.warn("There were problems parsing " + parseFailures.size() + " sources:");
-                for (PlainText parseFailure : parseFailures) {
-                    logger.warn("  " + parseFailure.getSourcePath());
-                }
-                logger.warn("Execution will continue but these files are unlikely to be affected by refactoring recipes");
-                sourceFiles = Stream.concat(sourceFiles, parseFailures.stream());
-            }
         } catch (IOException e) {
             logger.error(e.getMessage(), e);
             throw new UncheckedIOException(e);

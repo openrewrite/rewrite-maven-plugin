@@ -25,6 +25,8 @@ import org.openrewrite.ipc.http.HttpUrlConnectionSender;
 import org.openrewrite.java.tree.JavaSourceFile;
 import org.openrewrite.marker.*;
 import org.openrewrite.style.NamedStyles;
+import org.openrewrite.text.PlainText;
+import org.openrewrite.tree.ParsingExecutionContextView;
 import org.openrewrite.xml.tree.Xml;
 
 import java.io.File;
@@ -263,6 +265,7 @@ public abstract class AbstractRewriteMojo extends ConfigurableRewriteMojo {
             }
         }
 
+        sourceFiles = appendParseFailures(sourceFiles, ctx);
         List<SourceFile> sourceFileList = sourcesWithAutoDetectedStyles(sourceFiles);
         return new InMemoryLargeSourceSet(sourceFileList);
     }
@@ -278,6 +281,24 @@ public abstract class AbstractRewriteMojo extends ConfigurableRewriteMojo {
                     return true;
                 })
                 .collect(toList());
+    }
+
+    protected Stream<SourceFile> appendParseFailures(Stream<SourceFile> sourceFiles, ExecutionContext ctx) {
+        Stream<SourceFile> parseFailureStream = Stream.of(ParsingExecutionContextView.view(ctx))
+                .flatMap(ctxView -> {
+                    List<PlainText> parseFailures = ctxView.pollParseFailures();
+                    if (!parseFailures.isEmpty()) {
+                        getLog().warn("There were problems parsing " + parseFailures.size() + " + sources:");
+                        for (PlainText parseFailure : parseFailures) {
+                            getLog().warn("  " + parseFailure.getSourcePath());
+                        }
+                        getLog().warn("Execution will continue but these files are unlikely to be affected by refactoring recipes");
+                        return parseFailures.stream();
+                    }
+                    return Stream.empty();
+                });
+        // by appending the parse failures to the end of the stream, the code above will be executed last
+        return Stream.concat(sourceFiles, parseFailureStream);
     }
 
     private List<SourceFile> sourcesWithAutoDetectedStyles(Stream<SourceFile> sourceFiles) {
