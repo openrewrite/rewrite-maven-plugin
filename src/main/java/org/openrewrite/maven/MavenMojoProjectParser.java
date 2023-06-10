@@ -17,8 +17,8 @@ import org.apache.maven.settings.crypto.SettingsDecryptionResult;
 import org.codehaus.plexus.util.xml.Xpp3Dom;
 import org.jetbrains.annotations.NotNull;
 import org.openrewrite.ExecutionContext;
+import org.openrewrite.ParseError;
 import org.openrewrite.SourceFile;
-import org.openrewrite.internal.ListUtils;
 import org.openrewrite.internal.StringUtils;
 import org.openrewrite.internal.lang.Nullable;
 import org.openrewrite.java.JavaParser;
@@ -26,7 +26,6 @@ import org.openrewrite.java.internal.JavaTypeCache;
 import org.openrewrite.java.marker.JavaProject;
 import org.openrewrite.java.marker.JavaSourceSet;
 import org.openrewrite.java.marker.JavaVersion;
-import org.openrewrite.java.style.Autodetect;
 import org.openrewrite.java.tree.J;
 import org.openrewrite.marker.*;
 import org.openrewrite.marker.ci.BuildEnvironment;
@@ -56,7 +55,6 @@ import java.util.stream.Stream;
 import static java.util.Collections.*;
 import static java.util.stream.Collectors.toList;
 import static org.openrewrite.Tree.randomId;
-import static org.openrewrite.internal.ListUtils.map;
 
 // -----------------------------------------------------------------------------------------------------------------
 // Notes About Provenance Information:
@@ -78,8 +76,6 @@ public class MavenMojoProjectParser {
     @Nullable
     static MavenPomCache pomCache;
 
-    static JavaTypeCache typeCache = new JavaTypeCache();
-
     private final Log logger;
     private final Path baseDir;
     private final boolean pomCacheEnabled;
@@ -96,9 +92,10 @@ public class MavenMojoProjectParser {
     private final int sizeThresholdMb;
     private final MavenSession mavenSession;
     private final SettingsDecrypter settingsDecrypter;
+    private final boolean runPerSubmodule;
 
     @SuppressWarnings("BooleanParameter")
-    public MavenMojoProjectParser(Log logger, Path baseDir, boolean pomCacheEnabled, @Nullable String pomCacheDirectory, RuntimeInformation runtime, boolean skipMavenParsing, Collection<String> exclusions, Collection<String> plainTextMasks, int sizeThresholdMb, MavenSession session, SettingsDecrypter settingsDecrypter) {
+    public MavenMojoProjectParser(Log logger, Path baseDir, boolean pomCacheEnabled, @Nullable String pomCacheDirectory, RuntimeInformation runtime, boolean skipMavenParsing, Collection<String> exclusions, Collection<String> plainTextMasks, int sizeThresholdMb, MavenSession session, SettingsDecrypter settingsDecrypter, boolean runPerSubmodule) {
         this.logger = logger;
         this.baseDir = baseDir;
         this.pomCacheEnabled = pomCacheEnabled;
@@ -110,22 +107,37 @@ public class MavenMojoProjectParser {
         this.sizeThresholdMb = sizeThresholdMb;
         this.mavenSession = session;
         this.settingsDecrypter = settingsDecrypter;
+        this.runPerSubmodule = runPerSubmodule;
     }
 
-    public List<SourceFile> listSourceFiles(MavenProject mavenProject, List<NamedStyles> styles,
-                                            ExecutionContext ctx) throws DependencyResolutionRequiredException, MojoExecutionException {
-        List<Marker> projectProvenance = generateProvenance(mavenProject);
-        Xml.Document maven = parseMaven(mavenProject, projectProvenance, ctx);
-        return listSourceFiles(mavenProject, maven, projectProvenance, styles, ctx);
+    public Stream<SourceFile> listSourceFiles(MavenProject mavenProject, List<NamedStyles> styles,
+                                              ExecutionContext ctx) throws DependencyResolutionRequiredException, MojoExecutionException {
+        if (runPerSubmodule) {
+            //If running per submodule, parse the source files for only the current project.
+            List<Marker> projectProvenance = generateProvenance(mavenProject);
+            Xml.Document maven = parseMaven(mavenProject, projectProvenance, ctx);
+            return listSourceFiles(mavenProject, maven, projectProvenance, styles, ctx);
+        } else {
+            Stream<SourceFile> sourceFiles = Stream.empty();
+            //If running across all project, iterate and parse source files from each project
+            Map<MavenProject, List<Marker>> projectProvenances = mavenSession.getProjects().stream()
+                    .collect(Collectors.toMap(Function.identity(), this::generateProvenance));
+            Map<MavenProject, Xml.Document> projectMap = parseMaven(mavenSession.getProjects(), projectProvenances, ctx);
+            for (MavenProject project : mavenSession.getProjects()) {
+                List<Marker> projectProvenance = projectProvenances.get(project);
+                sourceFiles = Stream.concat(sourceFiles, listSourceFiles(project, projectMap.get(project), projectProvenance, styles, ctx));
+            }
+            return sourceFiles;
+        }
     }
 
-    public List<SourceFile> listSourceFiles(MavenProject mavenProject, @Nullable Xml.Document maven, List<Marker> projectProvenance, List<NamedStyles> styles,
-                                            ExecutionContext ctx) throws DependencyResolutionRequiredException, MojoExecutionException {
-        List<SourceFile> sourceFiles = new ArrayList<>();
+    public Stream<SourceFile> listSourceFiles(MavenProject mavenProject, @Nullable Xml.Document maven, List<Marker> projectProvenance, List<NamedStyles> styles,
+                                              ExecutionContext ctx) throws DependencyResolutionRequiredException, MojoExecutionException {
+        Stream<SourceFile> sourceFiles = Stream.empty();
         Set<Path> alreadyParsed = new HashSet<>();
 
         if (maven != null) {
-            sourceFiles.add(maven);
+            sourceFiles = Stream.of(maven);
             alreadyParsed.add(baseDir.resolve(maven.getSourcePath()));
         }
 
@@ -133,18 +145,17 @@ public class MavenMojoProjectParser {
         if (mavenSourceEncoding != null) {
             ParsingExecutionContextView.view(ctx).setCharset(Charset.forName(mavenSourceEncoding.toString()));
         }
-        JavaParser javaParser = JavaParser.fromJavaVersion()
-                .typeCache(typeCache)
-                .logCompilationWarningsAndErrors(false)
-                .build();
-        ResourceParser rp = new ResourceParser(baseDir, logger, exclusions, plainTextMasks, sizeThresholdMb, pathsToOtherMavenProjects(mavenProject), javaParser);
+        JavaParser.Builder<? extends JavaParser, ?> javaParserBuilder = JavaParser.fromJavaVersion()
+                .styles(styles)
+                .logCompilationWarningsAndErrors(false);
+        ResourceParser rp = new ResourceParser(baseDir, logger, exclusions, plainTextMasks, sizeThresholdMb, pathsToOtherMavenProjects(mavenProject), javaParserBuilder.clone());
 
-        sourceFiles.addAll(processMainSources(mavenProject, javaParser, rp, projectProvenance, alreadyParsed, styles, ctx));
-        sourceFiles.addAll(processTestSources(mavenProject, javaParser, rp, projectProvenance, alreadyParsed, styles, ctx));
+        sourceFiles = Stream.concat(sourceFiles, processMainSources(mavenProject, javaParserBuilder.clone(), rp, projectProvenance, alreadyParsed, ctx));
+        sourceFiles = Stream.concat(sourceFiles, processTestSources(mavenProject, javaParserBuilder.clone(), rp, projectProvenance, alreadyParsed, ctx));
         Collection<PathMatcher> exclusionMatchers = exclusions.stream()
                 .map(pattern -> baseDir.getFileSystem().getPathMatcher("glob:" + pattern))
                 .collect(toList());
-        sourceFiles = ListUtils.map(sourceFiles, sourceFile -> {
+        sourceFiles = sourceFiles.map(sourceFile -> {
             if (sourceFile instanceof J.CompilationUnit) {
                 for (PathMatcher excluded : exclusionMatchers) {
                     if (excluded.matches(sourceFile.getSourcePath())) {
@@ -153,16 +164,23 @@ public class MavenMojoProjectParser {
                 }
             }
             return sourceFile;
-        });
+        }).filter(Objects::nonNull);
         //Collect any additional files that were not parsed above.
-        List<SourceFile> parsedResourceFiles = ListUtils.map(
-                rp.parse(mavenProject.getBasedir().toPath(), alreadyParsed),
-                addProvenance(baseDir, projectProvenance, null)
-        );
-        logDebug(mavenProject, "Parsed " + parsedResourceFiles.size() + " additional files found within the project.");
-        sourceFiles.addAll(parsedResourceFiles);
+        int sourcesParsedBefore = alreadyParsed.size();
+        Stream<SourceFile> parsedResourceFiles = rp.parse(mavenProject.getBasedir().toPath(), alreadyParsed)
+                .map(addProvenance(baseDir, projectProvenance, null));
+        logDebug(mavenProject, "Parsed " + (alreadyParsed.size() - sourcesParsedBefore) + " additional files found within the project.");
+        sourceFiles = Stream.concat(sourceFiles, parsedResourceFiles);
 
-        return sourceFiles;
+        // by appending the parse failures to the end of the stream, the code above will be executed last
+        return sourceFiles.map(this::logParseErrors);
+    }
+
+    private SourceFile logParseErrors(SourceFile source) {
+        if (source instanceof ParseError) {
+            logger.warn("There were problems parsing " + source.getSourcePath());
+        }
+        return source;
     }
 
     public List<Marker> generateProvenance(MavenProject mavenProject) {
@@ -232,13 +250,12 @@ public class MavenMojoProjectParser {
                 .collect(toList());
     }
 
-    private List<SourceFile> processMainSources(
+    private Stream<SourceFile> processMainSources(
             MavenProject mavenProject,
-            JavaParser javaParser,
+            JavaParser.Builder<? extends JavaParser, ?> javaParserBuilder,
             ResourceParser resourceParser,
             List<Marker> projectProvenance,
             Set<Path> alreadyParsed,
-            List<NamedStyles> styles,
             ExecutionContext ctx) throws DependencyResolutionRequiredException, MojoExecutionException {
 
         // Some annotation processors output generated sources to the /target directory. These are added for parsing but
@@ -256,40 +273,47 @@ public class MavenMojoProjectParser {
                 .distinct()
                 .map(Paths::get)
                 .collect(toList());
-        javaParser.setClasspath(dependencies);
+        javaParserBuilder.classpath(dependencies);
+        JavaTypeCache typeCache = new JavaTypeCache();
+        javaParserBuilder.typeCache(typeCache);
 
-        List<J.CompilationUnit> cus = applyStyles(javaParser.parse(mainJavaSources, baseDir, ctx).collect(toList()), styles);
+        JavaParser javaParser = javaParserBuilder.build();
+        Stream<? extends SourceFile> cus = javaParser.parse(mainJavaSources, baseDir, ctx);
 
         List<Marker> mainProjectProvenance = new ArrayList<>(projectProvenance);
-        mainProjectProvenance.add(sourceSet("main", dependencies));
+        mainProjectProvenance.add(sourceSet("main", dependencies, typeCache));
 
-        List<J.CompilationUnit> parsedJava = ListUtils.map(cus,
-                addProvenance(baseDir, mainProjectProvenance, generatedSourcePaths));
-        logDebug(mavenProject, "Parsed " + parsedJava.size() + " java source files in main scope.");
+        cus = cus.map(cu -> {
+            Markers markers = cu.getMarkers();
+            for (Marker marker : mainProjectProvenance) {
+                markers = markers.addIfAbsent(marker);
+            }
+            return cu.withMarkers(markers);
+        });
+        Stream<SourceFile> parsedJava = cus.map(addProvenance(baseDir, mainProjectProvenance, generatedSourcePaths));
+        logDebug(mavenProject, "Parsed " + mainJavaSources.size() + " java source files in main scope.");
 
         //Filter out any generated source files from the returned list, as we do not want to apply the recipe to the
         //generated files.
         Path buildDirectory = baseDir.relativize(Paths.get(mavenProject.getBuild().getDirectory()));
-        List<SourceFile> sourceFiles =
-                parsedJava.stream().filter(s -> !s.getSourcePath().startsWith(buildDirectory)).collect(Collectors.toList());
+        Stream<SourceFile> sourceFiles = parsedJava.filter(s -> !s.getSourcePath().startsWith(buildDirectory));
 
-        List<SourceFile> parsedResourceFiles = ListUtils.map(
-                resourceParser.parse(mavenProject.getBasedir().toPath().resolve("src/main/resources"), alreadyParsed),
-                addProvenance(baseDir, mainProjectProvenance, null));
+        int sourcesParsedBefore = alreadyParsed.size();
+        Stream<SourceFile> parsedResourceFiles = resourceParser.parse(mavenProject.getBasedir().toPath().resolve("src/main/resources"), alreadyParsed)
+                .map(addProvenance(baseDir, mainProjectProvenance, null));
 
-        logDebug(mavenProject, "Parsed " + parsedResourceFiles.size() + " resource files in main scope.");
+        logDebug(mavenProject, "Parsed " + (alreadyParsed.size() - sourcesParsedBefore) + " resource files in main scope.");
         // Any resources parsed from "main/resources" should also have the main source set added to them.
-        sourceFiles.addAll(parsedResourceFiles);
-        return sourceFiles.isEmpty() ? Collections.emptyList() : sourceFiles;
+        sourceFiles = Stream.concat(sourceFiles, parsedResourceFiles);
+        return sourceFiles;
     }
 
-    private List<SourceFile> processTestSources(
+    private Stream<SourceFile> processTestSources(
             MavenProject mavenProject,
-            JavaParser javaParser,
+            JavaParser.Builder<? extends JavaParser, ?> javaParserBuilder,
             ResourceParser resourceParser,
             List<Marker> projectProvenance,
             Set<Path> alreadyParsed,
-            List<NamedStyles> styles,
             ExecutionContext ctx) throws DependencyResolutionRequiredException, MojoExecutionException {
 
         List<Path> testDependencies = mavenProject.getTestClasspathElements().stream()
@@ -297,35 +321,35 @@ public class MavenMojoProjectParser {
                 .map(Paths::get)
                 .collect(toList());
 
-        javaParser.setClasspath(testDependencies);
+        javaParserBuilder.classpath(testDependencies);
+        JavaTypeCache typeCache = new JavaTypeCache();
+        javaParserBuilder.typeCache(typeCache);
 
         List<Path> testJavaSources = listJavaSources(mavenProject.getBuild().getTestSourceDirectory());
         alreadyParsed.addAll(testJavaSources);
 
-        List<J.CompilationUnit> cus = applyStyles(javaParser.parse(testJavaSources, baseDir, ctx).collect(toList()), styles);
+        JavaParser javaParser = javaParserBuilder.build();
+        Stream<SourceFile> cus = javaParser.parse(testJavaSources, baseDir, ctx);
 
         List<Marker> markers = new ArrayList<>(projectProvenance);
-        markers.add(sourceSet("test", testDependencies));
+        markers.add(sourceSet("test", testDependencies, typeCache));
 
-        List<J.CompilationUnit> parsedJava = ListUtils.map(
-                cus,
-                addProvenance(baseDir, markers, null));
+        Stream<SourceFile> parsedJava = cus.map(addProvenance(baseDir, markers, null));
 
-        logDebug(mavenProject, "Parsed " + parsedJava.size() + " java source files in test scope.");
-        List<SourceFile> sourceFiles = new ArrayList<>(parsedJava);
+        logDebug(mavenProject, "Parsed " + testJavaSources.size() + " java source files in test scope.");
+        Stream<SourceFile> sourceFiles = parsedJava;
 
         // Any resources parsed from "test/resources" should also have the test source set added to them.
-        List<SourceFile> parsedResourceFiles = ListUtils.map(
-                resourceParser.parse(mavenProject.getBasedir().toPath().resolve("src/test/resources"), alreadyParsed),
-                addProvenance(baseDir, markers, null)
-        );
-        logDebug(mavenProject, "Parsed " + parsedResourceFiles.size() + " resource files in test scope.");
-        sourceFiles.addAll(parsedResourceFiles);
-        return sourceFiles.isEmpty() ? Collections.emptyList() : sourceFiles;
+        int sourcesParsedBefore = alreadyParsed.size();
+        Stream<SourceFile> parsedResourceFiles = resourceParser.parse(mavenProject.getBasedir().toPath().resolve("src/test/resources"), alreadyParsed)
+                .map(addProvenance(baseDir, markers, null));
+        logDebug(mavenProject, "Parsed " + (alreadyParsed.size() - sourcesParsedBefore) + " resource files in test scope.");
+        sourceFiles = Stream.concat(sourceFiles, parsedResourceFiles);
+        return sourceFiles;
     }
 
     @NotNull
-    private static JavaSourceSet sourceSet(String name, List<Path> dependencies) {
+    private static JavaSourceSet sourceSet(String name, List<Path> dependencies, JavaTypeCache typeCache) {
         return JavaSourceSet.build(name, dependencies, typeCache, false);
     }
 
@@ -360,12 +384,12 @@ public class MavenMojoProjectParser {
             mavenExecutionContext.setPomCache(getPomCache(pomCacheDirectory, logger));
         }
 
-        List<String> activeProfiles = topLevelProject.getActiveProfiles().stream().map(Profile::getId).collect(Collectors.toList());
+        List<String> activeProfiles = topLevelProject.getActiveProfiles().stream().map(Profile::getId).collect(toList());
         if (!activeProfiles.isEmpty()) {
             mavenParserBuilder.activeProfiles(activeProfiles.toArray(new String[]{}));
         }
 
-        List<Xml.Document> mavens = mavenParserBuilder
+        List<SourceFile> mavens = mavenParserBuilder
                 .build()
                 .parse(allPoms, baseDir, ctx).collect(toList());
 
@@ -381,7 +405,7 @@ public class MavenMojoProjectParser {
             if (mavens.isEmpty()) {
                 logDebug(topLevelProject, "There were no parsed maven source files.");
             } else {
-                for (Xml.Document source : mavens) {
+                for (SourceFile source : mavens) {
                     logDebug(topLevelProject, "  Maven Source : '" + baseDir.resolve(source.getSourcePath()) + "'");
                 }
             }
@@ -389,11 +413,11 @@ public class MavenMojoProjectParser {
 
         Map<Path, MavenProject> projectsByPath = mavenProjects.stream().collect(Collectors.toMap(MavenMojoProjectParser::pomPath, Function.identity()));
         Map<MavenProject, Xml.Document> projectMap = new HashMap<>();
-        for (Xml.Document document : mavens) {
+        for (SourceFile document : mavens) {
             Path path = baseDir.resolve(document.getSourcePath());
             MavenProject mavenProject = projectsByPath.get(path);
             if (mavenProject != null) {
-                projectMap.put(mavenProject, document);
+                projectMap.put(mavenProject, (Xml.Document) document);
             }
         }
         for (MavenProject mavenProject : mavenProjects) {
@@ -562,24 +586,16 @@ public class MavenMojoProjectParser {
                 .collect(Collectors.toSet());
     }
 
-    private List<J.CompilationUnit> applyStyles(List<J.CompilationUnit> sourceFiles, List<NamedStyles> styles) {
-        Autodetect.Detector autodetect = Autodetect.detect(sourceFiles.stream());
-        NamedStyles merged = NamedStyles.merge(ListUtils.concat(styles, autodetect.build()));
-        if (merged == null) {
-            return sourceFiles;
-        }
-        return map(sourceFiles, cu -> cu.withMarkers(cu.getMarkers().add(merged)));
-    }
-
-    private static <S extends SourceFile> UnaryOperator<S> addProvenance(Path baseDir, List<Marker> provenance, @Nullable Collection<Path> generatedSources) {
+    private <T extends SourceFile> UnaryOperator<T> addProvenance(Path baseDir, List<Marker> provenance, @Nullable Collection<Path> generatedSources) {
         return s -> {
+            Markers markers = s.getMarkers();
             for (Marker marker : provenance) {
-                s = s.withMarkers(s.getMarkers().addIfAbsent(marker));
+                markers = markers.addIfAbsent(marker);
             }
             if (generatedSources != null && generatedSources.contains(baseDir.resolve(s.getSourcePath()))) {
-                s = s.withMarkers(s.getMarkers().addIfAbsent(new Generated(randomId())));
+                markers = markers.addIfAbsent(new Generated(randomId()));
             }
-            return s;
+            return s.withMarkers(markers);
         };
     }
 
@@ -595,13 +611,6 @@ public class MavenMojoProjectParser {
         } catch (IOException e) {
             throw new MojoExecutionException("Unable to list Java source files", e);
         }
-    }
-
-    /**
-     * Used to reset the type cache.
-     */
-    public void resetTypeCache() {
-        typeCache.clear();
     }
 
     @Nullable

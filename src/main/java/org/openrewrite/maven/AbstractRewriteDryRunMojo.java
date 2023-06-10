@@ -29,7 +29,7 @@ import java.util.stream.Stream;
 
 /**
  * Base mojo for rewrite:dryRun and rewrite:dryRunNoFork.
- *
+ * <p>
  * Generate warnings to the console for any recipe that would make changes, but do not make changes.
  */
 public class AbstractRewriteDryRunMojo extends AbstractRewriteMojo {
@@ -59,44 +59,40 @@ public class AbstractRewriteDryRunMojo extends AbstractRewriteMojo {
 
         ResultsContainer results = listResults();
 
-        Throwable firstException = results.getFirstException();
+        RuntimeException firstException = results.getFirstException();
         if (firstException != null) {
             getLog().error("The recipe produced an error. Please report this to the recipe author.");
-            if(firstException instanceof RuntimeException) {
-                throw (RuntimeException)firstException;
-            } else {
-                throw new RuntimeException(firstException);
-            }
+            throw firstException;
         }
 
         if (results.isNotEmpty()) {
             for (Result result : results.generated) {
                 assert result.getAfter() != null;
                 getLog().warn("These recipes would generate new file " +
-                        result.getAfter().getSourcePath() +
-                        ":");
+                              result.getAfter().getSourcePath() +
+                              ":");
                 logRecipesThatMadeChanges(result);
             }
             for (Result result : results.deleted) {
                 assert result.getBefore() != null;
                 getLog().warn("These recipes would delete file " +
-                        result.getBefore().getSourcePath() +
-                        ":");
+                              result.getBefore().getSourcePath() +
+                              ":");
                 logRecipesThatMadeChanges(result);
             }
             for (Result result : results.moved) {
                 assert result.getBefore() != null;
                 assert result.getAfter() != null;
                 getLog().warn("These recipes would move file from " +
-                        result.getBefore().getSourcePath() + " to " +
-                        result.getAfter().getSourcePath() + ":");
+                              result.getBefore().getSourcePath() + " to " +
+                              result.getAfter().getSourcePath() + ":");
                 logRecipesThatMadeChanges(result);
             }
             for (Result result : results.refactoredInPlace) {
                 assert result.getBefore() != null;
                 getLog().warn("These recipes would make changes to " +
-                        result.getBefore().getSourcePath() +
-                        ":");
+                              result.getBefore().getSourcePath() +
+                              ":");
                 logRecipesThatMadeChanges(result);
             }
 
@@ -117,9 +113,9 @@ public class AbstractRewriteDryRunMojo extends AbstractRewriteMojo {
             Path patchFile = outPath.resolve("rewrite.patch");
             try (BufferedWriter writer = Files.newBufferedWriter(patchFile)) {
                 Stream.concat(
-                        Stream.concat(results.generated.stream(), results.deleted.stream()),
-                        Stream.concat(results.moved.stream(), results.refactoredInPlace.stream())
-                )
+                                Stream.concat(results.generated.stream(), results.deleted.stream()),
+                                Stream.concat(results.moved.stream(), results.refactoredInPlace.stream())
+                        )
                         .map(Result::diff)
                         .forEach(diff -> {
                             try {
