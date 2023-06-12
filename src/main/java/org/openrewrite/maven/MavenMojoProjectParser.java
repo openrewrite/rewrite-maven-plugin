@@ -47,6 +47,7 @@ import java.nio.file.Path;
 import java.nio.file.PathMatcher;
 import java.nio.file.Paths;
 import java.util.*;
+import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.function.Function;
 import java.util.function.UnaryOperator;
 import java.util.stream.Collectors;
@@ -77,6 +78,7 @@ public class MavenMojoProjectParser {
     static MavenPomCache pomCache;
 
     private final Log logger;
+    private final AtomicBoolean firstWarningLogged = new AtomicBoolean(false);
     private final Path baseDir;
     private final boolean pomCacheEnabled;
 
@@ -172,12 +174,16 @@ public class MavenMojoProjectParser {
         logDebug(mavenProject, "Parsed " + (alreadyParsed.size() - sourcesParsedBefore) + " additional files found within the project.");
         sourceFiles = Stream.concat(sourceFiles, parsedResourceFiles);
 
-        // by appending the parse failures to the end of the stream, the code above will be executed last
+        // log parse errors here at the end, so that we don't log parse errors for files that were excluded
         return sourceFiles.map(this::logParseErrors);
     }
 
     private SourceFile logParseErrors(SourceFile source) {
         if (source instanceof ParseError) {
+            if (firstWarningLogged.compareAndSet(false, true)) {
+                logger.warn("There were problems parsing some source files" +
+                            (mavenSession.getRequest().isShowErrors() ? "" : ", run with --errors to see full stack traces"));
+            }
             logger.warn("There were problems parsing " + source.getSourcePath());
         }
         return source;
