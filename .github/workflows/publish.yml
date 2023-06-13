@@ -29,7 +29,7 @@ jobs:
 
       - name: bump-rewrite-properties-to-releases
         run: |
-          ./mvnw versions:update-properties -DincludeProperties=rewrite.version,rewrite.python.version
+          ./mvnw versions:update-properties -DincludeProperties=rewrite.version,rewrite.python.version -DallowDowngrade=true
           git diff-index --quiet HEAD pom.xml || git commit -m "Bump rewrite.version properties" pom.xml && rm -f pom.xml.versionsBackup
 
       - name: publish-release
