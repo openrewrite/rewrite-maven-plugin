@@ -130,9 +130,7 @@ public abstract class AbstractRewriteMojo extends ConfigurableRewriteMojo {
     }
 
     protected ExecutionContext executionContext() {
-        return new InMemoryExecutionContext(t -> {
-            getLog().debug(t);
-        });
+        return new InMemoryExecutionContext(t -> getLog().debug(t));
     }
 
     protected Path getBuildRoot() {
@@ -264,9 +262,12 @@ public abstract class AbstractRewriteMojo extends ConfigurableRewriteMojo {
     }
 
     private List<SourceFile> sourcesWithAutoDetectedStyles(Stream<SourceFile> sourceFiles) {
-        org.openrewrite.java.style.Autodetect.Detector javaDetector = org.openrewrite.java.style.Autodetect.detect(sourceFiles);
-        org.openrewrite.xml.style.Autodetect.Detector xmlDetector = org.openrewrite.xml.style.Autodetect.detect(javaDetector);
-        List<SourceFile> sourceFileList = xmlDetector.collect(toList());
+        org.openrewrite.java.style.Autodetect.Detector javaDetector = org.openrewrite.java.style.Autodetect.detector();
+        org.openrewrite.xml.style.Autodetect.Detector xmlDetector = org.openrewrite.xml.style.Autodetect.detector();
+        List<SourceFile> sourceFileList = sourceFiles
+                .peek(javaDetector::sample)
+                .peek(xmlDetector::sample)
+                .collect(toList());
 
         Map<Class<? extends Tree>, NamedStyles> stylesByType = new HashMap<>();
         stylesByType.put(JavaSourceFile.class, javaDetector.build());
