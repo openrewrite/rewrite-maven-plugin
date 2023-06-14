@@ -19,14 +19,14 @@
         <packageUrl regex="true">^pkg:maven/org\.yaml/snakeyaml@.*$</packageUrl>
         <cve>CVE-2022-1471</cve>
     </suppress>
-    <suppress until="2023-06-09Z">
+    <suppress until="2023-07-15Z">
         <notes><![CDATA[
             file name: javax.json-1.1.4.jar
         ]]></notes>
         <packageUrl regex="true">^pkg:maven/org\.glassfish/javax\.json@.*$</packageUrl>
         <cve>CVE-2022-45688</cve>
     </suppress>
-    <suppress until="2023-06-09Z">
+    <suppress until="2023-07-15Z">
         <notes><![CDATA[
             file name: jackson-core-2.15.0.jar
             This is not actionable, the latest version is 2.15.0 which still contains the vulnerability.
