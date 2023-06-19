@@ -283,8 +283,9 @@ public class MavenMojoProjectParser {
         JavaTypeCache typeCache = new JavaTypeCache();
         javaParserBuilder.typeCache(typeCache);
 
-        JavaParser javaParser = javaParserBuilder.build();
-        Stream<? extends SourceFile> cus = javaParser.parse(mainJavaSources, baseDir, ctx);
+        Stream<? extends SourceFile> cus = Stream.of(javaParserBuilder)
+                .map(JavaParser.Builder::build)
+                .flatMap(parser -> parser.parse(mainJavaSources, baseDir, ctx));
 
         List<Marker> mainProjectProvenance = new ArrayList<>(projectProvenance);
         mainProjectProvenance.add(sourceSet("main", dependencies, typeCache));
@@ -297,7 +298,7 @@ public class MavenMojoProjectParser {
             return cu.withMarkers(markers);
         });
         Stream<SourceFile> parsedJava = cus.map(addProvenance(baseDir, mainProjectProvenance, generatedSourcePaths));
-        logDebug(mavenProject, "Parsed " + mainJavaSources.size() + " java source files in main scope.");
+        logDebug(mavenProject, "Scanned " + mainJavaSources.size() + " java source files in main scope.");
 
         //Filter out any generated source files from the returned list, as we do not want to apply the recipe to the
         //generated files.
@@ -308,7 +309,7 @@ public class MavenMojoProjectParser {
         Stream<SourceFile> parsedResourceFiles = resourceParser.parse(mavenProject.getBasedir().toPath().resolve("src/main/resources"), alreadyParsed)
                 .map(addProvenance(baseDir, mainProjectProvenance, null));
 
-        logDebug(mavenProject, "Parsed " + (alreadyParsed.size() - sourcesParsedBefore) + " resource files in main scope.");
+        logDebug(mavenProject, "Scanned " + (alreadyParsed.size() - sourcesParsedBefore) + " resource files in main scope.");
         // Any resources parsed from "main/resources" should also have the main source set added to them.
         sourceFiles = Stream.concat(sourceFiles, parsedResourceFiles);
         return sourceFiles;
@@ -334,22 +335,23 @@ public class MavenMojoProjectParser {
         List<Path> testJavaSources = listJavaSources(mavenProject.getBuild().getTestSourceDirectory());
         alreadyParsed.addAll(testJavaSources);
 
-        JavaParser javaParser = javaParserBuilder.build();
-        Stream<SourceFile> cus = javaParser.parse(testJavaSources, baseDir, ctx);
+        Stream<? extends SourceFile> cus = Stream.of(javaParserBuilder)
+                .map(JavaParser.Builder::build)
+                .flatMap(parser -> parser.parse(testJavaSources, baseDir, ctx));
 
         List<Marker> markers = new ArrayList<>(projectProvenance);
         markers.add(sourceSet("test", testDependencies, typeCache));
 
         Stream<SourceFile> parsedJava = cus.map(addProvenance(baseDir, markers, null));
 
-        logDebug(mavenProject, "Parsed " + testJavaSources.size() + " java source files in test scope.");
+        logDebug(mavenProject, "Scanned " + testJavaSources.size() + " java source files in test scope.");
         Stream<SourceFile> sourceFiles = parsedJava;
 
         // Any resources parsed from "test/resources" should also have the test source set added to them.
         int sourcesParsedBefore = alreadyParsed.size();
         Stream<SourceFile> parsedResourceFiles = resourceParser.parse(mavenProject.getBasedir().toPath().resolve("src/test/resources"), alreadyParsed)
                 .map(addProvenance(baseDir, markers, null));
-        logDebug(mavenProject, "Parsed " + (alreadyParsed.size() - sourcesParsedBefore) + " resource files in test scope.");
+        logDebug(mavenProject, "Scanned " + (alreadyParsed.size() - sourcesParsedBefore) + " resource files in test scope.");
         sourceFiles = Stream.concat(sourceFiles, parsedResourceFiles);
         return sourceFiles;
     }
