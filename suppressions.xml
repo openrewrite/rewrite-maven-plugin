@@ -34,4 +34,13 @@
         <packageUrl regex="true">^pkg:maven/com\.fasterxml\.jackson\.core/jackson\-core@.*$</packageUrl>
         <cve>CVE-2022-45688</cve>
     </suppress>
+    <suppress until="2023-07-21Z">
+        <notes><![CDATA[
+            file name: snappy-java-1.1.8.4.jar
+        ]]></notes>
+        <packageUrl regex="true">^pkg:maven/org\.xerial\.snappy/snappy\-java@.*$</packageUrl>
+        <vulnerabilityName>CVE-2023-34453</vulnerabilityName>
+        <vulnerabilityName>CVE-2023-34454</vulnerabilityName>
+        <vulnerabilityName>CVE-2023-34455</vulnerabilityName>
+    </suppress>
 </suppressions>
