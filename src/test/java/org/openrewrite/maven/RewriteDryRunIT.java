@@ -2,6 +2,7 @@ package org.openrewrite.maven;
 
 import com.soebes.itf.jupiter.extension.*;
 import com.soebes.itf.jupiter.maven.MavenExecutionResult;
+import org.junit.jupiter.api.Disabled;
 
 import static com.soebes.itf.extension.assertj.MavenITAssertions.assertThat;
 
@@ -48,6 +49,7 @@ class RewriteDryRunIT {
                 .anySatisfy(line -> assertThat(line).contains("org.openrewrite.java.format.AutoFormat"));
     }
 
+    @Disabled("CI build problem: https://github.com/openrewrite/rewrite-maven-plugin/actions/runs/5366168910/jobs/9735441375")
     @MavenTest
     @SystemProperties({
             @SystemProperty(value = "rewrite.recipeArtifactCoordinates", content = "org.openrewrite.recipe:rewrite-testing-frameworks:2.0.2"),
