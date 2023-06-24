@@ -120,16 +120,19 @@ public class MavenMojoProjectParser {
             Xml.Document maven = parseMaven(mavenProject, projectProvenance, ctx);
             return listSourceFiles(mavenProject, maven, projectProvenance, styles, ctx);
         } else {
-            Stream<SourceFile> sourceFiles = Stream.empty();
             //If running across all project, iterate and parse source files from each project
             Map<MavenProject, List<Marker>> projectProvenances = mavenSession.getProjects().stream()
                     .collect(Collectors.toMap(Function.identity(), this::generateProvenance));
             Map<MavenProject, Xml.Document> projectMap = parseMaven(mavenSession.getProjects(), projectProvenances, ctx);
-            for (MavenProject project : mavenSession.getProjects()) {
-                List<Marker> projectProvenance = projectProvenances.get(project);
-                sourceFiles = Stream.concat(sourceFiles, listSourceFiles(project, projectMap.get(project), projectProvenance, styles, ctx));
-            }
-            return sourceFiles;
+            return mavenSession.getProjects().stream()
+                    .flatMap(project -> {
+                        List<Marker> projectProvenance = projectProvenances.get(project);
+                        try {
+                            return listSourceFiles(project, projectMap.get(project), projectProvenance, styles, ctx);
+                        } catch (DependencyResolutionRequiredException | MojoExecutionException e) {
+                            throw sneakyThrow(e);
+                        }
+                    });
         }
     }
 
@@ -290,13 +293,6 @@ public class MavenMojoProjectParser {
         List<Marker> mainProjectProvenance = new ArrayList<>(projectProvenance);
         mainProjectProvenance.add(sourceSet("main", dependencies, typeCache));
 
-        cus = cus.map(cu -> {
-            Markers markers = cu.getMarkers();
-            for (Marker marker : mainProjectProvenance) {
-                markers = markers.addIfAbsent(marker);
-            }
-            return cu.withMarkers(markers);
-        });
         Stream<SourceFile> parsedJava = cus.map(addProvenance(baseDir, mainProjectProvenance, generatedSourcePaths));
         logDebug(mavenProject, "Scanned " + mainJavaSources.size() + " java source files in main scope.");
 
@@ -642,5 +638,10 @@ public class MavenMojoProjectParser {
 
     private void logDebug(MavenProject mavenProject, String message) {
         logger.debug("Project [" + mavenProject.getName() + "] " + message);
+    }
+
+    @SuppressWarnings({"RedundantThrows", "unchecked"})
+    private static <E extends Throwable> E sneakyThrow(Throwable e) throws E {
+        return (E) e;
     }
 }
