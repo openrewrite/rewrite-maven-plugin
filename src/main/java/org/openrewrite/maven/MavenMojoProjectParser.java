@@ -39,7 +39,6 @@ import org.openrewrite.style.NamedStyles;
 import org.openrewrite.tree.ParsingExecutionContextView;
 import org.openrewrite.xml.tree.Xml;
 
-import java.io.File;
 import java.io.IOException;
 import java.nio.charset.Charset;
 import java.nio.file.Files;
@@ -269,10 +268,10 @@ public class MavenMojoProjectParser {
 
         // Some annotation processors output generated sources to the /target directory. These are added for parsing but
         // should be filtered out of the final SourceFile list.
-        List<Path> generatedSourcePaths = listJavaSources(mavenProject.getBuild().getDirectory());
+        List<Path> generatedSourcePaths = listJavaSources(mavenProject.getBasedir().toPath().resolve(mavenProject.getBuild().getDirectory()));
         List<Path> mainJavaSources = Stream.concat(
                 generatedSourcePaths.stream(),
-                listJavaSources(mavenProject.getBuild().getSourceDirectory()).stream()
+                listJavaSources(mavenProject.getBasedir().toPath().resolve(mavenProject.getBuild().getSourceDirectory())).stream()
         ).collect(toList());
 
         alreadyParsed.addAll(mainJavaSources);
@@ -328,7 +327,7 @@ public class MavenMojoProjectParser {
         JavaTypeCache typeCache = new JavaTypeCache();
         javaParserBuilder.typeCache(typeCache);
 
-        List<Path> testJavaSources = listJavaSources(mavenProject.getBuild().getTestSourceDirectory());
+        List<Path> testJavaSources = listJavaSources(mavenProject.getBasedir().toPath().resolve(mavenProject.getBuild().getTestSourceDirectory()));
         alreadyParsed.addAll(testJavaSources);
 
         Stream<? extends SourceFile> cus = Stream.of(javaParserBuilder)
@@ -603,14 +602,12 @@ public class MavenMojoProjectParser {
         };
     }
 
-    private static List<Path> listJavaSources(String sourceDirectory) throws MojoExecutionException {
-        File sourceDirectoryFile = new File(sourceDirectory);
-        if (!sourceDirectoryFile.exists()) {
+    private static List<Path> listJavaSources(Path sourceDirectory) throws MojoExecutionException {
+        if (!Files.exists(sourceDirectory)) {
             return emptyList();
         }
 
-        Path sourceRoot = sourceDirectoryFile.toPath();
-        try (Stream<Path> files = Files.find(sourceRoot, 16, (f, a) -> !a.isDirectory() && f.toString().endsWith(".java"))) {
+        try (Stream<Path> files = Files.find(sourceDirectory, 16, (f, a) -> !a.isDirectory() && f.toString().endsWith(".java"))) {
             return files.collect(toList());
         } catch (IOException e) {
             throw new MojoExecutionException("Unable to list Java source files", e);
