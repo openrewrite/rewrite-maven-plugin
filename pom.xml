@@ -76,8 +76,9 @@
 
         <!-- dependencies and plugins -->
         <jackson-bom.version>2.15.2</jackson-bom.version>
-        <netty.version>4.1.89.Final</netty.version>
+        <netty.version>4.1.94.Final</netty.version>
         <rocksdbjni.version>8.0.0</rocksdbjni.version>
+        <rsocket.version>1.1.4</rsocket.version>
         <itf-maven.version>0.12.0</itf-maven.version>
         <maven-dependencies.version>3.9.2</maven-dependencies.version>
         <maven-release-plugin.version>3.0.1</maven-release-plugin.version>
@@ -103,7 +104,7 @@
             <dependency>
                 <groupId>org.junit</groupId>
                 <artifactId>junit-bom</artifactId>
-                <version>5.9.2</version>
+                <version>5.9.3</version>
                 <scope>import</scope>
                 <type>pom</type>
             </dependency>
@@ -118,6 +119,13 @@
                 <groupId>org.jetbrains.kotlin</groupId>
                 <artifactId>kotlin-bom</artifactId>
                 <version>${kotlin.version}</version>
+                <scope>import</scope>
+                <type>pom</type>
+            </dependency>
+            <dependency>
+                <groupId>io.rsocket</groupId>
+                <artifactId>rsocket-bom</artifactId>
+                <version>${rsocket.version}</version>
                 <scope>import</scope>
                 <type>pom</type>
             </dependency>
@@ -215,12 +223,10 @@
         <dependency>
             <groupId>io.rsocket</groupId>
             <artifactId>rsocket-transport-netty</artifactId>
-            <version>1.1.3</version>
         </dependency>
         <dependency>
             <groupId>io.rsocket</groupId>
             <artifactId>rsocket-core</artifactId>
-            <version>1.1.3</version>
         </dependency>
         <dependency>
             <!-- See https://github.com/advisories/GHSA-599f-7c49-w659 -->
