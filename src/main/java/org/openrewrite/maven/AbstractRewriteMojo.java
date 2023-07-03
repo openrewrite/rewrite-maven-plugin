@@ -210,8 +210,9 @@ public abstract class AbstractRewriteMojo extends ConfigurableRewriteMojo {
             }
 
             getLog().info("Validating active recipes...");
-            Collection<Validated<Object>> validated = recipe.validateAll();
-            List<Validated.Invalid<Object>> failedValidations = validated.stream().map(Validated::failures)
+            List<Validated<Object>> validations = new ArrayList<>();
+            recipe.validateAll(ctx, validations);
+            List<Validated.Invalid<Object>> failedValidations = validations.stream().map(Validated::failures)
                     .flatMap(Collection::stream).collect(toList());
             if (!failedValidations.isEmpty()) {
                 failedValidations.forEach(failedValidation -> getLog().error(
