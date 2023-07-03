@@ -17,6 +17,7 @@ package org.openrewrite.maven;
 
 import org.apache.maven.plugin.MojoExecutionException;
 import org.apache.maven.plugins.annotations.Parameter;
+import org.openrewrite.ExecutionContext;
 import org.openrewrite.Result;
 import org.openrewrite.internal.lang.Nullable;
 
@@ -57,7 +58,8 @@ public class AbstractRewriteDryRunMojo extends AbstractRewriteMojo {
             return;
         }
 
-        ResultsContainer results = listResults();
+        ExecutionContext ctx = executionContext();
+        ResultsContainer results = listResults(ctx);
 
         RuntimeException firstException = results.getFirstException();
         if (firstException != null) {
