@@ -183,7 +183,7 @@ public abstract class AbstractRewriteMojo extends ConfigurableRewriteMojo {
         }
     }
 
-    protected ResultsContainer listResults() throws MojoExecutionException {
+    protected ResultsContainer listResults(ExecutionContext ctx) throws MojoExecutionException {
         try (MeterRegistryProvider meterRegistryProvider = new MeterRegistryProvider(getLog(),
                 metricsUri, metricsUsername, metricsPassword)) {
             Metrics.addRegistry(meterRegistryProvider.registry());
@@ -224,7 +224,6 @@ public abstract class AbstractRewriteMojo extends ConfigurableRewriteMojo {
                 }
             }
 
-            ExecutionContext ctx = executionContext();
             LargeSourceSet sourceSet = loadSourceSet(repositoryRoot, env, ctx);
 
             List<Result> results = runRecipe(recipe, sourceSet, ctx);

@@ -16,12 +16,9 @@
 package org.openrewrite.maven;
 
 import org.apache.maven.plugin.MojoExecutionException;
-import org.openrewrite.FileAttributes;
-import org.openrewrite.PrintOutputCapture;
-import org.openrewrite.Result;
+import org.openrewrite.*;
 import org.openrewrite.binary.Binary;
 import org.openrewrite.internal.lang.Nullable;
-import org.openrewrite.ipc.http.HttpUrlConnectionSender;
 import org.openrewrite.quark.Quark;
 import org.openrewrite.remote.Remote;
 
@@ -52,7 +49,8 @@ public class AbstractRewriteRunMojo extends AbstractRewriteMojo {
             return;
         }
 
-        ResultsContainer results = listResults();
+        ExecutionContext ctx = executionContext();
+        ResultsContainer results = listResults(ctx);
         @Nullable RuntimeException firstException = results.getFirstException();
         if (firstException != null) {
             getLog().error("The recipe produced an error. Please report this to the recipe author.");
@@ -95,7 +93,7 @@ public class AbstractRewriteRunMojo extends AbstractRewriteMojo {
             try {
                 for (Result result : results.generated) {
                     assert result.getAfter() != null;
-                    writeAfter(results.getProjectRoot(), result);
+                    writeAfter(results.getProjectRoot(), result, ctx);
                 }
                 for (Result result : results.deleted) {
                     assert result.getBefore() != null;
@@ -132,13 +130,13 @@ public class AbstractRewriteRunMojo extends AbstractRewriteMojo {
                         // On Mac this can return "false" even when the file was deleted, so skip the check
                         //noinspection ResultOfMethodCallIgnored
                         originalLocation.toFile().delete();
-                        writeAfter(results.getProjectRoot(), result);
+                        writeAfter(results.getProjectRoot(), result, ctx);
                     }
                 }
                 for (Result result : results.refactoredInPlace) {
                     assert result.getBefore() != null;
                     assert result.getAfter() != null;
-                    writeAfter(results.getProjectRoot(), result);
+                    writeAfter(results.getProjectRoot(), result, ctx);
                 }
                 List<Path> emptyDirectories = results.newlyEmptyDirectories();
                 if (!emptyDirectories.isEmpty()) {
@@ -154,7 +152,7 @@ public class AbstractRewriteRunMojo extends AbstractRewriteMojo {
         }
     }
 
-    private static void writeAfter(Path root, Result result) {
+    private static void writeAfter(Path root, Result result, ExecutionContext ctx) {
         if (result.getAfter() == null || result.getAfter() instanceof Quark) {
             return;
         }
@@ -173,7 +171,7 @@ public class AbstractRewriteRunMojo extends AbstractRewriteMojo {
         } else if (result.getAfter() instanceof Remote) {
             Remote remote = (Remote) result.getAfter();
             try (FileOutputStream sourceFileWriter = new FileOutputStream(targetFile)) {
-                InputStream source = remote.getInputStream(new HttpUrlConnectionSender());
+                InputStream source = remote.getInputStream(ctx);
                 byte[] buf = new byte[4096];
                 int length;
                 while ((length = source.read(buf)) > 0) {
