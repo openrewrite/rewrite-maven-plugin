@@ -4,7 +4,7 @@
 
     <groupId>org.openrewrite.maven</groupId>
     <artifactId>rewrite-maven-plugin</artifactId>
-    <version>5.3.0-SNAPSHOT</version>
+    <version>5.2.6-SNAPSHOT</version>
     <name>rewrite-maven-plugin</name>
 
     <packaging>maven-plugin</packaging>
@@ -15,7 +15,7 @@
     <licenses>
         <license>
             <name>The Apache Software License, Version 2.0</name>
-            <url>http://www.apache.org/licenses/LICENSE-2.0.txt</url>
+            <url>https://www.apache.org/licenses/LICENSE-2.0.txt</url>
         </license>
     </licenses>
 
