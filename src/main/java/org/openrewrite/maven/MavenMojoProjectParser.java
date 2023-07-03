@@ -430,12 +430,15 @@ public class MavenMojoProjectParser {
             }
         }
 
+        // assign provenance markers
         for (MavenProject mavenProject : mavenProjects) {
             Xml.Document document = projectMap.get(mavenProject);
-            List<Marker> markers = projectProvenances.getOrDefault(mavenProject, emptyList());
-            for (Marker marker : markers) {
-                projectMap.put(mavenProject, document.withMarkers(document.getMarkers().addIfAbsent(marker)));
+            List<Marker> provenance = projectProvenances.getOrDefault(mavenProject, emptyList());
+            Markers markers = document.getMarkers();
+            for (Marker marker : provenance) {
+                markers = markers.addIfAbsent(marker);
             }
+            projectMap.put(mavenProject, document.withMarkers(markers));
         }
 
         return projectMap;
