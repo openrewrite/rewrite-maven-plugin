@@ -43,4 +43,12 @@
         <vulnerabilityName>CVE-2023-34454</vulnerabilityName>
         <vulnerabilityName>CVE-2023-34455</vulnerabilityName>
     </suppress>
+    <suppress until="2023-07-21Z">
+        <notes><![CDATA[
+            file name: jackson-databind-2.15.2.jar
+            This is not a really valid CVE and not really exploitable as Java code needs to be modified: https://github.com/FasterXML/jackson-databind/issues/3972
+        ]]></notes>
+        <packageUrl regex="true">^pkg:maven/com\.fasterxml\.jackson\.core/jackson\-databind@.*$</packageUrl>
+        <cve>CVE-2023-35116</cve>
+    </suppress>
 </suppressions>
