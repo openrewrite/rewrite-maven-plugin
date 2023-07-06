@@ -51,4 +51,12 @@
         <packageUrl regex="true">^pkg:maven/com\.fasterxml\.jackson\.core/jackson\-databind@.*$</packageUrl>
         <cve>CVE-2023-35116</cve>
     </suppress>
+    <suppress until="2023-07-21Z">
+        <notes><![CDATA[
+            file name: jackson-databind-2.15.2.jar
+            The CVE https://nvd.nist.gov/vuln/detail/CVE-2019-3826 does not actually pertain to the Micrometer Prometheus client, but Prometheus itself
+        ]]></notes>
+        <packageUrl regex="true">^pkg:maven/io\.micrometer\.prometheus/prometheus\-rsocket\-client@.*$</packageUrl>
+        <cve>CVE-2019-3826</cve>
+    </suppress>
 </suppressions>
