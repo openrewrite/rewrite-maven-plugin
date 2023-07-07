@@ -193,7 +193,7 @@ public class MavenMojoProjectParser {
 
     public List<Marker> generateProvenance(MavenProject mavenProject) {
 
-        String javaRuntimeVersion = System.getProperty("java.runtime.version");
+        String javaRuntimeVersion = System.getProperty("java.specification.version");
         String javaVendor = System.getProperty("java.vm.vendor");
 
         String sourceCompatibility = null;
