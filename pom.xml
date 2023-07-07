@@ -513,6 +513,38 @@
                     </dependency>
                 </dependencies>
             </plugin>
+
+            <plugin>
+                <groupId>com.mycila</groupId>
+                <artifactId>license-maven-plugin</artifactId>
+                <version>4.2</version>
+                <configuration>
+                    <defaultProperties>
+                        <project.inceptionYear>2020</project.inceptionYear>
+                    </defaultProperties>
+                    <licenseSets>
+                        <licenseSet>
+                            <header>.mvn/licenseHeader.txt</header>
+                            <excludes>
+                                <exclude>pom.xml</exclude>
+                                <exclude>suppressions.xml</exclude>
+                                <exclude>**/README</exclude>
+                                <exclude>src/test/resources-its/**</exclude>
+                                <exclude>src/test/resources/**</exclude>
+                                <exclude>src/main/resources/**</exclude>
+                            </excludes>
+                        </licenseSet>
+                    </licenseSets>
+                </configuration>
+                <dependencies>
+                    <dependency>
+                        <groupId>com.mycila</groupId>
+                        <artifactId>license-maven-plugin-git</artifactId>
+                        <!-- make sure you use the same version as license-maven-plugin -->
+                        <version>4.2</version>
+                    </dependency>
+                </dependencies>
+            </plugin>
         </plugins>
     </build>
 
