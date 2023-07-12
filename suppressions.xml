@@ -59,4 +59,12 @@
         <packageUrl regex="true">^pkg:maven/io\.micrometer\.prometheus/prometheus\-rsocket\-client@.*$</packageUrl>
         <cve>CVE-2019-3826</cve>
     </suppress>
+    <suppress until="2023-07-28Z">
+        <notes><![CDATA[
+            file name: guava-31.1-jre.jar
+            Reverted in https://github.com/openrewrite/rewrite-python/commit/f487df7dabb8588ae2edb17e31ff7b8ba3ffc133 because Guava 32 introduces gradle module metadata which causes downstream breakage in build plugins.
+        ]]></notes>
+        <packageUrl regex="true">^pkg:maven/com\.google\.guava/guava@31.1-jre$</packageUrl>
+        <cve>CVE-2023-2976</cve>
+    </suppress>
 </suppressions>
