@@ -21,11 +21,11 @@ import org.apache.maven.plugins.annotations.ResolutionScope;
 
 /**
  * Run the configured recipes and apply the changes locally.
- *
+ * <p/>
  * This variant of rewrite:run will not fork the maven life cycle and can be used (along with other goals) without
  * triggering repeated life-cycle events.
  */
 @Mojo(name = "runNoFork", requiresDependencyResolution = ResolutionScope.TEST, threadSafe = true,
-        defaultPhase = LifecyclePhase.COMPILE)
+        defaultPhase = LifecyclePhase.PROCESS_TEST_CLASSES)
 public class RewriteRunNoForkMojo extends AbstractRewriteRunMojo {
 }

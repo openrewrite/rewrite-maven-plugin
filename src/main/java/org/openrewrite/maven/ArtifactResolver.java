@@ -39,9 +39,7 @@ import java.util.stream.Collectors;
 
 public class ArtifactResolver {
     private final RepositorySystem repositorySystem;
-
     private final RepositorySystemSession repositorySystemSession;
-
     private final List<RemoteRepository> remoteRepositories;
 
     public ArtifactResolver(RepositorySystem repositorySystem, MavenSession session) {

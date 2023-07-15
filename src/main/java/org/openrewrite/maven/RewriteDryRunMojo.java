@@ -22,7 +22,7 @@ import org.apache.maven.plugins.annotations.ResolutionScope;
 
 /**
  * Generate warnings to the console for any recipe that would make changes, but do not make changes.
- *
+ * <p/>
  * This variant of rewrite:dryRun will fork the maven life cycle and can be run as a "stand-alone" goal. It will
  * execute the maven build up to the process-test-classes phase.
  */

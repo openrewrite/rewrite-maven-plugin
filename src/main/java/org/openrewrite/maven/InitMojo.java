@@ -45,11 +45,9 @@ import java.util.stream.Collectors;
 @SuppressWarnings("unused")
 public class InitMojo extends AbstractRewriteMojo {
 
-    @SuppressWarnings("NotNullFieldNotInitialized")
     @Parameter(property = "groupId", defaultValue = "org.openrewrite.maven")
     protected String groupId;
 
-    @SuppressWarnings("NotNullFieldNotInitialized")
     @Parameter(property = "artifactId", defaultValue = "rewrite-maven-plugin")
     protected String artifactId;
 
@@ -140,10 +138,10 @@ public class InitMojo extends AbstractRewriteMojo {
         Set<String> activeRecipes = getActiveRecipes();
         if (configuration == null && !activeRecipes.isEmpty()) {
             configuration = "<configuration>\n<activeRecipes>\n" +
-                    activeRecipes.stream()
-                            .map(it -> "<recipe>" + it + "</recipe>")
-                            .collect(Collectors.joining("\n"))
-                    + "</activeRecipes>\n</configuration>";
+                            activeRecipes.stream()
+                                    .map(it -> "<recipe>" + it + "</recipe>")
+                                    .collect(Collectors.joining("\n"))
+                            + "</activeRecipes>\n</configuration>";
         }
         return configuration;
     }
@@ -153,12 +151,12 @@ public class InitMojo extends AbstractRewriteMojo {
         String executions = null;
         if (executionPhase != null && executionGoals != null) {
             executions = "<executions>\n<execution>\n" +
-                    "<phase>" + executionPhase + "</phase>\n"
-                    + "<goals>\n"
-                    + Arrays.stream(executionGoals.split(","))
-                    .map(it -> "<goal>" + it + "</goal>")
-                    .collect(Collectors.joining("\n"))
-                    + "\n</goals>\n</execution>\n</executions>";
+                         "<phase>" + executionPhase + "</phase>\n"
+                         + "<goals>\n"
+                         + Arrays.stream(executionGoals.split(","))
+                                 .map(it -> "<goal>" + it + "</goal>")
+                                 .collect(Collectors.joining("\n"))
+                         + "\n</goals>\n</execution>\n</executions>";
         }
         return executions;
     }

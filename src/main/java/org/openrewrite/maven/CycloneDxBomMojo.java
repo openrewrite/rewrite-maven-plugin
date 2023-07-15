@@ -27,6 +27,7 @@ import org.openrewrite.maven.utilities.PrintMavenAsCycloneDxBom;
 import org.openrewrite.xml.tree.Xml;
 
 import java.io.File;
+import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.util.Collections;
@@ -35,11 +36,10 @@ import java.util.Collections;
  * Generate a CycloneDx bill of materials outlining the project's dependencies, including transitive dependencies.
  */
 @Mojo(name = "cyclonedx", requiresDependencyResolution = ResolutionScope.TEST, threadSafe = true,
-        defaultPhase = LifecyclePhase.PACKAGE)
+        defaultPhase = LifecyclePhase.PROCESS_TEST_CLASSES)
 @SuppressWarnings("unused")
 public class CycloneDxBomMojo extends AbstractRewriteMojo {
 
-    @SuppressWarnings("NotNullFieldNotInitialized")
     @Component
     private MavenProjectHelper projectHelper;
 
@@ -66,7 +66,8 @@ public class CycloneDxBomMojo extends AbstractRewriteMojo {
             cycloneDxBom.getParentFile().mkdirs();
 
             Files.write(cycloneDxBom.toPath(), PrintMavenAsCycloneDxBom.print(pomAst)
-                    .getBytes(pomAst.getCharset()));
+                    .getBytes(pomAst.getCharset() == null ?
+                            StandardCharsets.UTF_8 : pomAst.getCharset()));
 
             return cycloneDxBom;
         } catch (Throwable t) {

@@ -60,23 +60,18 @@ import static java.util.stream.Collectors.toList;
 
 public abstract class AbstractRewriteMojo extends ConfigurableRewriteMojo {
 
-    @SuppressWarnings("NotNullFieldNotInitialized")
     @Parameter(defaultValue = "${project}", readonly = true, required = true)
     protected MavenProject project;
 
-    @SuppressWarnings("NotNullFieldNotInitialized")
     @Component
     protected RuntimeInformation runtime;
 
-    @SuppressWarnings("NotNullFieldNotInitialized")
     @Component
     protected SettingsDecrypter settingsDecrypter;
 
-    @SuppressWarnings("NotNullFieldNotInitialized")
     @Component
     protected RepositorySystem repositorySystem;
 
-    @SuppressWarnings("NotNullFieldNotInitialized")
     @Parameter(defaultValue = "${session}", readonly = true)
     protected MavenSession mavenSession;
 
@@ -102,6 +97,7 @@ public abstract class AbstractRewriteMojo extends ConfigurableRewriteMojo {
             URI uri = new URI(configLocation);
             if (uri.getScheme() != null && uri.getScheme().startsWith("http")) {
                 HttpSender httpSender = new HttpUrlConnectionSender();
+                //noinspection resource
                 return new Config(httpSender.get(configLocation).send().getBody(), uri);
             }
         } catch (URISyntaxException e) {

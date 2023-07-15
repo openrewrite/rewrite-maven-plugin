@@ -37,7 +37,6 @@ import static java.util.Collections.emptyMap;
 @SuppressWarnings("FieldMayBeFinal")
 public abstract class ConfigurableRewriteMojo extends AbstractMojo {
 
-    @SuppressWarnings("NotNullFieldNotInitialized")
     @Parameter(property = "rewrite.configLocation", alias = "configLocation", defaultValue = "${maven.multiModuleProjectDirectory}/rewrite.yml")
     protected String configLocation;
 
@@ -193,6 +192,7 @@ public abstract class ConfigurableRewriteMojo extends AbstractMojo {
             }
         }
 
+        //noinspection ConstantConditions
         return computedRecipes;
     }
 
@@ -209,6 +209,7 @@ public abstract class ConfigurableRewriteMojo extends AbstractMojo {
             }
         }
 
+        //noinspection ConstantConditions
         return computedStyles;
     }
 
@@ -256,6 +257,7 @@ public abstract class ConfigurableRewriteMojo extends AbstractMojo {
             }
         }
 
+        //noinspection ConstantConditions
         return computedRecipeArtifactCoordinates;
     }
 
