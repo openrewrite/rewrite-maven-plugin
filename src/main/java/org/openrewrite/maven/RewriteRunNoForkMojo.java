@@ -21,7 +21,7 @@ import org.apache.maven.plugins.annotations.ResolutionScope;
 
 /**
  * Run the configured recipes and apply the changes locally.
- * <p/>
+ * <p>
  * This variant of rewrite:run will not fork the maven life cycle and can be used (along with other goals) without
  * triggering repeated life-cycle events.
  */
