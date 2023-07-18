@@ -43,4 +43,28 @@
         <vulnerabilityName>CVE-2023-34454</vulnerabilityName>
         <vulnerabilityName>CVE-2023-34455</vulnerabilityName>
     </suppress>
+    <suppress until="2023-07-21Z">
+        <notes><![CDATA[
+            file name: jackson-databind-2.15.2.jar
+            This is not a really valid CVE and not really exploitable as Java code needs to be modified: https://github.com/FasterXML/jackson-databind/issues/3972
+        ]]></notes>
+        <packageUrl regex="true">^pkg:maven/com\.fasterxml\.jackson\.core/jackson\-databind@.*$</packageUrl>
+        <cve>CVE-2023-35116</cve>
+    </suppress>
+    <suppress until="2023-07-21Z">
+        <notes><![CDATA[
+            file name: jackson-databind-2.15.2.jar
+            The CVE https://nvd.nist.gov/vuln/detail/CVE-2019-3826 does not actually pertain to the Micrometer Prometheus client, but Prometheus itself
+        ]]></notes>
+        <packageUrl regex="true">^pkg:maven/io\.micrometer\.prometheus/prometheus\-rsocket\-client@.*$</packageUrl>
+        <cve>CVE-2019-3826</cve>
+    </suppress>
+    <suppress until="2023-07-28Z">
+        <notes><![CDATA[
+            file name: guava-31.1-jre.jar
+            Reverted in https://github.com/openrewrite/rewrite-python/commit/f487df7dabb8588ae2edb17e31ff7b8ba3ffc133 because Guava 32 introduces gradle module metadata which causes downstream breakage in build plugins.
+        ]]></notes>
+        <packageUrl regex="true">^pkg:maven/com\.google\.guava/guava@31.1-jre$</packageUrl>
+        <cve>CVE-2023-2976</cve>
+    </suppress>
 </suppressions>

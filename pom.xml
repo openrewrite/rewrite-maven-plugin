@@ -4,7 +4,7 @@
 
     <groupId>org.openrewrite.maven</groupId>
     <artifactId>rewrite-maven-plugin</artifactId>
-    <version>5.3.0-SNAPSHOT</version>
+    <version>5.4.0-SNAPSHOT</version>
     <name>rewrite-maven-plugin</name>
 
     <packaging>maven-plugin</packaging>
@@ -24,7 +24,7 @@
             <plugin>
                 <groupId>org.owasp</groupId>
                 <artifactId>dependency-check-maven</artifactId>
-                <version>8.1.0</version>
+                <version>8.3.1</version>
                 <configuration>
                     <failBuildOnCVSS>9</failBuildOnCVSS>
                     <suppressionFiles>
@@ -77,14 +77,15 @@
         <!-- dependencies and plugins -->
         <jackson-bom.version>2.15.2</jackson-bom.version>
         <netty.version>4.1.94.Final</netty.version>
-        <rocksdbjni.version>8.0.0</rocksdbjni.version>
+        <rocksdbjni.version>8.3.2</rocksdbjni.version>
         <rsocket.version>1.1.4</rsocket.version>
         <itf-maven.version>0.12.0</itf-maven.version>
-        <maven-dependencies.version>3.9.2</maven-dependencies.version>
+        <maven-dependencies.version>3.9.3</maven-dependencies.version>
         <maven-release-plugin.version>3.0.1</maven-release-plugin.version>
         <maven-plugin-tools.version>3.9.0</maven-plugin-tools.version>
         <kotlin.version>1.8.10</kotlin.version>
     </properties>
+
     <dependencyManagement>
         <dependencies>
             <dependency>
@@ -129,6 +130,13 @@
                 <scope>import</scope>
                 <type>pom</type>
             </dependency>
+            <dependency>
+                <groupId>org.openrewrite</groupId>
+                <artifactId>rewrite-bom</artifactId>
+                <version>${rewrite.version}</version>
+                <scope>import</scope>
+                <type>pom</type>
+            </dependency>
         </dependencies>
     </dependencyManagement>
 
@@ -136,57 +144,46 @@
         <dependency>
             <groupId>org.openrewrite</groupId>
             <artifactId>rewrite-java</artifactId>
-            <version>${rewrite.version}</version>
         </dependency>
         <dependency>
             <groupId>org.openrewrite</groupId>
             <artifactId>rewrite-java-8</artifactId>
-            <version>${rewrite.version}</version>
         </dependency>
         <dependency>
             <groupId>org.openrewrite</groupId>
             <artifactId>rewrite-java-11</artifactId>
-            <version>${rewrite.version}</version>
         </dependency>
         <dependency>
             <groupId>org.openrewrite</groupId>
             <artifactId>rewrite-java-17</artifactId>
-            <version>${rewrite.version}</version>
         </dependency>
         <dependency>
             <groupId>org.openrewrite</groupId>
             <artifactId>rewrite-xml</artifactId>
-            <version>${rewrite.version}</version>
         </dependency>
         <dependency>
             <groupId>org.openrewrite</groupId>
             <artifactId>rewrite-maven</artifactId>
-            <version>${rewrite.version}</version>
         </dependency>
         <dependency>
             <groupId>org.openrewrite</groupId>
             <artifactId>rewrite-hcl</artifactId>
-            <version>${rewrite.version}</version>
         </dependency>
         <dependency>
             <groupId>org.openrewrite</groupId>
             <artifactId>rewrite-json</artifactId>
-            <version>${rewrite.version}</version>
         </dependency>
         <dependency>
             <groupId>org.openrewrite</groupId>
             <artifactId>rewrite-properties</artifactId>
-            <version>${rewrite.version}</version>
         </dependency>
         <dependency>
             <groupId>org.openrewrite</groupId>
             <artifactId>rewrite-protobuf</artifactId>
-            <version>${rewrite.version}</version>
         </dependency>
         <dependency>
             <groupId>org.openrewrite</groupId>
             <artifactId>rewrite-yaml</artifactId>
-            <version>${rewrite.version}</version>
         </dependency>
         <dependency>
             <groupId>org.openrewrite</groupId>
@@ -213,12 +210,12 @@
         <dependency>
             <groupId>io.micrometer.prometheus</groupId>
             <artifactId>prometheus-rsocket-client</artifactId>
-            <version>1.5.1</version>
+            <version>1.5.2</version>
         </dependency>
         <dependency>
             <groupId>io.micrometer</groupId>
             <artifactId>micrometer-core</artifactId>
-            <version>1.11.1</version>
+            <version>1.11.2</version>
         </dependency>
         <dependency>
             <groupId>io.rsocket</groupId>
@@ -513,6 +510,38 @@
                         <groupId>org.apache.maven.release</groupId>
                         <artifactId>maven-release-semver-policy</artifactId>
                         <version>${maven-release-plugin.version}</version>
+                    </dependency>
+                </dependencies>
+            </plugin>
+
+            <plugin>
+                <groupId>com.mycila</groupId>
+                <artifactId>license-maven-plugin</artifactId>
+                <version>4.2</version>
+                <configuration>
+                    <defaultProperties>
+                        <project.inceptionYear>2020</project.inceptionYear>
+                    </defaultProperties>
+                    <licenseSets>
+                        <licenseSet>
+                            <header>.mvn/licenseHeader.txt</header>
+                            <excludes>
+                                <exclude>pom.xml</exclude>
+                                <exclude>suppressions.xml</exclude>
+                                <exclude>**/README</exclude>
+                                <exclude>src/test/resources-its/**</exclude>
+                                <exclude>src/test/resources/**</exclude>
+                                <exclude>src/main/resources/**</exclude>
+                            </excludes>
+                        </licenseSet>
+                    </licenseSets>
+                </configuration>
+                <dependencies>
+                    <dependency>
+                        <groupId>com.mycila</groupId>
+                        <artifactId>license-maven-plugin-git</artifactId>
+                        <!-- make sure you use the same version as license-maven-plugin -->
+                        <version>4.2</version>
                     </dependency>
                 </dependencies>
             </plugin>

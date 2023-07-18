@@ -1,3 +1,18 @@
+/*
+ * Copyright 2021 the original author or authors.
+ *
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ * https://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ */
 package org.openrewrite.maven;
 
 import com.puppycrawl.tools.checkstyle.Checker;
@@ -22,7 +37,6 @@ import static java.util.Collections.emptyMap;
 @SuppressWarnings("FieldMayBeFinal")
 public abstract class ConfigurableRewriteMojo extends AbstractMojo {
 
-    @SuppressWarnings("NotNullFieldNotInitialized")
     @Parameter(property = "rewrite.configLocation", alias = "configLocation", defaultValue = "${maven.multiModuleProjectDirectory}/rewrite.yml")
     protected String configLocation;
 
@@ -178,6 +192,7 @@ public abstract class ConfigurableRewriteMojo extends AbstractMojo {
             }
         }
 
+        //noinspection ConstantConditions
         return computedRecipes;
     }
 
@@ -194,6 +209,7 @@ public abstract class ConfigurableRewriteMojo extends AbstractMojo {
             }
         }
 
+        //noinspection ConstantConditions
         return computedStyles;
     }
 
@@ -241,6 +257,7 @@ public abstract class ConfigurableRewriteMojo extends AbstractMojo {
             }
         }
 
+        //noinspection ConstantConditions
         return computedRecipeArtifactCoordinates;
     }
 
