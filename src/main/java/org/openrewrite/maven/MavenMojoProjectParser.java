@@ -385,11 +385,9 @@ public class MavenMojoProjectParser {
         MavenProject topLevelProject = mavenSession.getTopLevelProject();
         logInfo(topLevelProject, "Resolving Poms...");
 
-        Set<Path> allPoms = new LinkedHashSet<>();
-        mavenProjects.forEach(p -> collectPoms(p, allPoms));
-        for (MavenProject mavenProject : mavenProjects) {
-            mavenSession.getProjectDependencyGraph().getUpstreamProjects(mavenProject, true).forEach(p -> collectPoms(p, allPoms));
-        }
+        List<Path> allPoms = collectLocalAndUpstreamPoms(mavenSession);
+
+
         MavenParser.Builder mavenParserBuilder = MavenParser.builder().mavenConfig(baseDir.resolve(".mvn/maven.config"));
 
         MavenSettings settings = buildSettings();
@@ -459,33 +457,62 @@ public class MavenMojoProjectParser {
         return projectMap;
     }
 
-    /**
-     * Recursively navigate the maven project to collect any poms that are local (on disk)
-     *
-     * @param project A maven project to examine for any children/parent poms.
-     * @param paths   A list of paths to poms that have been collected so far.
-     */
-    private void collectPoms(MavenProject project, Set<Path> paths) {
-        paths.add(pomPath(project));
+    private List<Path> collectLocalAndUpstreamPoms(MavenSession mavenSession) {
+        List<Path> allPoms = new ArrayList<>();
+        // mavenSession.getProjects() or mavenSession.getAllProjects() ?
+        List<MavenProject> mavenProjects = mavenSession.getProjects();
+        mavenProjects.forEach(p -> collectProjectPoms(mavenSession, allPoms));
+        collectUpstreamPoms(mavenProjects, allPoms);
+        return allPoms;
+    }
 
-        // children
-        if (project.getCollectedProjects() != null) {
-            for (MavenProject child : project.getCollectedProjects()) {
-                Path path = pomPath(child);
-                if (!paths.contains(path)) {
-                    collectPoms(child, paths);
+    private void collectUpstreamPoms(List<MavenProject> mavenProjects, List<Path> allPoms) {
+        for (MavenProject mavenProject : mavenProjects) {
+            mavenSession.getProjectDependencyGraph().getUpstreamProjects(mavenProject, true).forEach(p -> collectUpstreamPoms(mavenProject, allPoms));
+        }
+    }
+
+    private void collectUpstreamPoms(MavenProject mavenProject, List<Path> allPoms) {
+        if(mavenProject.getCollectedProjects() != null) {
+            for(MavenProject project : mavenProject.getCollectedProjects()) {
+                Path path = pomPath(project);
+                if (!allPoms.contains(path)) {
+                    collectUpstreamPoms(project, allPoms);
                 }
             }
         }
+    }
 
-        MavenProject parent = project.getParent();
-        while (parent != null && parent.getFile() != null) {
-            Path path = pomPath(parent);
-            if (!paths.contains(path)) {
-                collectPoms(parent, paths);
-            }
-            parent = parent.getParent();
-        }
+    /**
+     * Collect Paths of all projects that belong to the current Maven reactor build.
+     *
+     * @param session The current Maven session
+     * @param paths   A list of paths to poms that have been collected so far.
+     */
+    private void collectProjectPoms(MavenSession session, List<Path> paths) {
+        List<Path> collect = session.getProjects().stream().map(p -> p.getFile().toPath()).collect(toList());
+        paths.addAll(collect);
+//
+//        paths.add(pomPath(session.));
+//
+//        // children
+//        if (session.getProjects() != null) {
+//            for (MavenProject child : /*project.getCollectedProjects()*/ session.getProjects()) {
+//                Path path = pomPath(child);
+//                if (!paths.contains(path)) {
+//                    collectPoms(session, paths);
+//                }
+//            }
+//        }
+//
+//        MavenProject parent = session.getCurrentProject().getParent();
+//        while (parent != null && parent.getFile() != null) {
+//            Path path = pomPath(parent);
+//            if (!paths.contains(path)) {
+//                collectPoms(parent, paths);
+//            }
+//            parent = parent.getParent();
+//        }
     }
 
     private static Path pomPath(MavenProject mavenProject) {
