@@ -45,6 +45,23 @@ class RewriteDryRunIT {
                 .anySatisfy(line -> assertThat(line).contains("org.openrewrite.java.cleanup.SimplifyBooleanExpression"));
     }
 
+
+    @MavenTest
+        //@Issue("https://github.com/openrewrite/rewrite-maven-plugin/pull/601")
+    void multi_module_project_order(MavenExecutionResult result) {
+        assertThat(result)
+                .isSuccessful()
+                .out()
+                .info()
+                .as("Module order should be preserved, as module-a depends on module-b")
+                // XXX This only shows the Maven order; add a breakpoint to verify that parser also preserves order in
+                // org.openrewrite.maven.MavenMojoProjectParser.parseMaven(..)
+                .containsSubsequence(
+                        "Building multi-module-1 1.0.0                                      [1/3]",
+                        "Building module-b 1.0.0                                            [2/3]",
+                        "Building module-a 1.0.0                                            [3/3]");
+    }
+
     @MavenTest
     void recipe_order(MavenExecutionResult result) {
         assertThat(result)

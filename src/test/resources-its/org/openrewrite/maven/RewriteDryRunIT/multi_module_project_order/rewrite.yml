@@ -1,0 +1,7 @@
+---
+type: specs.openrewrite.org/v1beta/recipe
+name: com.example.RewriteDryRunIT.CodeCleanup
+recipeList:
+  - org.openrewrite.java.cleanup.SimplifyBooleanExpression
+  - org.openrewrite.java.cleanup.SimplifyBooleanReturn
+  - org.openrewrite.java.cleanup.UnnecessaryParentheses
