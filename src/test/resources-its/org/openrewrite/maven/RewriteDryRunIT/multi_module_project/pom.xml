@@ -33,6 +33,13 @@
                         ${maven.multiModuleProjectDirectory}/src/test/resources-its/org/openrewrite/maven/RewriteDryRunIT/multi_module_project/rewrite.yml
                     </configLocation>
                 </configuration>
+                <dependencies>
+                    <dependency>
+                        <groupId>org.openrewrite.recipe</groupId>
+                        <artifactId>rewrite-static-analysis</artifactId>
+                        <version>1.0.4</version>
+                    </dependency>
+                </dependencies>
             </plugin>
         </plugins>
     </build>
