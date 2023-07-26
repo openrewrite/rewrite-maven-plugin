@@ -79,6 +79,9 @@
         <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
         <java.version>1.8</java.version>
 
+        <maven.compiler.testSource>17</maven.compiler.testSource>
+        <maven.compiler.testTarget>17</maven.compiler.testTarget>
+
         <!-- dependencies and plugins -->
         <jackson-bom.version>2.15.2</jackson-bom.version>
         <netty.version>4.1.94.Final</netty.version>
@@ -304,7 +307,6 @@
 
         <!-- JUnit Jupiter, and using itf-jupiter-extension to get itf support for executing everything as Maven tests -->
         <dependency>
-
             <groupId>org.junit.jupiter</groupId>
             <artifactId>junit-jupiter-api</artifactId>
             <scope>test</scope>
@@ -326,7 +328,6 @@
             <scope>test</scope>
         </dependency>
         <!-- Using assertj as well as custom assertions of AssertJ provided by itf-assertj -->
-        <!-- If you don’t want to use AssertJ as assertion framework you can omit them both -->
         <dependency>
             <groupId>org.assertj</groupId>
             <artifactId>assertj-core</artifactId>
@@ -594,29 +595,6 @@
                 <!-- automation via the maven-release-plugin uses a GITHUB_TOKEN which requires 'https' urls for git pushing -->
                 <developerConnectionUrl>scm:git:https://github.com/openrewrite/rewrite-maven-plugin.git
                 </developerConnectionUrl>
-            </properties>
-        </profile>
-        <profile>
-            <!-- for applying versions of the rewrite-maven-plugin against itself. -->
-            <!-- if you wanted to try using the plugin with changes made locally, you could run ./mvnw install, then set the plugin version below to the current version of the plugin being developed. -->
-            <!-- ./mvnw -Pbootstrap rewrite:help -->
-            <id>bootstrap</id>
-            <build>
-                <plugins>
-                    <plugin>
-                        <groupId>org.openrewrite.maven</groupId>
-                        <artifactId>rewrite-maven-plugin</artifactId>
-                        <version>4.40.0</version>
-                        <configuration>
-                            <activeRecipes>
-                                <recipe>org.openrewrite.java.format.AutoFormat</recipe>
-                            </activeRecipes>
-                        </configuration>
-                    </plugin>
-                </plugins>
-            </build>
-            <properties>
-                <maven.test.skip>true</maven.test.skip>
             </properties>
         </profile>
     </profiles>
