@@ -25,12 +25,19 @@
                     <activeRecipes>
                         <recipe>com.example.RewriteDryRunIT.CodeCleanup</recipe>
                         <recipe>org.openrewrite.java.format.AutoFormat</recipe>
-                        <recipe>org.openrewrite.java.cleanup.SimplifyBooleanExpression</recipe>
+                        <recipe>org.openrewrite.staticanalysis.SimplifyBooleanExpression</recipe>
                     </activeRecipes>
                     <configLocation>
                         ${maven.multiModuleProjectDirectory}/src/test/resources-its/org/openrewrite/maven/RewriteDryRunIT/recipe_order/rewrite.yml
                     </configLocation>
                 </configuration>
+                <dependencies>
+                    <dependency>
+                        <groupId>org.openrewrite.recipe</groupId>
+                        <artifactId>rewrite-static-analysis</artifactId>
+                        <version>1.0.4</version>
+                    </dependency>
+                </dependencies>
             </plugin>
         </plugins>
     </build>

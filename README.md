@@ -134,14 +134,6 @@ All tests can be run from the command line using:
 
 If you're looking for more information on the output from a test, try checking the `target/maven-it/**/*IT/**` directory contents after running the tests. It will contain the project state output, including maven logs, etc. Check the [`Integration Testing Framework Users Guide`](https://khmarbaise.github.io/maven-it-extension/itf-documentation/usersguide/usersguide.html) for information, too. It's good.
 
-### Using this plugin against itself
-
-The `pom.xml` file contains a `bootstrap` profile to use the `rewrite-maven-plugin` against itself (it's a helpful plugin, why not use it to help develop itself?).
-
-```sh
-./mvnw -Pbootstrap rewrite:dryRun
-```
-
 ## Contributing
 
 We appreciate all types of contributions. See the [contributing guide](https://github.com/openrewrite/.github/blob/main/CONTRIBUTING.md) for detailed instructions on how to get started.

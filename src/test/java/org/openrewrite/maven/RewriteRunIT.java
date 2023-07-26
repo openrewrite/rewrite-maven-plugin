@@ -37,7 +37,7 @@ class RewriteRunIT {
                 .isSuccessful()
                 .out()
                 .warn()
-                .anySatisfy(line -> assertThat(line).contains("org.openrewrite.java.cleanup.SimplifyBooleanExpression"));
+                .anySatisfy(line -> assertThat(line).contains("org.openrewrite.staticanalysis.SimplifyBooleanExpression"));
     }
 
     @MavenTest
