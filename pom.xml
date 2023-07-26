@@ -1,5 +1,6 @@
 <?xml version="1.0" encoding="UTF-8"?>
-<project xmlns="http://maven.apache.org/POM/4.0.0" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/xsd/maven-4.0.0.xsd">
+<project xmlns="http://maven.apache.org/POM/4.0.0" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+         xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/xsd/maven-4.0.0.xsd">
     <modelVersion>4.0.0</modelVersion>
 
     <groupId>org.openrewrite.maven</groupId>
@@ -9,6 +10,11 @@
 
     <packaging>maven-plugin</packaging>
     <description>Eliminate technical debt. At build time.</description>
+    <inceptionYear>2020</inceptionYear>
+
+    <prerequisites>
+        <maven>3.3.1</maven>
+    </prerequisites>
 
     <url>https://github.com/openrewrite/rewrite-maven-plugin</url>
 
@@ -67,6 +73,11 @@
         <url>https://github.com/openrewrite/rewrite-maven-plugin/tree/master</url>
         <tag>HEAD</tag>
     </scm>
+
+    <issueManagement>
+        <system>GitHub Issues</system>
+        <url>https://github.com/openrewrite/rewrite-maven-plugin/issues</url>
+    </issueManagement>
 
     <properties>
         <!-- Pinned versions, as RELEASE would make it into the published pom.xml -->
