@@ -42,7 +42,7 @@ class RewriteDryRunIT {
                 .isSuccessful()
                 .out()
                 .warn()
-                .anySatisfy(line -> assertThat(line).contains("org.openrewrite.java.cleanup.SimplifyBooleanExpression"));
+                .anySatisfy(line -> assertThat(line).contains("org.openrewrite.staticanalysis.SimplifyBooleanExpression"));
     }
 
     @MavenTest
@@ -51,7 +51,7 @@ class RewriteDryRunIT {
                 .isSuccessful()
                 .out()
                 .info()
-                .anySatisfy(line -> assertThat(line).contains("Using active recipe(s) [com.example.RewriteDryRunIT.CodeCleanup, org.openrewrite.java.format.AutoFormat, org.openrewrite.java.cleanup.SimplifyBooleanExpression]"));
+                .anySatisfy(line -> assertThat(line).contains("Using active recipe(s) [com.example.RewriteDryRunIT.CodeCleanup, org.openrewrite.java.format.AutoFormat, org.openrewrite.staticanalysis.SimplifyBooleanExpression]"));
     }
 
     @MavenTest

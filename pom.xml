@@ -40,6 +40,11 @@
                     </reportSet>
                 </reportSets>
             </plugin>
+            <plugin>
+                <groupId>org.apache.maven.plugins</groupId>
+                <artifactId>maven-plugin-report-plugin</artifactId>
+                <version>3.9.0</version>
+            </plugin>
         </plugins>
     </reporting>
 
@@ -418,10 +423,6 @@
                 <artifactId>maven-plugin-plugin</artifactId>
                 <version>${maven-plugin-tools.version}</version>
                 <executions>
-                    <execution>
-                        <id>default-descriptor</id>
-                        <phase>process-classes</phase>
-                    </execution>
                     <execution>
                         <id>generate-helpmojo</id>
                         <goals>
