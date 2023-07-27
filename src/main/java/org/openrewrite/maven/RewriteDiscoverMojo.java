@@ -32,8 +32,9 @@ import java.util.Collection;
 import java.util.HashSet;
 
 /**
- * Generate a report of available recipes found on the classpath.<br>
- * {@code ./mvnw rewrite:discover -Ddetail=true -Drecipe=<recipe-name>} to display recipe configuration details. For example:<br>
+ * Generate a report of the available recipes and styles found on the classpath.<br>
+ * <br>
+ * Can also be used to display information about a specific recipe. For example:<br>
  * {@code ./mvnw rewrite:discover -Ddetail=true -Drecipe=org.openrewrite.java.format.AutoFormat}
  */
 @Mojo(name = "discover", threadSafe = true, requiresProject = false, aggregator = true)

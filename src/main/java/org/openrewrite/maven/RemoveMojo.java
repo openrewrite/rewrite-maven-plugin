@@ -36,9 +36,10 @@ import java.util.Collections;
 import java.util.List;
 
 /**
- * Remove rewrite-maven-plugin (or any other plugin) from the project.<br>
+ * Remove the specified plugin from the project. If no groupId or artifactId is specified, this will default to
+ * removing the rewrite-maven-plugin.<br>
  * For example:<br>
- * {@code ./mvnw rewrite:remove}
+ * {@code ./mvnw rewrite:remove -DgroupId=foo -DartifactId=bar}
  */
 @Mojo(name = "remove", threadSafe = true)
 @Execute
