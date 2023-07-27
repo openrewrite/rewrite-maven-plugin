@@ -14,6 +14,7 @@ This project provides a Maven plugin that applies [Rewrite](https://github.com/o
 
 This `README` may not have the most up-to-date documentation. For the most up-to-date documentation and reference guides, see:
 
+- [Auto-generated maven plugin documentation](https://openrewrite.github.io/rewrite-maven-plugin/plugin-info.html)
 - [Maven Plugin Configuration](https://docs.openrewrite.org/reference/rewrite-maven-plugin)
 - [OpenRewrite Quickstart Guide](https://docs.openrewrite.org/getting-started/getting-started)
 
