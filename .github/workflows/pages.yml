@@ -2,9 +2,6 @@
 name: Deploy plugin docs to Pages
 
 on:
-  pull_request:
-    branches:
-      - main
   push:
     tags:
       - v*
