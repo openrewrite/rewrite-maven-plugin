@@ -43,8 +43,8 @@ public class AbstractRewriteRunMojo extends AbstractRewriteMojo {
             return;
         }
 
-        //If the plugin is configured to run over all projects (at the end of the build) only proceed if the plugin
-        //is being run on the last project.
+        // If the plugin is configured to run over all projects (at the end of the build) only proceed if the plugin
+        // is being run on the last project.
         if (!runPerSubmodule && !project.getId().equals(mavenSession.getProjects().get(mavenSession.getProjects().size() - 1).getId())) {
             return;
         }

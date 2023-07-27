@@ -52,8 +52,8 @@ public class AbstractRewriteDryRunMojo extends AbstractRewriteMojo {
             return;
         }
 
-        //If the plugin is configured to run over all projects (at the end of the build) only proceed if the plugin
-        //is being run on the last project.
+        // If the plugin is configured to run over all projects (at the end of the build) only proceed if the plugin
+        // is being run on the last project.
         if (!runPerSubmodule && !project.getId().equals(mavenSession.getProjects().get(mavenSession.getProjects().size() - 1).getId())) {
             return;
         }
@@ -70,14 +70,14 @@ public class AbstractRewriteDryRunMojo extends AbstractRewriteMojo {
         if (results.isNotEmpty()) {
             for (Result result : results.generated) {
                 assert result.getAfter() != null;
-                getLog().warn("These recipes would generate new file " +
+                getLog().warn("These recipes would generate a new file " +
                               result.getAfter().getSourcePath() +
                               ":");
                 logRecipesThatMadeChanges(result);
             }
             for (Result result : results.deleted) {
                 assert result.getBefore() != null;
-                getLog().warn("These recipes would delete file " +
+                getLog().warn("These recipes would delete a file " +
                               result.getBefore().getSourcePath() +
                               ":");
                 logRecipesThatMadeChanges(result);
@@ -85,7 +85,7 @@ public class AbstractRewriteDryRunMojo extends AbstractRewriteMojo {
             for (Result result : results.moved) {
                 assert result.getBefore() != null;
                 assert result.getAfter() != null;
-                getLog().warn("These recipes would move file from " +
+                getLog().warn("These recipes would move a file from " +
                               result.getBefore().getSourcePath() + " to " +
                               result.getAfter().getSourcePath() + ":");
                 logRecipesThatMadeChanges(result);
