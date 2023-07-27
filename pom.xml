@@ -16,7 +16,7 @@
         <maven>3.3.1</maven>
     </prerequisites>
 
-    <url>https://github.com/openrewrite/rewrite-maven-plugin</url>
+    <url>https://openrewrite.github.io/rewrite-maven-plugin/</url>
 
     <licenses>
         <license>
