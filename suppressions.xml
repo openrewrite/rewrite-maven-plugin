@@ -1,48 +1,5 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <suppressions xmlns="https://jeremylong.github.io/DependencyCheck/dependency-suppression.1.3.xsd">
-    <suppress until="2023-05-19Z">
-        <notes><![CDATA[
-        file name: woodstox-core-6.3.1.jar
-        Severity: HIGH
-        False positive. We do not use woodstox and it will be updated with the next spring cloud
-        dependencies.
-    ]]></notes>
-        <packageUrl regex="true">^pkg:maven/com\.fasterxml\.woodstox/woodstox\-core@.*$</packageUrl>
-        <vulnerabilityName>CVE-2022-40152</vulnerabilityName>
-    </suppress>
-    <suppress until="2023-04-09Z">
-        <notes><![CDATA[
-            file name: snakeyaml-1.33.jar
-            Severity: HIGH
-            False positive: We are not parsing untrusted user input. Not used directly in this repository.
-        ]]></notes>
-        <packageUrl regex="true">^pkg:maven/org\.yaml/snakeyaml@.*$</packageUrl>
-        <cve>CVE-2022-1471</cve>
-    </suppress>
-    <suppress until="2023-07-15Z">
-        <notes><![CDATA[
-            file name: javax.json-1.1.4.jar
-        ]]></notes>
-        <packageUrl regex="true">^pkg:maven/org\.glassfish/javax\.json@.*$</packageUrl>
-        <cve>CVE-2022-45688</cve>
-    </suppress>
-    <suppress until="2023-07-15Z">
-        <notes><![CDATA[
-            file name: jackson-core-2.15.0.jar
-            This is not actionable, the latest version is 2.15.0 which still contains the vulnerability.
-        ]]></notes>
-        <packageUrl regex="true">^pkg:maven/com\.fasterxml\.jackson\.core/jackson\-core@.*$</packageUrl>
-        <cve>CVE-2022-45688</cve>
-    </suppress>
-    <suppress until="2023-07-21Z">
-        <notes><![CDATA[
-            file name: snappy-java-1.1.8.4.jar
-        ]]></notes>
-        <packageUrl regex="true">^pkg:maven/org\.xerial\.snappy/snappy\-java@.*$</packageUrl>
-        <vulnerabilityName>CVE-2023-34453</vulnerabilityName>
-        <vulnerabilityName>CVE-2023-34454</vulnerabilityName>
-        <vulnerabilityName>CVE-2023-34455</vulnerabilityName>
-    </suppress>
     <suppress until="2023-08-21Z">
         <notes><![CDATA[
             file name: jackson-databind-2.15.2.jar
@@ -58,13 +15,5 @@
         ]]></notes>
         <packageUrl regex="true">^pkg:maven/io\.micrometer\.prometheus/prometheus\-rsocket\-client@.*$</packageUrl>
         <cve>CVE-2019-3826</cve>
-    </suppress>
-    <suppress until="2023-07-28Z">
-        <notes><![CDATA[
-            file name: guava-31.1-jre.jar
-            Reverted in https://github.com/openrewrite/rewrite-python/commit/f487df7dabb8588ae2edb17e31ff7b8ba3ffc133 because Guava 32 introduces gradle module metadata which causes downstream breakage in build plugins.
-        ]]></notes>
-        <packageUrl regex="true">^pkg:maven/com\.google\.guava/guava@31.1-jre$</packageUrl>
-        <cve>CVE-2023-2976</cve>
     </suppress>
 </suppressions>
