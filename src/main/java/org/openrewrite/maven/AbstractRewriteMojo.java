@@ -226,9 +226,14 @@ public abstract class AbstractRewriteMojo extends ConfigurableRewriteMojo {
             List<Validated.Invalid<Object>> failedValidations = validations.stream().map(Validated::failures)
                     .flatMap(Collection::stream).collect(toList());
             if (!failedValidations.isEmpty()) {
-                failedValidations.forEach(failedValidation -> getLog().error(
-                        "Recipe validation error in " + failedValidation.getProperty() + ": " +
-                        failedValidation.getMessage(), failedValidation.getException()));
+                failedValidations.forEach(failedValidation -> {
+                    if (getLog().isDebugEnabled()) {
+                        getLog().debug("Recipe " + recipe + " invalid");
+                    }
+                    getLog().error(
+                            "Recipe validation error in " + failedValidation.getProperty() + ": " +
+                                    failedValidation.getMessage(), failedValidation.getException());
+                });
                 if (failOnInvalidActiveRecipes) {
                     throw new MojoExecutionException("Recipe validation errors detected as part of one or more activeRecipe(s). Please check error logs.");
                 } else {
