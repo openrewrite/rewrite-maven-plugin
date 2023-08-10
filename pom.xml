@@ -81,6 +81,7 @@
     <properties>
         <!-- Pinned versions, as RELEASE would make it into the published pom.xml -->
         <rewrite.version>8.2.0-SNAPSHOT</rewrite.version>
+        <rewrite.all.version>1.1.0-SNAPSHOT</rewrite.all.version>
         <rewrite.python.version>1.1.0-SNAPSHOT</rewrite.python.version>
 
         <!-- using 'ssh' url scheme by default, which assumes a human is performing git operations leveraging an ssh key -->
@@ -159,6 +160,11 @@
     </dependencyManagement>
 
     <dependencies>
+        <dependency>
+            <groupId>org.openrewrite.recipe</groupId>
+            <artifactId>rewrite-all</artifactId>
+            <version>${rewrite.all.version}</version>
+        </dependency>
         <dependency>
             <groupId>org.openrewrite</groupId>
             <artifactId>rewrite-java</artifactId>

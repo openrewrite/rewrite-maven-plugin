@@ -39,7 +39,10 @@ import org.openrewrite.ipc.http.HttpSender;
 import org.openrewrite.ipc.http.HttpUrlConnectionSender;
 import org.openrewrite.java.tree.JavaSourceFile;
 import org.openrewrite.marker.*;
+import org.openrewrite.maven.ux.MavenLogProgressBar;
+import org.openrewrite.maven.ux.ProgressBarParsingEventListener;
 import org.openrewrite.style.NamedStyles;
+import org.openrewrite.tree.ParsingExecutionContextView;
 import org.openrewrite.xml.tree.Xml;
 
 import java.io.File;
@@ -141,7 +144,10 @@ public abstract class AbstractRewriteMojo extends ConfigurableRewriteMojo {
     }
 
     protected ExecutionContext executionContext() {
-        return new InMemoryExecutionContext(t -> getLog().debug(t));
+        InMemoryExecutionContext ctx = new InMemoryExecutionContext(t -> getLog().debug(t));
+        ParsingExecutionContextView view = ParsingExecutionContextView.view(ctx);
+        view.setParsingListener(new ProgressBarParsingEventListener(new MavenLogProgressBar(getLog())));
+        return view;
     }
 
     protected Path getBuildRoot() {
