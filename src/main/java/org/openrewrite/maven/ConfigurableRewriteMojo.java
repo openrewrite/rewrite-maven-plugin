@@ -135,7 +135,8 @@ public abstract class ConfigurableRewriteMojo extends AbstractMojo {
                     "**/*.qute.java",
                     "**/*.sql",
                     "**/Dockerfile",
-                    "**/Jenkinsfile"
+                    "**/Jenkinsfile",
+                    "**/CODEOWNERS"
             ));
         } else {
             Set<String> masks = toSet(rewritePlainTextMasks);
