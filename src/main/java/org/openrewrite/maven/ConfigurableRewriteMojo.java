@@ -124,7 +124,7 @@ public abstract class ConfigurableRewriteMojo extends AbstractMojo {
                     "**/META-INF/spring/**",
                     "**/*.bash",
                     "**/*.bat",
-                    "**/CODEOWNERS"
+                    "**/CODEOWNERS",
                     "**/Dockerfile",
                     "**/.gitattributes",
                     "**/.gitignore",
@@ -137,7 +137,7 @@ public abstract class ConfigurableRewriteMojo extends AbstractMojo {
                     "**/.sdkmanrc",
                     "**/*.sh",
                     "**/*.sql",
-                    "**/*.txt",
+                    "**/*.txt"
             ));
         } else {
             Set<String> masks = toSet(rewritePlainTextMasks);
