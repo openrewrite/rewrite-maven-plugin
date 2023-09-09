@@ -133,7 +133,6 @@ public abstract class ConfigurableRewriteMojo extends AbstractMojo {
                     "**/Jenkinsfile",
                     "**/*.jsp",
                     "**/*.ksh",
-                    "**/lombok.config",
                     "**/*.md",
                     "**/*.qute.java",
                     "**/.sdkmanrc",
