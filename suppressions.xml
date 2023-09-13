@@ -32,4 +32,11 @@
         <packageUrl regex="true">^pkg:maven/com\.google\.guava/guava@.*$</packageUrl>
         <cve>CVE-2020-8908</cve>
     </suppress>
+    <suppress until="2024-12-13Z">
+        <notes><![CDATA[
+            file name: rewrite-core-8.6.0-SNAPSHOT.jar (shaded: org.eclipse.jgit:org.eclipse.jgit:5.13.2.202306221912-r)
+            ]]></notes>
+        <packageUrl regex="true">^pkg:maven/org\.eclipse\.jgit/org\.eclipse\.jgit@.*$</packageUrl>
+        <vulnerabilityName>CVE-2023-4759</vulnerabilityName>
+    </suppress>
 </suppressions>
