@@ -48,6 +48,7 @@ public class MavenLoggingMeterRegistry extends MeterRegistry {
         this.log = log;
     }
 
+    @Override
     public void close() {
         getMeters().stream()
                 .sorted((m1, m2) -> {
