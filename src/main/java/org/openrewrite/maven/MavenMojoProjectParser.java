@@ -409,7 +409,8 @@ public class MavenMojoProjectParser {
 
         List<SourceFile> mavens = mavenParserBuilder
                 .build()
-                .parse(allPoms, baseDir, ctx).collect(toList());
+                .parse(allPoms, baseDir, mavenExecutionContext)
+                .collect(toList());
 
         if (logger.isDebugEnabled()) {
             logDebug(topLevelProject, "Base directory : '" + baseDir + "'");
