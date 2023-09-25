@@ -130,7 +130,6 @@ public abstract class ConfigurableRewriteMojo extends AbstractMojo {
                     "**/.gitattributes",
                     "**/.gitignore",
                     "**/.java-version",
-                    "**/Jenkinsfile",
                     "**/*.jsp",
                     "**/*.ksh",
                     "**/*.md",
