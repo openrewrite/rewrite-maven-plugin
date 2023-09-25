@@ -573,7 +573,8 @@ public class MavenMojoProjectParser {
             return new MavenSettings.Server(
                     s.getId(),
                     s.getUsername(),
-                    decryptionResult.getServer().getPassword()
+                    decryptionResult.getServer().getPassword(),
+                    null
             );
         }).collect(toList()));
 
