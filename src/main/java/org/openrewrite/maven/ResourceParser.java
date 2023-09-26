@@ -170,7 +170,7 @@ public class ResourceParser {
                 propertiesPaths.add(path);
             } else if (protoParser.accept(path)) {
                 protoPaths.add(path);
-            } else if(pythonParser.accept(path)) {
+            } else if (pythonParser.accept(path)) {
                 pythonPaths.add(path);
             } else if (hclParser.accept(path)) {
                 hclPaths.add(path);
