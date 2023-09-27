@@ -513,7 +513,7 @@ public class MavenMojoProjectParser {
                                 new RocksdbMavenPomCache(Paths.get(pomCacheDirectory))
                         );
                     }
-                } catch (Exception e) {
+                } catch (Throwable e) {
                     logger.warn("Unable to initialize RocksdbMavenPomCache, falling back to InMemoryMavenPomCache");
                     logger.debug(e);
                 }
