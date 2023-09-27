@@ -15,7 +15,36 @@
  */
 package org.openrewrite.maven;
 
+import static java.util.Collections.emptyList;
+import static java.util.stream.Collectors.joining;
+import static java.util.stream.Collectors.toList;
+
 import io.micrometer.core.instrument.Metrics;
+import java.io.File;
+import java.io.IOException;
+import java.io.InputStream;
+import java.io.UncheckedIOException;
+import java.net.MalformedURLException;
+import java.net.URI;
+import java.net.URISyntaxException;
+import java.net.URL;
+import java.net.URLClassLoader;
+import java.nio.file.Files;
+import java.nio.file.Path;
+import java.nio.file.Paths;
+import java.util.ArrayList;
+import java.util.Collection;
+import java.util.Collections;
+import java.util.HashMap;
+import java.util.HashSet;
+import java.util.LinkedHashSet;
+import java.util.List;
+import java.util.Map;
+import java.util.Objects;
+import java.util.Optional;
+import java.util.Set;
+import java.util.function.UnaryOperator;
+import java.util.stream.Stream;
 import org.apache.maven.artifact.DependencyResolutionRequiredException;
 import org.apache.maven.execution.MavenSession;
 import org.apache.maven.plugin.MojoExecutionException;
@@ -27,7 +56,17 @@ import org.apache.maven.settings.crypto.SettingsDecrypter;
 import org.codehaus.plexus.classworlds.realm.ClassRealm;
 import org.eclipse.aether.RepositorySystem;
 import org.eclipse.aether.artifact.Artifact;
-import org.openrewrite.*;
+import org.openrewrite.Cursor;
+import org.openrewrite.ExecutionContext;
+import org.openrewrite.InMemoryExecutionContext;
+import org.openrewrite.LargeSourceSet;
+import org.openrewrite.PrintOutputCapture;
+import org.openrewrite.Recipe;
+import org.openrewrite.Result;
+import org.openrewrite.SourceFile;
+import org.openrewrite.Tree;
+import org.openrewrite.TreeVisitor;
+import org.openrewrite.Validated;
 import org.openrewrite.config.ClasspathScanningLoader;
 import org.openrewrite.config.Environment;
 import org.openrewrite.config.RecipeDescriptor;
@@ -38,57 +77,38 @@ import org.openrewrite.internal.lang.Nullable;
 import org.openrewrite.ipc.http.HttpSender;
 import org.openrewrite.ipc.http.HttpUrlConnectionSender;
 import org.openrewrite.java.tree.JavaSourceFile;
-import org.openrewrite.marker.*;
+import org.openrewrite.marker.Generated;
+import org.openrewrite.marker.Marker;
+import org.openrewrite.marker.Markers;
+import org.openrewrite.marker.Markup;
+import org.openrewrite.marker.SearchResult;
 import org.openrewrite.style.NamedStyles;
 import org.openrewrite.xml.tree.Xml;
 
-import java.io.File;
-import java.io.IOException;
-import java.io.InputStream;
-import java.io.UncheckedIOException;
-import java.net.*;
-import java.nio.file.Files;
-import java.nio.file.Path;
-import java.nio.file.Paths;
-import java.util.*;
-import java.util.function.UnaryOperator;
-import java.util.stream.Stream;
-
-import static java.util.Collections.emptyList;
-import static java.util.stream.Collectors.joining;
-import static java.util.stream.Collectors.toList;
-
 public abstract class AbstractRewriteMojo extends ConfigurableRewriteMojo {
 
+    private static final String RECIPE_NOT_FOUND_EXCEPTION_MSG = "Could not find recipe '%s' among available recipes";
     @Parameter(defaultValue = "${project}", readonly = true, required = true)
     protected MavenProject project;
-
     @Component
     protected RuntimeInformation runtime;
-
     @Component
     protected SettingsDecrypter settingsDecrypter;
-
     @Component
     protected RepositorySystem repositorySystem;
-
     @Parameter(defaultValue = "${session}", readonly = true)
     protected MavenSession mavenSession;
 
-    private static final String RECIPE_NOT_FOUND_EXCEPTION_MSG = "Could not find recipe '%s' among available recipes";
+    public static RecipeDescriptor getRecipeDescriptor(String recipe, Collection<RecipeDescriptor> recipeDescriptors)
+            throws MojoExecutionException {
+        return recipeDescriptors.stream()
+                .filter(r -> r.getName().equalsIgnoreCase(recipe))
+                .findAny()
+                .orElseThrow(() -> new MojoExecutionException(String.format(RECIPE_NOT_FOUND_EXCEPTION_MSG, recipe)));
+    }
 
     protected Environment environment() throws MojoExecutionException {
         return environment(getRecipeArtifactCoordinatesClassloader());
-    }
-
-    static class Config {
-        final InputStream inputStream;
-        final URI uri;
-
-        Config(InputStream inputStream, URI uri) {
-            this.inputStream = inputStream;
-            this.uri = uri;
-        }
     }
 
     @Nullable
@@ -163,9 +183,9 @@ public abstract class AbstractRewriteMojo extends ConfigurableRewriteMojo {
 
 
     /**
-     * Attempt to determine the root of the git repository for the given project.
-     * Many Gradle builds co-locate the build root with the git repository root, but that is not required.
-     * If no git repository can be located in any folder containing the build, the build root will be returned.
+     * Attempt to determine the root of the git repository for the given project. Many Gradle builds co-locate the build
+     * root with the git repository root, but that is not required. If no git repository can be located in any folder
+     * containing the build, the build root will be returned.
      */
     protected Path repositoryRoot() {
         Path buildRoot = getBuildRoot();
@@ -215,8 +235,9 @@ public abstract class AbstractRewriteMojo extends ConfigurableRewriteMojo {
             Recipe recipe = env.activateRecipes(getActiveRecipes());
             if (recipe.getRecipeList().isEmpty()) {
                 getLog().warn("No recipes were activated. " +
-                              "Activate a recipe with <activeRecipes><recipe>com.fully.qualified.RecipeClassName</recipe></activeRecipes> in this plugin's <configuration> in your pom.xml, " +
-                              "or on the command line with -Drewrite.activeRecipes=com.fully.qualified.RecipeClassName");
+                        "Activate a recipe with <activeRecipes><recipe>com.fully.qualified.RecipeClassName</recipe></activeRecipes> in this plugin's <configuration> in your pom.xml, "
+                        +
+                        "or on the command line with -Drewrite.activeRecipes=com.fully.qualified.RecipeClassName");
                 return new ResultsContainer(repositoryRoot, emptyList());
             }
 
@@ -227,12 +248,16 @@ public abstract class AbstractRewriteMojo extends ConfigurableRewriteMojo {
                     .flatMap(Collection::stream).collect(toList());
             if (!failedValidations.isEmpty()) {
                 failedValidations.forEach(failedValidation -> getLog().error(
-                        "Recipe validation error in " + failedValidation.getProperty() + ": " +
-                        failedValidation.getMessage(), failedValidation.getException()));
+                        "Recipe validation error in " + failedValidation.getProperty() + (
+                                failedValidation.getRecipeDisplayName().isEmpty() ? ""
+                                        : "(" + failedValidation.getRecipeDisplayName() + ")") + ": " +
+                                failedValidation.getMessage(), failedValidation.getException()));
                 if (failOnInvalidActiveRecipes) {
-                    throw new MojoExecutionException("Recipe validation errors detected as part of one or more activeRecipe(s). Please check error logs.");
+                    throw new MojoExecutionException(
+                            "Recipe validation errors detected as part of one or more activeRecipe(s). Please check error logs.");
                 } else {
-                    getLog().error("Recipe validation errors detected as part of one or more activeRecipe(s). Execution will continue regardless.");
+                    getLog().error(
+                            "Recipe validation errors detected as part of one or more activeRecipe(s). Execution will continue regardless.");
                 }
             }
 
@@ -248,11 +273,14 @@ public abstract class AbstractRewriteMojo extends ConfigurableRewriteMojo {
         }
     }
 
-    protected LargeSourceSet loadSourceSet(Path repositoryRoot, Environment env, ExecutionContext ctx) throws DependencyResolutionRequiredException, MojoExecutionException {
+    protected LargeSourceSet loadSourceSet(Path repositoryRoot, Environment env, ExecutionContext ctx)
+            throws DependencyResolutionRequiredException, MojoExecutionException {
         List<NamedStyles> styles = loadStyles(project, env);
 
         //Parse and collect source files from each project in the maven session.
-        MavenMojoProjectParser projectParser = new MavenMojoProjectParser(getLog(), repositoryRoot, pomCacheEnabled, pomCacheDirectory, runtime, skipMavenParsing, getExclusions(), getPlainTextMasks(), sizeThresholdMb, mavenSession, settingsDecrypter, runPerSubmodule);
+        MavenMojoProjectParser projectParser = new MavenMojoProjectParser(getLog(), repositoryRoot, pomCacheEnabled,
+                pomCacheDirectory, runtime, skipMavenParsing, getExclusions(), getPlainTextMasks(), sizeThresholdMb,
+                mavenSession, settingsDecrypter, runPerSubmodule);
 
         Stream<SourceFile> sourceFiles = projectParser.listSourceFiles(project, styles, ctx);
         List<SourceFile> sourceFileList = sourcesWithAutoDetectedStyles(sourceFiles);
@@ -318,7 +346,8 @@ public abstract class AbstractRewriteMojo extends ConfigurableRewriteMojo {
                     try {
                         return uri.toURL();
                     } catch (MalformedURLException e) {
-                        throw new RuntimeException("Failed to resolve artifacts from rewrite.recipeArtifactCoordinates", e);
+                        throw new RuntimeException("Failed to resolve artifacts from rewrite.recipeArtifactCoordinates",
+                                e);
                     }
                 })
                 .toArray(URL[]::new);
@@ -352,7 +381,48 @@ public abstract class AbstractRewriteMojo extends ConfigurableRewriteMojo {
         return jarUrl.toString().replaceAll("/[^/]+/[^/]+\\.jar", "");
     }
 
+    protected void logRecipesThatMadeChanges(Result result) {
+        String indent = "    ";
+        String prefix = "    ";
+        for (RecipeDescriptor recipeDescriptor : result.getRecipeDescriptorsThatMadeChanges()) {
+            logRecipe(recipeDescriptor, prefix);
+            prefix = prefix + indent;
+        }
+    }
+
+    private void logRecipe(RecipeDescriptor rd, String prefix) {
+        StringBuilder recipeString = new StringBuilder(prefix + rd.getName());
+        if (!rd.getOptions().isEmpty()) {
+            String opts = rd.getOptions().stream().map(option -> {
+                        if (option.getValue() != null) {
+                            return option.getName() + "=" + option.getValue();
+                        }
+                        return null;
+                    }
+            ).filter(Objects::nonNull).collect(joining(", "));
+            if (!opts.isEmpty()) {
+                recipeString.append(": {").append(opts).append("}");
+            }
+        }
+        getLog().warn(recipeString.toString());
+        for (RecipeDescriptor rchild : rd.getRecipeList()) {
+            logRecipe(rchild, prefix + "    ");
+        }
+    }
+
+    static class Config {
+
+        final InputStream inputStream;
+        final URI uri;
+
+        Config(InputStream inputStream, URI uri) {
+            this.inputStream = inputStream;
+            this.uri = uri;
+        }
+    }
+
     public static class ResultsContainer {
+
         final Path projectRoot;
         final List<Result> generated = new ArrayList<>();
         final List<Result> deleted = new ArrayList<>();
@@ -370,7 +440,8 @@ public abstract class AbstractRewriteMojo extends ConfigurableRewriteMojo {
                     generated.add(result);
                 } else if (result.getBefore() != null && result.getAfter() == null) {
                     deleted.add(result);
-                } else if (result.getBefore() != null && result.getAfter() != null && !result.getBefore().getSourcePath().equals(result.getAfter().getSourcePath())) {
+                } else if (result.getBefore() != null && result.getAfter() != null && !result.getBefore()
+                        .getSourcePath().equals(result.getAfter().getSourcePath())) {
                     moved.add(result);
                 } else {
                     if (!result.diff(Paths.get(""), new FencedMarkerPrinter(), true).isEmpty()) {
@@ -412,9 +483,12 @@ public abstract class AbstractRewriteMojo extends ConfigurableRewriteMojo {
                 public Tree preVisit(Tree tree, Integer integer) {
                     Markers markers = tree.getMarkers();
                     markers.findFirst(Markup.Error.class).ifPresent(e -> {
-                        Optional<SourceFile> sourceFile = Optional.ofNullable(getCursor().firstEnclosing(SourceFile.class));
-                        String sourcePath = sourceFile.map(SourceFile::getSourcePath).map(Path::toString).orElse("<unknown>");
-                        exceptions.add(new RuntimeException("Error while visiting " + sourcePath + ": " + e.getDetail()));
+                        Optional<SourceFile> sourceFile = Optional.ofNullable(
+                                getCursor().firstEnclosing(SourceFile.class));
+                        String sourcePath = sourceFile.map(SourceFile::getSourcePath).map(Path::toString)
+                                .orElse("<unknown>");
+                        exceptions.add(
+                                new RuntimeException("Error while visiting " + sourcePath + ": " + e.getDetail()));
                     });
                     return tree;
                 }
@@ -464,6 +538,7 @@ public abstract class AbstractRewriteMojo extends ConfigurableRewriteMojo {
          * Only retains output for markers of type {@code SearchResult} and {@code Markup}.
          */
         private static class FencedMarkerPrinter implements PrintOutputCapture.MarkerPrinter {
+
             @Override
             public String beforeSyntax(Marker marker, Cursor cursor, UnaryOperator<String> commentWrapper) {
                 return marker instanceof SearchResult || marker instanceof Markup ? "{{" + marker.getId() + "}}" : "";
@@ -474,41 +549,5 @@ public abstract class AbstractRewriteMojo extends ConfigurableRewriteMojo {
                 return marker instanceof SearchResult || marker instanceof Markup ? "{{" + marker.getId() + "}}" : "";
             }
         }
-    }
-
-    protected void logRecipesThatMadeChanges(Result result) {
-        String indent = "    ";
-        String prefix = "    ";
-        for (RecipeDescriptor recipeDescriptor : result.getRecipeDescriptorsThatMadeChanges()) {
-            logRecipe(recipeDescriptor, prefix);
-            prefix = prefix + indent;
-        }
-    }
-
-    private void logRecipe(RecipeDescriptor rd, String prefix) {
-        StringBuilder recipeString = new StringBuilder(prefix + rd.getName());
-        if (!rd.getOptions().isEmpty()) {
-            String opts = rd.getOptions().stream().map(option -> {
-                        if (option.getValue() != null) {
-                            return option.getName() + "=" + option.getValue();
-                        }
-                        return null;
-                    }
-            ).filter(Objects::nonNull).collect(joining(", "));
-            if (!opts.isEmpty()) {
-                recipeString.append(": {").append(opts).append("}");
-            }
-        }
-        getLog().warn(recipeString.toString());
-        for (RecipeDescriptor rchild : rd.getRecipeList()) {
-            logRecipe(rchild, prefix + "    ");
-        }
-    }
-
-    public static RecipeDescriptor getRecipeDescriptor(String recipe, Collection<RecipeDescriptor> recipeDescriptors) throws MojoExecutionException {
-        return recipeDescriptors.stream()
-                .filter(r -> r.getName().equalsIgnoreCase(recipe))
-                .findAny()
-                .orElseThrow(() -> new MojoExecutionException(String.format(RECIPE_NOT_FOUND_EXCEPTION_MSG, recipe)));
     }
 }
