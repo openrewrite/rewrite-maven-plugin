@@ -124,7 +124,7 @@ public class RewriteDiscoverMojo extends AbstractRewriteMojo {
     }
 
     private void writeRecipeDescriptor(RecipeDescriptor rd, boolean verbose, int currentRecursionLevel, int indentLevel) {
-        String indent = StringUtils.repeat("    ", indentLevel * 4);
+        String indent = StringUtils.repeat("    ", indentLevel);
         if (currentRecursionLevel <= recursion) {
             if (verbose) {
 
