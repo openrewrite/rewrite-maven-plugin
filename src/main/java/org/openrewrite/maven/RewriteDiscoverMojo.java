@@ -28,8 +28,12 @@ import org.openrewrite.internal.lang.Nullable;
 import org.openrewrite.maven.ui.RecipeDescriptorTreePrompter;
 import org.openrewrite.style.NamedStyles;
 
+import java.util.ArrayList;
 import java.util.Collection;
+import java.util.Collections;
+import java.util.Comparator;
 import java.util.HashSet;
+import java.util.List;
 
 /**
  * Generate a report of the available recipes and styles found on the classpath.<br>
@@ -95,26 +99,34 @@ public class RewriteDiscoverMojo extends AbstractRewriteMojo {
     }
 
     private void writeDiscovery(Collection<RecipeDescriptor> availableRecipeDescriptors, Collection<RecipeDescriptor> activeRecipeDescriptors, Collection<NamedStyles> availableStyles) {
+        List<RecipeDescriptor> availableRecipesSorted = new ArrayList<>(availableRecipeDescriptors);
+        availableRecipesSorted.sort(Comparator.comparing(RecipeDescriptor::getName, String.CASE_INSENSITIVE_ORDER));
         getLog().info("Available Recipes:");
-        for (RecipeDescriptor recipeDescriptor : availableRecipeDescriptors) {
+        for (RecipeDescriptor recipeDescriptor : availableRecipesSorted) {
             writeRecipeDescriptor(recipeDescriptor, detail, 0, 1);
         }
 
+        List<NamedStyles> availableStylesSorted = new ArrayList<>(availableStyles);
+        availableStylesSorted.sort(Comparator.comparing(NamedStyles::getName, String.CASE_INSENSITIVE_ORDER));
         getLog().info("");
         getLog().info("Available Styles:");
-        for (NamedStyles style : availableStyles) {
+        for (NamedStyles style : availableStylesSorted) {
             getLog().info("    " + style.getName());
         }
 
+        List<String> activeStylesSorted = new ArrayList<>(getActiveStyles());
+        activeStylesSorted.sort(String.CASE_INSENSITIVE_ORDER);
         getLog().info("");
         getLog().info("Active Styles:");
-        for (String activeStyle : getActiveStyles()) {
+        for (String activeStyle : activeStylesSorted) {
             getLog().info("    " + activeStyle);
         }
 
+        List<RecipeDescriptor> activeRecipesSorted = new ArrayList<>(activeRecipeDescriptors);
+        activeRecipesSorted.sort(Comparator.comparing(RecipeDescriptor::getName, String.CASE_INSENSITIVE_ORDER));
         getLog().info("");
         getLog().info("Active Recipes:");
-        for (RecipeDescriptor recipeDescriptor : activeRecipeDescriptors) {
+        for (RecipeDescriptor recipeDescriptor : activeRecipesSorted) {
             writeRecipeDescriptor(recipeDescriptor, detail, 0, 1);
         }
 
