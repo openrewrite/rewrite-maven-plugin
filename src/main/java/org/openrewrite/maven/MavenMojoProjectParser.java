@@ -494,6 +494,14 @@ public class MavenMojoProjectParser {
         if (pomPath.endsWith(".flattened-pom.xml")) {
             return mavenProject.getBasedir().toPath().resolve("pom.xml");
         }
+        // org.eclipse.tycho:tycho-packaging-plugin:update-consumer-pom produces a synthetic pom
+        if (pomPath.endsWith(".tycho-consumer-pom.xml")) {
+            Path normalPom = mavenProject.getBasedir().toPath().resolve("pom.xml");
+            // check for existence of the POM, since Tycho can work pom-less
+            if (Files.isReadable(normalPom) && Files.isRegularFile(normalPom)) {
+                return normalPom;
+            }
+        }
         return pomPath;
     }
 
