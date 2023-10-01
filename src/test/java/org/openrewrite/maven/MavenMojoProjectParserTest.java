@@ -1,22 +1,19 @@
 package org.openrewrite.maven;
 
-import it.unimi.dsi.fastutil.ints.IntSets;
-import org.apache.maven.execution.MavenSession;
 import org.apache.maven.plugin.logging.SystemStreamLog;
 import org.apache.maven.project.MavenProject;
 import org.apache.maven.rtinfo.internal.DefaultRuntimeInformation;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.io.TempDir;
 import org.openrewrite.java.marker.JavaVersion;
 import org.openrewrite.marker.Marker;
 
-import java.util.Collection;
+import java.nio.file.Path;
 import java.util.Collections;
 import java.util.List;
-import java.util.Set;
 
 import static org.assertj.core.api.Assertions.assertThat;
-import static org.junit.jupiter.api.Assertions.*;
 
 /**
  * @author Fabian Krüger
@@ -24,8 +21,8 @@ import static org.junit.jupiter.api.Assertions.*;
 class MavenMojoProjectParserTest {
     @Test
     @DisplayName("Given No Java version information exists in Maven Then java.specification.version should be used")
-    void givenNoJavaVersionInformationExistsInMavenThenJavaSpecificationVersionShouldBeUsed() {
-        MavenMojoProjectParser sut = new MavenMojoProjectParser(new SystemStreamLog(), null, false, null, new DefaultRuntimeInformation(), false, Collections.EMPTY_LIST, Collections.EMPTY_LIST, -1, null, null, false);
+    void givenNoJavaVersionInformationExistsInMavenThenJavaSpecificationVersionShouldBeUsed(@TempDir Path dir) {
+        MavenMojoProjectParser sut = new MavenMojoProjectParser(new SystemStreamLog(), dir, false, null, new DefaultRuntimeInformation(), false, Collections.EMPTY_LIST, Collections.EMPTY_LIST, -1, null, null, false);
         List<Marker> markers = sut.generateProvenance(new MavenProject());
         JavaVersion marker = markers.stream().filter(JavaVersion.class::isInstance).map(JavaVersion.class::cast).findFirst().get();
         assertThat(marker.getSourceCompatibility()).isEqualTo(System.getProperty("java.specification.version"));
