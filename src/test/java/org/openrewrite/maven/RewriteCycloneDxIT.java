@@ -78,7 +78,12 @@ class RewriteCycloneDxIT {
                 .withFile("b-1.0-cyclonedx.xml")
                 .exists();
 
-        assertThat(result).out().warn().isEmpty();
+        // ignore Maven POM cache warning, it may appear on some systems
+        // https://github.com/openrewrite/rewrite-maven-plugin/issues/636
+        assertThat(result).out().warn()
+                .filteredOn(warn -> !"Unable to initialize RocksdbMavenPomCache, falling back to InMemoryMavenPomCache"
+                        .equals(warn))
+                .isEmpty();
     }
 
     @MavenTest
