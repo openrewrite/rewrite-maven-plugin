@@ -4,7 +4,7 @@
 
     <groupId>org.openrewrite.maven</groupId>
     <artifactId>rewrite-maven-plugin</artifactId>
-    <version>5.8.0-SNAPSHOT</version>
+    <version>5.7.3</version>
     <name>rewrite-maven-plugin</name>
 
     <packaging>maven-plugin</packaging>
@@ -101,7 +101,7 @@
         <maven-dependencies.version>3.9.4</maven-dependencies.version>
         <maven-release-plugin.version>3.0.1</maven-release-plugin.version>
         <maven-plugin-tools.version>3.9.0</maven-plugin-tools.version>
-        <kotlin.version>1.8.10</kotlin.version>
+        <kotlin.version>1.9.0</kotlin.version>
     </properties>
 
     <dependencyManagement>
