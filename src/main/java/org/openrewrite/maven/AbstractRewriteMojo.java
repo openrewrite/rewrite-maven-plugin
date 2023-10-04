@@ -252,7 +252,7 @@ public abstract class AbstractRewriteMojo extends ConfigurableRewriteMojo {
         List<NamedStyles> styles = loadStyles(project, env);
 
         //Parse and collect source files from each project in the maven session.
-        MavenMojoProjectParser projectParser = new MavenMojoProjectParser(getLog(), repositoryRoot, pomCacheEnabled, pomCacheDirectory, runtime, skipMavenParsing, getExclusions(), getPlainTextMasks(), sizeThresholdMb, mavenSession, settingsDecrypter, runPerSubmodule);
+        MavenMojoProjectParser projectParser = new MavenMojoProjectParser(getLog(), repositoryRoot, pomCacheEnabled, pomCacheDirectory, runtime, skipMavenParsing, getExclusions(), getPlainTextMasks(), sizeThresholdMb, mavenSession, settingsDecrypter, runPerSubmodule, true);
 
         Stream<SourceFile> sourceFiles = projectParser.listSourceFiles(project, styles, ctx);
         List<SourceFile> sourceFileList = sourcesWithAutoDetectedStyles(sourceFiles);

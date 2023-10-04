@@ -109,9 +109,10 @@ public class MavenMojoProjectParser {
     private final MavenSession mavenSession;
     private final SettingsDecrypter settingsDecrypter;
     private final boolean runPerSubmodule;
+    private final boolean parseAdditionalResources;
 
     @SuppressWarnings("BooleanParameter")
-    public MavenMojoProjectParser(Log logger, Path baseDir, boolean pomCacheEnabled, @Nullable String pomCacheDirectory, RuntimeInformation runtime, boolean skipMavenParsing, Collection<String> exclusions, Collection<String> plainTextMasks, int sizeThresholdMb, MavenSession session, SettingsDecrypter settingsDecrypter, boolean runPerSubmodule) {
+    public MavenMojoProjectParser(Log logger, Path baseDir, boolean pomCacheEnabled, @Nullable String pomCacheDirectory, RuntimeInformation runtime, boolean skipMavenParsing, Collection<String> exclusions, Collection<String> plainTextMasks, int sizeThresholdMb, MavenSession session, SettingsDecrypter settingsDecrypter, boolean runPerSubmodule, boolean parseAdditionalResources) {
         this.logger = logger;
         this.baseDir = baseDir;
         this.pomCacheEnabled = pomCacheEnabled;
@@ -124,6 +125,7 @@ public class MavenMojoProjectParser {
         this.mavenSession = session;
         this.settingsDecrypter = settingsDecrypter;
         this.runPerSubmodule = runPerSubmodule;
+        this.parseAdditionalResources = parseAdditionalResources;
     }
 
     public Stream<SourceFile> listSourceFiles(MavenProject mavenProject, List<NamedStyles> styles,
@@ -184,12 +186,15 @@ public class MavenMojoProjectParser {
             }
             return sourceFile;
         }).filter(Objects::nonNull);
-        //Collect any additional files that were not parsed above.
-        int sourcesParsedBefore = alreadyParsed.size();
-        Stream<SourceFile> parsedResourceFiles = rp.parse(mavenProject.getBasedir().toPath(), alreadyParsed)
-                .map(addProvenance(baseDir, projectProvenance, null));
-        logDebug(mavenProject, "Parsed " + (alreadyParsed.size() - sourcesParsedBefore) + " additional files found within the project.");
-        sourceFiles = Stream.concat(sourceFiles, parsedResourceFiles);
+
+        // Collect any additional files that were not parsed above.
+        if (parseAdditionalResources) {
+            int sourcesParsedBefore = alreadyParsed.size();
+            Stream<SourceFile> parsedResourceFiles = rp.parse(mavenProject.getBasedir().toPath(), alreadyParsed)
+                    .map(addProvenance(baseDir, projectProvenance, null));
+            logDebug(mavenProject, "Parsed " + (alreadyParsed.size() - sourcesParsedBefore) + " additional files found within the project.");
+            sourceFiles = Stream.concat(sourceFiles, parsedResourceFiles);
+        }
 
         // log parse errors here at the end, so that we don't log parse errors for files that were excluded
         return sourceFiles.map(this::logParseErrors);
