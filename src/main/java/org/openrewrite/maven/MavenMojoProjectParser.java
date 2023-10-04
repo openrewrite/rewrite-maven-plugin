@@ -32,7 +32,6 @@ import org.apache.maven.settings.crypto.SettingsDecryptionResult;
 import org.codehaus.plexus.util.xml.Xpp3Dom;
 import org.jetbrains.annotations.NotNull;
 import org.openrewrite.ExecutionContext;
-import org.openrewrite.tree.ParseError;
 import org.openrewrite.SourceFile;
 import org.openrewrite.internal.StringUtils;
 import org.openrewrite.internal.lang.Nullable;
@@ -51,6 +50,7 @@ import org.openrewrite.maven.cache.RocksdbMavenPomCache;
 import org.openrewrite.maven.internal.RawRepositories;
 import org.openrewrite.maven.tree.ProfileActivation;
 import org.openrewrite.style.NamedStyles;
+import org.openrewrite.tree.ParseError;
 import org.openrewrite.tree.ParsingExecutionContextView;
 import org.openrewrite.xml.tree.Xml;
 
@@ -110,6 +110,12 @@ public class MavenMojoProjectParser {
     private final SettingsDecrypter settingsDecrypter;
     private final boolean runPerSubmodule;
     private final boolean parseAdditionalResources;
+
+    @Deprecated
+    @SuppressWarnings("BooleanParameter")
+    public MavenMojoProjectParser(Log logger, Path baseDir, boolean pomCacheEnabled, @Nullable String pomCacheDirectory, RuntimeInformation runtime, boolean skipMavenParsing, Collection<String> exclusions, Collection<String> plainTextMasks, int sizeThresholdMb, MavenSession session, SettingsDecrypter settingsDecrypter, boolean runPerSubmodule) {
+        this(logger, baseDir, pomCacheEnabled, pomCacheDirectory, runtime, skipMavenParsing, exclusions, plainTextMasks, sizeThresholdMb, session, settingsDecrypter, runPerSubmodule, false);
+    }
 
     @SuppressWarnings("BooleanParameter")
     public MavenMojoProjectParser(Log logger, Path baseDir, boolean pomCacheEnabled, @Nullable String pomCacheDirectory, RuntimeInformation runtime, boolean skipMavenParsing, Collection<String> exclusions, Collection<String> plainTextMasks, int sizeThresholdMb, MavenSession session, SettingsDecrypter settingsDecrypter, boolean runPerSubmodule, boolean parseAdditionalResources) {
@@ -204,7 +210,7 @@ public class MavenMojoProjectParser {
         if (source instanceof ParseError) {
             if (firstWarningLogged.compareAndSet(false, true)) {
                 logger.warn("There were problems parsing some source files" +
-                            (mavenSession.getRequest().isShowErrors() ? "" : ", run with --errors to see full stack traces"));
+                        (mavenSession.getRequest().isShowErrors() ? "" : ", run with --errors to see full stack traces"));
             }
             logger.warn("There were problems parsing " + source.getSourcePath());
         }
