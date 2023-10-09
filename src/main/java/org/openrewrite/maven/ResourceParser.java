@@ -55,11 +55,14 @@ public class ResourceParser {
      */
     private final JavaParser.Builder<? extends JavaParser, ?> javaParserBuilder;
 
+    private final KotlinParser.Builder kotlinParserBuilder;
+
     public ResourceParser(Path baseDir, Log logger, Collection<String> exclusions, Collection<String> plainTextMasks, int sizeThresholdMb, Collection<Path> excludedDirectories,
-                          JavaParser.Builder<? extends JavaParser, ?> javaParserBuilder) {
+                          JavaParser.Builder<? extends JavaParser, ?> javaParserBuilder, KotlinParser.Builder kotlinParserBuilder) {
         this.baseDir = baseDir;
         this.logger = logger;
         this.javaParserBuilder = javaParserBuilder;
+        this.kotlinParserBuilder = kotlinParserBuilder;
         this.exclusions = pathMatchers(baseDir, exclusions);
         this.sizeThresholdMb = sizeThresholdMb;
         this.excludedDirectories = excludedDirectories;

@@ -41,6 +41,7 @@ import org.openrewrite.java.marker.JavaProject;
 import org.openrewrite.java.marker.JavaSourceSet;
 import org.openrewrite.java.marker.JavaVersion;
 import org.openrewrite.java.tree.J;
+import org.openrewrite.kotlin.KotlinParser;
 import org.openrewrite.marker.*;
 import org.openrewrite.marker.ci.BuildEnvironment;
 import org.openrewrite.maven.cache.CompositeMavenPomCache;
@@ -54,6 +55,7 @@ import org.openrewrite.tree.ParseError;
 import org.openrewrite.tree.ParsingExecutionContextView;
 import org.openrewrite.xml.tree.Xml;
 
+import java.io.File;
 import java.io.IOException;
 import java.nio.charset.Charset;
 import java.nio.file.Files;
@@ -175,10 +177,14 @@ public class MavenMojoProjectParser {
         JavaParser.Builder<? extends JavaParser, ?> javaParserBuilder = JavaParser.fromJavaVersion()
                 .styles(styles)
                 .logCompilationWarningsAndErrors(false);
-        ResourceParser rp = new ResourceParser(baseDir, logger, exclusions, plainTextMasks, sizeThresholdMb, pathsToOtherMavenProjects(mavenProject), javaParserBuilder.clone());
 
-        sourceFiles = Stream.concat(sourceFiles, processMainSources(mavenProject, javaParserBuilder.clone(), rp, projectProvenance, alreadyParsed, ctx));
-        sourceFiles = Stream.concat(sourceFiles, processTestSources(mavenProject, javaParserBuilder.clone(), rp, projectProvenance, alreadyParsed, ctx));
+        // todo, add styles from autoDetect
+        KotlinParser.Builder kotlinParserBuilder = KotlinParser.builder();
+        ResourceParser rp = new ResourceParser(baseDir, logger, exclusions, plainTextMasks, sizeThresholdMb, pathsToOtherMavenProjects(mavenProject),
+                javaParserBuilder.clone(), kotlinParserBuilder.clone());
+
+        sourceFiles = Stream.concat(sourceFiles, processMainSources(mavenProject, javaParserBuilder.clone(), kotlinParserBuilder.clone(), rp, projectProvenance, alreadyParsed, ctx));
+        sourceFiles = Stream.concat(sourceFiles, processTestSources(mavenProject, javaParserBuilder.clone(), kotlinParserBuilder.clone(), rp, projectProvenance, alreadyParsed, ctx));
         Collection<PathMatcher> exclusionMatchers = exclusions.stream()
                 .map(pattern -> baseDir.getFileSystem().getPathMatcher("glob:" + pattern))
                 .collect(toList());
@@ -287,6 +293,7 @@ public class MavenMojoProjectParser {
     private Stream<SourceFile> processMainSources(
             MavenProject mavenProject,
             JavaParser.Builder<? extends JavaParser, ?> javaParserBuilder,
+            KotlinParser.Builder kotlinParserBuilder,
             ResourceParser resourceParser,
             List<Marker> projectProvenance,
             Set<Path> alreadyParsed,
@@ -302,18 +309,27 @@ public class MavenMojoProjectParser {
 
         alreadyParsed.addAll(mainJavaSources);
 
+        // scan Kotlin files
+        String kotlinSourceDir = getKotlinDirectory(mavenProject.getBuild().getSourceDirectory());
+        List<Path> mainKotlinSources = (kotlinSourceDir != null) ? listKotlinSources(mavenProject.getBasedir().toPath().resolve(kotlinSourceDir)) : Collections.emptyList();
+        alreadyParsed.addAll(mainKotlinSources);
+
         logInfo(mavenProject, "Parsing source files");
         List<Path> dependencies = mavenProject.getCompileClasspathElements().stream()
                 .distinct()
                 .map(Paths::get)
                 .collect(toList());
-        javaParserBuilder.classpath(dependencies);
         JavaTypeCache typeCache = new JavaTypeCache();
-        javaParserBuilder.typeCache(typeCache);
+        javaParserBuilder.classpath(dependencies).typeCache(typeCache);
+        kotlinParserBuilder.classpath(dependencies).typeCache(new JavaTypeCache());
 
         Stream<? extends SourceFile> cus = Stream.of(javaParserBuilder)
                 .map(JavaParser.Builder::build)
                 .flatMap(parser -> parser.parse(mainJavaSources, baseDir, ctx));
+
+        Stream<? extends SourceFile> kcus = Stream.of(kotlinParserBuilder)
+                .map(KotlinParser.Builder::build)
+                .flatMap(parser -> parser.parse(mainKotlinSources, baseDir, ctx));
 
         List<Marker> mainProjectProvenance = new ArrayList<>(projectProvenance);
         mainProjectProvenance.add(sourceSet("main", dependencies, typeCache));
@@ -321,10 +337,13 @@ public class MavenMojoProjectParser {
         Stream<SourceFile> parsedJava = cus.map(addProvenance(baseDir, mainProjectProvenance, generatedSourcePaths));
         logDebug(mavenProject, "Scanned " + mainJavaSources.size() + " java source files in main scope.");
 
+        Stream<SourceFile> parsedKotlin = kcus.map(addProvenance(baseDir, mainProjectProvenance, generatedSourcePaths));
+        logDebug(mavenProject, "Scanned " + mainKotlinSources.size() + " kotlin source files in main scope.");
+
         //Filter out any generated source files from the returned list, as we do not want to apply the recipe to the
         //generated files.
         Path buildDirectory = baseDir.relativize(Paths.get(mavenProject.getBuild().getDirectory()));
-        Stream<SourceFile> sourceFiles = parsedJava.filter(s -> !s.getSourcePath().startsWith(buildDirectory));
+        Stream<SourceFile> sourceFiles = Stream.concat(parsedJava, parsedKotlin).filter(s -> !s.getSourcePath().startsWith(buildDirectory));
 
         int sourcesParsedBefore = alreadyParsed.size();
         Stream<SourceFile> parsedResourceFiles = resourceParser.parse(mavenProject.getBasedir().toPath().resolve("src/main/resources"), alreadyParsed)
@@ -339,6 +358,7 @@ public class MavenMojoProjectParser {
     private Stream<SourceFile> processTestSources(
             MavenProject mavenProject,
             JavaParser.Builder<? extends JavaParser, ?> javaParserBuilder,
+            KotlinParser.Builder kotlinParserBuilder,
             ResourceParser resourceParser,
             List<Marker> projectProvenance,
             Set<Path> alreadyParsed,
@@ -349,24 +369,37 @@ public class MavenMojoProjectParser {
                 .map(Paths::get)
                 .collect(toList());
 
-        javaParserBuilder.classpath(testDependencies);
         JavaTypeCache typeCache = new JavaTypeCache();
-        javaParserBuilder.typeCache(typeCache);
+        javaParserBuilder.classpath(testDependencies).typeCache(typeCache);
+        kotlinParserBuilder.classpath(testDependencies).typeCache(new JavaTypeCache());
 
         List<Path> testJavaSources = listJavaSources(mavenProject.getBasedir().toPath().resolve(mavenProject.getBuild().getTestSourceDirectory()));
         alreadyParsed.addAll(testJavaSources);
+
+        // scan Kotlin files
+        String kotlinSourceDir = getKotlinDirectory(mavenProject.getBuild().getSourceDirectory());
+        List<Path> mainKotlinSources = (kotlinSourceDir != null) ? listKotlinSources(mavenProject.getBasedir().toPath().resolve(kotlinSourceDir)) : Collections.emptyList();
+
+        alreadyParsed.addAll(mainKotlinSources);
 
         Stream<? extends SourceFile> cus = Stream.of(javaParserBuilder)
                 .map(JavaParser.Builder::build)
                 .flatMap(parser -> parser.parse(testJavaSources, baseDir, ctx));
 
+        Stream<? extends SourceFile> kcus = Stream.of(kotlinParserBuilder)
+                .map(KotlinParser.Builder::build)
+                .flatMap(parser -> parser.parse(mainKotlinSources, baseDir, ctx));
+
         List<Marker> markers = new ArrayList<>(projectProvenance);
         markers.add(sourceSet("test", testDependencies, typeCache));
 
         Stream<SourceFile> parsedJava = cus.map(addProvenance(baseDir, markers, null));
-
         logDebug(mavenProject, "Scanned " + testJavaSources.size() + " java source files in test scope.");
-        Stream<SourceFile> sourceFiles = parsedJava;
+
+        Stream<SourceFile> parsedKotlin = kcus.map(addProvenance(baseDir, markers, null));
+        logDebug(mavenProject, "Scanned " + mainKotlinSources.size() + " kotlin source files in main scope.");
+
+        Stream<SourceFile> sourceFiles = Stream.concat(parsedJava, parsedKotlin);
 
         // Any resources parsed from "test/resources" should also have the test source set added to them.
         int sourcesParsedBefore = alreadyParsed.size();
@@ -375,6 +408,28 @@ public class MavenMojoProjectParser {
         logDebug(mavenProject, "Scanned " + (alreadyParsed.size() - sourcesParsedBefore) + " resource files in test scope.");
         sourceFiles = Stream.concat(sourceFiles, parsedResourceFiles);
         return sourceFiles;
+    }
+
+    @Nullable
+    private String getKotlinDirectory(@Nullable String sourceDirectory) {
+        if (sourceDirectory == null) {
+            return null;
+        }
+
+        File directory = new File(sourceDirectory);
+        File parentDirectory = directory.getParentFile();
+        if (parentDirectory != null) {
+            File[] subdirectories = parentDirectory.listFiles(File::isDirectory);
+            if (subdirectories != null) {
+                for (File subdirectory : subdirectories) {
+                    if (subdirectory.getName().equals("kotlin")) {
+                        return subdirectory.getAbsolutePath();
+                    }
+                }
+            }
+        }
+
+        return null;
     }
 
     @NotNull
@@ -641,14 +696,22 @@ public class MavenMojoProjectParser {
     }
 
     private static List<Path> listJavaSources(Path sourceDirectory) throws MojoExecutionException {
+        return listSources(sourceDirectory, ".java");
+    }
+
+    private static List<Path> listKotlinSources(Path sourceDirectory) throws MojoExecutionException {
+        return listSources(sourceDirectory, ".kt");
+    }
+
+    private static List<Path> listSources(Path sourceDirectory, String extension) throws MojoExecutionException {
         if (!Files.exists(sourceDirectory)) {
             return emptyList();
         }
 
-        try (Stream<Path> files = Files.find(sourceDirectory, 16, (f, a) -> !a.isDirectory() && f.toString().endsWith(".java"))) {
+        try (Stream<Path> files = Files.find(sourceDirectory, 16, (f, a) -> !a.isDirectory() && f.toString().endsWith(extension))) {
             return files.collect(toList());
         } catch (IOException e) {
-            throw new MojoExecutionException("Unable to list Java source files", e);
+            throw new MojoExecutionException("Unable to list source files of " + extension, e);
         }
     }
 
