@@ -378,9 +378,9 @@ public class MavenMojoProjectParser {
 
         // scan Kotlin files
         String kotlinSourceDir = getKotlinDirectory(mavenProject.getBuild().getSourceDirectory());
-        List<Path> mainKotlinSources = (kotlinSourceDir != null) ? listKotlinSources(mavenProject.getBasedir().toPath().resolve(kotlinSourceDir)) : Collections.emptyList();
+        List<Path> testKotlinSources = (kotlinSourceDir != null) ? listKotlinSources(mavenProject.getBasedir().toPath().resolve(kotlinSourceDir)) : Collections.emptyList();
 
-        alreadyParsed.addAll(mainKotlinSources);
+        alreadyParsed.addAll(testKotlinSources);
 
         Stream<? extends SourceFile> cus = Stream.of(javaParserBuilder)
                 .map(JavaParser.Builder::build)
@@ -388,7 +388,7 @@ public class MavenMojoProjectParser {
 
         Stream<? extends SourceFile> kcus = Stream.of(kotlinParserBuilder)
                 .map(KotlinParser.Builder::build)
-                .flatMap(parser -> parser.parse(mainKotlinSources, baseDir, ctx));
+                .flatMap(parser -> parser.parse(testKotlinSources, baseDir, ctx));
 
         List<Marker> markers = new ArrayList<>(projectProvenance);
         markers.add(sourceSet("test", testDependencies, typeCache));
@@ -397,7 +397,7 @@ public class MavenMojoProjectParser {
         logDebug(mavenProject, "Scanned " + testJavaSources.size() + " java source files in test scope.");
 
         Stream<SourceFile> parsedKotlin = kcus.map(addProvenance(baseDir, markers, null));
-        logDebug(mavenProject, "Scanned " + mainKotlinSources.size() + " kotlin source files in main scope.");
+        logDebug(mavenProject, "Scanned " + testKotlinSources.size() + " kotlin source files in main scope.");
 
         Stream<SourceFile> sourceFiles = Stream.concat(parsedJava, parsedKotlin);
 
