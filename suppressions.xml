@@ -16,20 +16,13 @@
         <packageUrl regex="true">^pkg:maven/io\.micrometer\.prometheus/prometheus\-rsocket\-client@.*$</packageUrl>
         <cve>CVE-2019-3826</cve>
     </suppress>
-    <suppress until="2023-10-06Z">
+    <suppress until="2023-12-13Z">
         <notes><![CDATA[
             file name: guava-31.1-jre.jar
             Reverted in https://github.com/openrewrite/rewrite-python/commit/f487df7dabb8588ae2edb17e31ff7b8ba3ffc133 because Guava 32 introduces gradle module metadata which causes downstream breakage in build plugins.
         ]]></notes>
         <packageUrl regex="true">^pkg:maven/com\.google\.guava/guava@31.1-jre$</packageUrl>
         <cve>CVE-2023-2976</cve>
-    </suppress>
-    <suppress until="2023-10-06Z">
-        <notes><![CDATA[
-            file name: guava-31.1-jre.jar
-            Reverted in https://github.com/openrewrite/rewrite-python/commit/f487df7dabb8588ae2edb17e31ff7b8ba3ffc133 because Guava 32 introduces gradle module metadata which causes downstream breakage in build plugins.
-        ]]></notes>
-        <packageUrl regex="true">^pkg:maven/com\.google\.guava/guava@.*$</packageUrl>
         <cve>CVE-2020-8908</cve>
     </suppress>
     <suppress until="2023-10-27Z">
@@ -93,5 +86,12 @@
         <packageUrl regex="true">^pkg:maven/org\.codehaus\.plexus/plexus\-sec\-dispatcher@.*$</packageUrl>
         <cve>CVE-2022-4244</cve>
         <cve>CVE-2022-4245</cve>
+    </suppress>
+    <suppress until="2024-12-13Z">
+        <notes><![CDATA[
+        file name: netty-transport-4.1.94.Final.jar
+        ]]></notes>
+        <packageUrl regex="true">^pkg:maven/io\.netty/netty\-transport@.*$</packageUrl>
+        <cve>CVE-2023-4586</cve>
     </suppress>
 </suppressions>
