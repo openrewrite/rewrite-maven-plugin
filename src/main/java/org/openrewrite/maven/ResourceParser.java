@@ -22,6 +22,7 @@ import org.openrewrite.SourceFile;
 import org.openrewrite.hcl.HclParser;
 import org.openrewrite.java.JavaParser;
 import org.openrewrite.json.JsonParser;
+import org.openrewrite.kotlin.KotlinParser;
 import org.openrewrite.properties.PropertiesParser;
 import org.openrewrite.protobuf.ProtoParser;
 import org.openrewrite.python.PythonParser;
@@ -54,11 +55,14 @@ public class ResourceParser {
      */
     private final JavaParser.Builder<? extends JavaParser, ?> javaParserBuilder;
 
+    private final KotlinParser.Builder kotlinParserBuilder;
+
     public ResourceParser(Path baseDir, Log logger, Collection<String> exclusions, Collection<String> plainTextMasks, int sizeThresholdMb, Collection<Path> excludedDirectories,
-                          JavaParser.Builder<? extends JavaParser, ?> javaParserBuilder) {
+                          JavaParser.Builder<? extends JavaParser, ?> javaParserBuilder, KotlinParser.Builder kotlinParserBuilder) {
         this.baseDir = baseDir;
         this.logger = logger;
         this.javaParserBuilder = javaParserBuilder;
+        this.kotlinParserBuilder = kotlinParserBuilder;
         this.exclusions = pathMatchers(baseDir, exclusions);
         this.sizeThresholdMb = sizeThresholdMb;
         this.excludedDirectories = excludedDirectories;
@@ -148,6 +152,9 @@ public class ResourceParser {
         PythonParser pythonParser = PythonParser.builder().build();
         List<Path> pythonPaths = new ArrayList<>();
 
+        KotlinParser kotlinParser = KotlinParser.builder().build();
+        List<Path> kotlinPaths = new ArrayList<>();
+
         HclParser hclParser = HclParser.builder().build();
         List<Path> hclPaths = new ArrayList<>();
 
@@ -172,6 +179,8 @@ public class ResourceParser {
                 protoPaths.add(path);
             } else if (pythonParser.accept(path)) {
                 pythonPaths.add(path);
+            } else if (kotlinParser.accept(path)) {
+                kotlinPaths.add(path);
             } else if (hclParser.accept(path)) {
                 hclPaths.add(path);
             } else if (quarkParser.accept(path)) {
@@ -212,6 +221,11 @@ public class ResourceParser {
         if (!pythonPaths.isEmpty()) {
             sourceFiles = Stream.concat(sourceFiles, (Stream<S>) pythonParser.parse(pythonPaths, baseDir, ctx));
             alreadyParsed.addAll(pythonPaths);
+        }
+
+        if (!kotlinPaths.isEmpty()) {
+            sourceFiles = Stream.concat(sourceFiles, (Stream<S>) kotlinParser.parse(kotlinPaths, baseDir, ctx));
+            alreadyParsed.addAll(kotlinPaths);
         }
 
         if (!hclPaths.isEmpty()) {
