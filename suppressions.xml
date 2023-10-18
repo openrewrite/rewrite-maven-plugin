@@ -93,5 +93,6 @@
         ]]></notes>
         <packageUrl regex="true">^pkg:maven/io\.netty/netty\-transport@.*$</packageUrl>
         <cve>CVE-2023-4586</cve>
+        <cve>CVE-2023-44487</cve>
     </suppress>
 </suppressions>
