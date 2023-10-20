@@ -16,7 +16,7 @@ This `README` may not have the most up-to-date documentation. For the most up-to
 
 - [Auto-generated maven plugin documentation](https://openrewrite.github.io/rewrite-maven-plugin/plugin-info.html)
 - [Maven Plugin Configuration](https://docs.openrewrite.org/reference/rewrite-maven-plugin)
-- [OpenRewrite Quickstart Guide](https://docs.openrewrite.org/getting-started/getting-started)
+- [OpenRewrite Quickstart Guide](https://docs.openrewrite.org/running-recipes/getting-started)
 
 To configure, add the plugin to your POM:
 
