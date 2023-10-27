@@ -31,6 +31,7 @@ import org.openrewrite.text.PlainTextParser;
 import org.openrewrite.xml.XmlParser;
 import org.openrewrite.yaml.YamlParser;
 
+import java.io.File;
 import java.io.IOException;
 import java.io.UncheckedIOException;
 import java.nio.file.*;
@@ -251,12 +252,15 @@ public class ResourceParser {
     }
 
     private boolean isExcluded(Path path) {
-        if (!exclusions.isEmpty()) {
-            for (PathMatcher excluded : exclusions) {
-                if (excluded.matches(baseDir.relativize(path))) {
-                    return true;
-                }
+        for (PathMatcher excluded : exclusions) {
+            if (excluded.matches(path)) {
+                return true;
             }
+        }
+        // PathMather will not evaluate the path "pom.xml" to be matched by the pattern "**/pom.xml"
+        // This is counter-intuitive for most users and would otherwise require separate exclusions for files at the root and files in subdirectories
+        if(!path.isAbsolute() && !path.startsWith(File.separator)) {
+            return isExcluded(Paths.get("/" + path));
         }
         return false;
     }
