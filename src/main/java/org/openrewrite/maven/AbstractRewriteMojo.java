@@ -59,6 +59,7 @@ import static java.util.Collections.emptyList;
 import static java.util.stream.Collectors.joining;
 import static java.util.stream.Collectors.toList;
 
+@SuppressWarnings("NotNullFieldNotInitialized")
 public abstract class AbstractRewriteMojo extends ConfigurableRewriteMojo {
 
     @Parameter(defaultValue = "${project}", readonly = true, required = true)
@@ -98,7 +99,6 @@ public abstract class AbstractRewriteMojo extends ConfigurableRewriteMojo {
             URI uri = new URI(configLocation);
             if (uri.getScheme() != null && uri.getScheme().startsWith("http")) {
                 HttpSender httpSender = new HttpUrlConnectionSender();
-                //noinspection resource
                 return new Config(httpSender.get(configLocation).send().getBody(), uri);
             }
         } catch (URISyntaxException e) {
