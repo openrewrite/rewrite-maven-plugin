@@ -473,9 +473,9 @@ public class MavenMojoProjectParser {
             mavenParserBuilder.activeProfiles(activeProfiles.toArray(new String[]{}));
         }
 
-        List<SourceFile> mavens = mavenParserBuilder
-                .build()
-                .parse(allPoms, baseDir, ctx).collect(toList());
+        List<SourceFile> mavens = mavenParserBuilder.build()
+                .parse(allPoms, baseDir, ctx)
+                .collect(toList());
 
         if (logger.isDebugEnabled()) {
             logDebug(topLevelProject, "Base directory : '" + baseDir + "'");
@@ -501,7 +501,11 @@ public class MavenMojoProjectParser {
             Path path = baseDir.resolve(document.getSourcePath());
             MavenProject mavenProject = projectsByPath.get(path);
             if (mavenProject != null) {
-                projectMap.put(mavenProject, (Xml.Document) document);
+                if (document instanceof Xml.Document) {
+                    projectMap.put(mavenProject, (Xml.Document) document);
+                } else if (document instanceof ParseError) {
+                    logError(mavenProject, "Parse error in Maven Project File '" + path + "': "+ document);
+                }
             }
         }
         for (MavenProject mavenProject : mavenProjects) {
