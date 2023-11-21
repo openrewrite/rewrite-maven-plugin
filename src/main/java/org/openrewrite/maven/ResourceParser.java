@@ -19,6 +19,7 @@ import org.apache.maven.plugin.logging.Log;
 import org.openrewrite.ExecutionContext;
 import org.openrewrite.InMemoryExecutionContext;
 import org.openrewrite.SourceFile;
+import org.openrewrite.groovy.GroovyParser;
 import org.openrewrite.hcl.HclParser;
 import org.openrewrite.java.JavaParser;
 import org.openrewrite.json.JsonParser;
@@ -156,6 +157,9 @@ public class ResourceParser {
         KotlinParser kotlinParser = KotlinParser.builder().build();
         List<Path> kotlinPaths = new ArrayList<>();
 
+        GroovyParser groovyParser = GroovyParser.builder().build();
+        List<Path> groovyPaths = new ArrayList<>();
+
         HclParser hclParser = HclParser.builder().build();
         List<Path> hclPaths = new ArrayList<>();
 
@@ -182,6 +186,8 @@ public class ResourceParser {
                 pythonPaths.add(path);
             } else if (kotlinParser.accept(path)) {
                 kotlinPaths.add(path);
+            } else if (groovyParser.accept(path)) {
+                groovyPaths.add(path);
             } else if (hclParser.accept(path)) {
                 hclPaths.add(path);
             } else if (quarkParser.accept(path)) {
@@ -227,6 +233,11 @@ public class ResourceParser {
         if (!kotlinPaths.isEmpty()) {
             sourceFiles = Stream.concat(sourceFiles, (Stream<S>) kotlinParser.parse(kotlinPaths, baseDir, ctx));
             alreadyParsed.addAll(kotlinPaths);
+        }
+
+        if (!groovyPaths.isEmpty()) {
+            sourceFiles = Stream.concat(sourceFiles, (Stream<S>) groovyParser.parse(groovyPaths, baseDir, ctx));
+            alreadyParsed.addAll(groovyPaths);
         }
 
         if (!hclPaths.isEmpty()) {
