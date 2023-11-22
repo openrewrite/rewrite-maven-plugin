@@ -113,4 +113,11 @@
         <cve>CVE-2023-4586</cve>
         <cve>CVE-2023-44487</cve>
     </suppress>
+    <suppress until="2024-12-13Z">
+        <notes><![CDATA[
+        file name: reactor-netty-core-1.0.32.jar
+        ]]></notes>
+        <packageUrl regex="true">^pkg:maven/io\.projectreactor\.netty/reactor\-netty\-core@.*$</packageUrl>
+        <cve>CVE-2023-34062</cve>
+    </suppress>
 </suppressions>
