@@ -323,13 +323,13 @@ public class MavenMojoProjectParser {
         javaParserBuilder.classpath(dependencies).typeCache(typeCache);
         kotlinParserBuilder.classpath(dependencies).typeCache(new JavaTypeCache());
 
-        Stream<? extends SourceFile> cus = Stream.of(javaParserBuilder)
-                .map(JavaParser.Builder::build)
-                .flatMap(parser -> parser.parse(mainJavaSources, baseDir, ctx));
+        Stream<? extends SourceFile> cus = mainJavaSources.isEmpty() ? Stream.empty()
+                : Stream.of(javaParserBuilder).map(JavaParser.Builder::build)
+                        .flatMap(parser -> parser.parse(mainJavaSources, baseDir, ctx));
 
-        Stream<? extends SourceFile> kcus = Stream.of(kotlinParserBuilder)
-                .map(KotlinParser.Builder::build)
-                .flatMap(parser -> parser.parse(mainKotlinSources, baseDir, ctx));
+        Stream<? extends SourceFile> kcus = mainKotlinSources.isEmpty() ? Stream.empty()
+                : Stream.of(kotlinParserBuilder).map(KotlinParser.Builder::build)
+                        .flatMap(parser -> parser.parse(mainKotlinSources, baseDir, ctx));
 
         List<Marker> mainProjectProvenance = new ArrayList<>(projectProvenance);
         mainProjectProvenance.add(sourceSet("main", dependencies, typeCache));
@@ -382,13 +382,13 @@ public class MavenMojoProjectParser {
 
         alreadyParsed.addAll(testKotlinSources);
 
-        Stream<? extends SourceFile> cus = Stream.of(javaParserBuilder)
-                .map(JavaParser.Builder::build)
-                .flatMap(parser -> parser.parse(testJavaSources, baseDir, ctx));
+        Stream<? extends SourceFile> cus = testJavaSources.isEmpty() ? Stream.empty()
+                : Stream.of(javaParserBuilder).map(JavaParser.Builder::build)
+                        .flatMap(parser -> parser.parse(testJavaSources, baseDir, ctx));
 
-        Stream<? extends SourceFile> kcus = Stream.of(kotlinParserBuilder)
-                .map(KotlinParser.Builder::build)
-                .flatMap(parser -> parser.parse(testKotlinSources, baseDir, ctx));
+        Stream<? extends SourceFile> kcus = testKotlinSources.isEmpty() ? Stream.empty()
+                : Stream.of(kotlinParserBuilder).map(KotlinParser.Builder::build)
+                        .flatMap(parser -> parser.parse(testKotlinSources, baseDir, ctx));
 
         List<Marker> markers = new ArrayList<>(projectProvenance);
         markers.add(sourceSet("test", testDependencies, typeCache));
