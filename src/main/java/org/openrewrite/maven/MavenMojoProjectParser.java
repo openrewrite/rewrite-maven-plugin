@@ -323,36 +323,34 @@ public class MavenMojoProjectParser {
         javaParserBuilder.classpath(dependencies).typeCache(typeCache);
         kotlinParserBuilder.classpath(dependencies).typeCache(new JavaTypeCache());
 
-        Stream<? extends SourceFile> cus = mainJavaSources.isEmpty() ? Stream.empty()
-                : Stream.of(javaParserBuilder).map(JavaParser.Builder::build)
-                        .flatMap(parser -> parser.parse(mainJavaSources, baseDir, ctx));
+        Stream<SourceFile> parsedJava = Stream.empty();
+        if (!mainJavaSources.isEmpty()) {
+            parsedJava = javaParserBuilder.build().parse(mainJavaSources, baseDir, ctx);
+            logDebug(mavenProject, "Scanned " + mainJavaSources.size() + " java source files in main scope.");
+        }
 
-        Stream<? extends SourceFile> kcus = mainKotlinSources.isEmpty() ? Stream.empty()
-                : Stream.of(kotlinParserBuilder).map(KotlinParser.Builder::build)
-                        .flatMap(parser -> parser.parse(mainKotlinSources, baseDir, ctx));
+        Stream<SourceFile> parsedKotlin = Stream.empty();
+        if (!mainKotlinSources.isEmpty()) {
+            parsedKotlin = kotlinParserBuilder.build().parse(mainKotlinSources, baseDir, ctx);
+            logDebug(mavenProject, "Scanned " + mainKotlinSources.size() + " kotlin source files in main scope.");
+        }
 
         List<Marker> mainProjectProvenance = new ArrayList<>(projectProvenance);
         mainProjectProvenance.add(sourceSet("main", dependencies, typeCache));
 
-        Stream<SourceFile> parsedJava = cus.map(addProvenance(baseDir, mainProjectProvenance, generatedSourcePaths));
-        logDebug(mavenProject, "Scanned " + mainJavaSources.size() + " java source files in main scope.");
-
-        Stream<SourceFile> parsedKotlin = kcus.map(addProvenance(baseDir, mainProjectProvenance, generatedSourcePaths));
-        logDebug(mavenProject, "Scanned " + mainKotlinSources.size() + " kotlin source files in main scope.");
-
         //Filter out any generated source files from the returned list, as we do not want to apply the recipe to the
         //generated files.
         Path buildDirectory = baseDir.relativize(Paths.get(mavenProject.getBuild().getDirectory()));
-        Stream<SourceFile> sourceFiles = Stream.concat(parsedJava, parsedKotlin).filter(s -> !s.getSourcePath().startsWith(buildDirectory));
+        Stream<SourceFile> sourceFiles = Stream.concat(parsedJava, parsedKotlin)
+                .filter(s -> !s.getSourcePath().startsWith(buildDirectory))
+                .map(addProvenance(baseDir, mainProjectProvenance, generatedSourcePaths));
 
+        // Any resources parsed from "main/resources" should also have the main source set added to them.
         int sourcesParsedBefore = alreadyParsed.size();
         Stream<SourceFile> parsedResourceFiles = resourceParser.parse(mavenProject.getBasedir().toPath().resolve("src/main/resources"), alreadyParsed)
                 .map(addProvenance(baseDir, mainProjectProvenance, null));
-
         logDebug(mavenProject, "Scanned " + (alreadyParsed.size() - sourcesParsedBefore) + " resource files in main scope.");
-        // Any resources parsed from "main/resources" should also have the main source set added to them.
-        sourceFiles = Stream.concat(sourceFiles, parsedResourceFiles);
-        return sourceFiles;
+        return Stream.concat(sourceFiles, parsedResourceFiles);
     }
 
     private Stream<SourceFile> processTestSources(
@@ -379,35 +377,29 @@ public class MavenMojoProjectParser {
         // scan Kotlin files
         String kotlinSourceDir = getKotlinDirectory(mavenProject.getBuild().getSourceDirectory());
         List<Path> testKotlinSources = (kotlinSourceDir != null) ? listKotlinSources(mavenProject.getBasedir().toPath().resolve(kotlinSourceDir)) : Collections.emptyList();
-
         alreadyParsed.addAll(testKotlinSources);
 
-        Stream<? extends SourceFile> cus = testJavaSources.isEmpty() ? Stream.empty()
-                : Stream.of(javaParserBuilder).map(JavaParser.Builder::build)
-                        .flatMap(parser -> parser.parse(testJavaSources, baseDir, ctx));
+        Stream<SourceFile> parsedJava = Stream.empty();
+        if (!testJavaSources.isEmpty()) {
+            parsedJava = javaParserBuilder.build().parse(testJavaSources, baseDir, ctx);
+            logDebug(mavenProject, "Scanned " + testJavaSources.size() + " java source files in test scope.");
+        }
 
-        Stream<? extends SourceFile> kcus = testKotlinSources.isEmpty() ? Stream.empty()
-                : Stream.of(kotlinParserBuilder).map(KotlinParser.Builder::build)
-                        .flatMap(parser -> parser.parse(testKotlinSources, baseDir, ctx));
+        Stream<SourceFile> parsedKotlin = Stream.empty();
+        if (!testKotlinSources.isEmpty()) {
+            parsedKotlin = kotlinParserBuilder.build().parse(testKotlinSources, baseDir, ctx);
+            logDebug(mavenProject, "Scanned " + testKotlinSources.size() + " kotlin source files in main scope.");
+        }
 
         List<Marker> markers = new ArrayList<>(projectProvenance);
         markers.add(sourceSet("test", testDependencies, typeCache));
 
-        Stream<SourceFile> parsedJava = cus.map(addProvenance(baseDir, markers, null));
-        logDebug(mavenProject, "Scanned " + testJavaSources.size() + " java source files in test scope.");
-
-        Stream<SourceFile> parsedKotlin = kcus.map(addProvenance(baseDir, markers, null));
-        logDebug(mavenProject, "Scanned " + testKotlinSources.size() + " kotlin source files in main scope.");
-
-        Stream<SourceFile> sourceFiles = Stream.concat(parsedJava, parsedKotlin);
-
         // Any resources parsed from "test/resources" should also have the test source set added to them.
         int sourcesParsedBefore = alreadyParsed.size();
-        Stream<SourceFile> parsedResourceFiles = resourceParser.parse(mavenProject.getBasedir().toPath().resolve("src/test/resources"), alreadyParsed)
-                .map(addProvenance(baseDir, markers, null));
+        Stream<SourceFile> parsedResourceFiles = resourceParser.parse(mavenProject.getBasedir().toPath().resolve("src/test/resources"), alreadyParsed);
         logDebug(mavenProject, "Scanned " + (alreadyParsed.size() - sourcesParsedBefore) + " resource files in test scope.");
-        sourceFiles = Stream.concat(sourceFiles, parsedResourceFiles);
-        return sourceFiles;
+        return Stream.concat(Stream.concat(parsedJava, parsedKotlin), parsedResourceFiles)
+                .map(addProvenance(baseDir, markers, null));
     }
 
     @Nullable
@@ -504,7 +496,7 @@ public class MavenMojoProjectParser {
                 if (document instanceof Xml.Document) {
                     projectMap.put(mavenProject, (Xml.Document) document);
                 } else if (document instanceof ParseError) {
-                    logError(mavenProject, "Parse error in Maven Project File '" + path + "': "+ document);
+                    logError(mavenProject, "Parse error in Maven Project File '" + path + "': " + document);
                 }
             }
         }
