@@ -119,24 +119,32 @@ public abstract class ConfigurableRewriteMojo extends AbstractMojo {
         if (plainTextMasks.isEmpty() && rewritePlainTextMasks == null) {
             //If not defined, use a default set of masks
             return new HashSet<>(Arrays.asList(
-                    "**/META-INF/services/**",
-                    "**/META-INF/spring.factories",
-                    "**/META-INF/spring/**",
+                    "**/*.adoc",
                     "**/*.bash",
                     "**/*.bat",
                     "**/CODEOWNERS",
+                    "**/*.css",
                     "**/*.config",
-                    "**/Dockerfile",
+                    "**/Dockerfile*",
                     "**/.gitattributes",
                     "**/.gitignore",
+                    "**/*.htm*",
+                    "**/gradlew",
                     "**/.java-version",
                     "**/*.jsp",
                     "**/*.ksh",
+                    "**/lombok.config",
                     "**/*.md",
+                    "**/*.mf",
+                    "**/META-INF/services/**",
+                    "**/META-INF/spring/**",
+                    "**/META-INF/spring.factories",
+                    "**/mvnw",
                     "**/*.qute.java",
                     "**/.sdkmanrc",
                     "**/*.sh",
                     "**/*.sql",
+                    "**/*.svg",
                     "**/*.txt"
             ));
         } else {
