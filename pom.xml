@@ -459,6 +459,7 @@
                     <compilerArgs>
                         <arg>-Xlint:deprecation</arg>
                         <arg>-Xlint:unchecked</arg>
+                        <arg>-proc:full</arg>
                     </compilerArgs>
                     <source>${java.version}</source>
                     <target>${java.version}</target>
