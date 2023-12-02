@@ -1,0 +1,29 @@
+---
+name: bump-snapshots
+
+on:
+  workflow_dispatch: {}
+
+jobs:
+  bump-snapshots:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+      - uses: actions/setup-java@v3
+        with:
+          distribution: temurin
+          java-version: 17
+          cache: maven
+          server-id: ossrh
+          settings-path: ${{ github.workspace }}
+      - name: configure-git-user
+        run: |
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git config user.name "github-actions[bot]"
+
+      - name: bump-rewrite-properties-to-snapshots
+        run: |
+          ./mvnw versions:update-properties -DincludeProperties=rewrite.version,rewrite.python.version,rewrite.kotlin.version -DallowSnapshots=true
+          git diff-index --quiet HEAD pom.xml || git commit -m "Bump rewrite.version properties" pom.xml && git push origin main && rm -f pom.xml.versionsBackup
