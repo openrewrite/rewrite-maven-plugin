@@ -206,6 +206,17 @@ public class MavenMojoProjectParser {
                     .map(addProvenance(baseDir, projectProvenance, null));
             logDebug(mavenProject, "Parsed " + (alreadyParsed.size() - sourcesParsedBefore) + " additional files found within the project.");
             sourceFiles = Stream.concat(sourceFiles, parsedResourceFiles);
+        } else {
+            // Only parse Maven wrapper files, such that UpdateMavenWrapper can use the version information.
+            int sourcesParsedBefore = alreadyParsed.size();
+            Stream<SourceFile> parsedResourceFiles = Stream.concat(
+                            rp.parse(mavenProject.getBasedir().toPath().resolve(".mvn/wrapper"), alreadyParsed),
+                            Stream.concat(
+                                    rp.parse(mavenProject.getBasedir().toPath().resolve("mvnw"), alreadyParsed),
+                                    rp.parse(mavenProject.getBasedir().toPath().resolve("mvnw.cmd"), alreadyParsed)))
+                    .map(addProvenance(baseDir, projectProvenance, null));
+            logDebug(mavenProject, "Parsed " + (alreadyParsed.size() - sourcesParsedBefore) + " Maven wrapper files found within the project.");
+            sourceFiles = Stream.concat(sourceFiles, parsedResourceFiles);
         }
 
         // log parse errors here at the end, so that we don't log parse errors for files that were excluded
@@ -216,7 +227,7 @@ public class MavenMojoProjectParser {
         if (source instanceof ParseError) {
             if (firstWarningLogged.compareAndSet(false, true)) {
                 logger.warn("There were problems parsing some source files" +
-                        (mavenSession.getRequest().isShowErrors() ? "" : ", run with --errors to see full stack traces"));
+                            (mavenSession.getRequest().isShowErrors() ? "" : ", run with --errors to see full stack traces"));
             }
             logger.warn("There were problems parsing " + source.getSourcePath());
         }
