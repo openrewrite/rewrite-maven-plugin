@@ -213,7 +213,7 @@ public class MavenMojoProjectParser {
                             rp.parse(mavenProject.getBasedir().toPath().resolve(".mvn/wrapper"), alreadyParsed),
                             Stream.concat(
                                     rp.parse(mavenProject.getBasedir().toPath().resolve("mvnw"), alreadyParsed),
-                                    rp.parse(mavenProject.getBasedir().toPath().resolve("mvnw.bat"), alreadyParsed)))
+                                    rp.parse(mavenProject.getBasedir().toPath().resolve("mvnw.cmd"), alreadyParsed)))
                     .map(addProvenance(baseDir, projectProvenance, null));
             logDebug(mavenProject, "Parsed " + (alreadyParsed.size() - sourcesParsedBefore) + " Maven wrapper files found within the project.");
             sourceFiles = Stream.concat(sourceFiles, parsedResourceFiles);
