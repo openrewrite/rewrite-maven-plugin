@@ -4,7 +4,7 @@
 
     <groupId>org.openrewrite.maven</groupId>
     <artifactId>rewrite-maven-plugin</artifactId>
-    <version>5.15.0-SNAPSHOT</version>
+    <version>5.16.0-SNAPSHOT</version>
     <name>rewrite-maven-plugin</name>
 
     <packaging>maven-plugin</packaging>
@@ -80,9 +80,9 @@
 
     <properties>
         <!-- Pinned versions, as RELEASE would make it into the published pom.xml -->
-        <rewrite.version>8.11.0-SNAPSHOT</rewrite.version>
+        <rewrite.version>8.11.0</rewrite.version>
         <rewrite.python.version>1.3.0-SNAPSHOT</rewrite.python.version>
-        <rewrite.kotlin.version>1.8.0-SNAPSHOT</rewrite.kotlin.version>
+        <rewrite.kotlin.version>1.8.0</rewrite.kotlin.version>
 
         <!-- using 'ssh' url scheme by default, which assumes a human is performing git operations leveraging an ssh key -->
         <developerConnectionUrl>scm:git:ssh://git@github.com/openrewrite/rewrite-maven-plugin.git
@@ -90,8 +90,8 @@
         <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
         <java.version>1.8</java.version>
 
-        <maven.compiler.testSource>17</maven.compiler.testSource>
-        <maven.compiler.testTarget>17</maven.compiler.testTarget>
+        <maven.compiler.testSource>21</maven.compiler.testSource>
+        <maven.compiler.testTarget>21</maven.compiler.testTarget>
 
         <!-- dependencies and plugins -->
         <jackson-bom.version>2.15.2</jackson-bom.version>
