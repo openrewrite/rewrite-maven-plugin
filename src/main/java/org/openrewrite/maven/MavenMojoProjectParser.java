@@ -50,6 +50,7 @@ import org.openrewrite.maven.cache.MavenPomCache;
 import org.openrewrite.maven.cache.RocksdbMavenPomCache;
 import org.openrewrite.maven.internal.RawRepositories;
 import org.openrewrite.maven.tree.ProfileActivation;
+import org.openrewrite.maven.utilities.MavenWrapper;
 import org.openrewrite.style.NamedStyles;
 import org.openrewrite.tree.ParseError;
 import org.openrewrite.tree.ParsingExecutionContextView;
@@ -209,11 +210,12 @@ public class MavenMojoProjectParser {
         } else {
             // Only parse Maven wrapper files, such that UpdateMavenWrapper can use the version information.
             int sourcesParsedBefore = alreadyParsed.size();
-            Stream<SourceFile> parsedResourceFiles = Stream.concat(
-                            rp.parse(mavenProject.getBasedir().toPath().resolve(".mvn/wrapper"), alreadyParsed),
-                            Stream.concat(
-                                    rp.parse(mavenProject.getBasedir().toPath().resolve("mvnw"), alreadyParsed),
-                                    rp.parse(mavenProject.getBasedir().toPath().resolve("mvnw.cmd"), alreadyParsed)))
+            Stream<SourceFile> parsedResourceFiles = Stream.of(
+                            MavenWrapper.WRAPPER_BATCH_LOCATION,
+                            MavenWrapper.WRAPPER_JAR_LOCATION,
+                            MavenWrapper.WRAPPER_PROPERTIES_LOCATION,
+                            MavenWrapper.WRAPPER_SCRIPT_LOCATION)
+                    .flatMap(path -> rp.parse(mavenProject.getBasedir().toPath().resolve(path), alreadyParsed))
                     .map(addProvenance(baseDir, projectProvenance, null));
             logDebug(mavenProject, "Parsed " + (alreadyParsed.size() - sourcesParsedBefore) + " Maven wrapper files found within the project.");
             sourceFiles = Stream.concat(sourceFiles, parsedResourceFiles);
