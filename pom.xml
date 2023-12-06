@@ -5,17 +5,18 @@
     <groupId>org.openrewrite.maven</groupId>
     <artifactId>rewrite-maven-plugin</artifactId>
     <version>5.16.0-SNAPSHOT</version>
-    <name>rewrite-maven-plugin</name>
-
     <packaging>maven-plugin</packaging>
+
+    <name>rewrite-maven-plugin</name>
     <description>Eliminate technical debt. At build time.</description>
+    <url>https://openrewrite.github.io/rewrite-maven-plugin/</url>
+
     <inceptionYear>2020</inceptionYear>
 
-    <prerequisites>
-        <maven>3.3.1</maven>
-    </prerequisites>
-
-    <url>https://openrewrite.github.io/rewrite-maven-plugin/</url>
+    <organization>
+        <name>Moderne, Inc.</name>
+        <url>https://moderne.io/</url>
+    </organization>
 
     <licenses>
         <license>
@@ -23,35 +24,6 @@
             <url>https://www.apache.org/licenses/LICENSE-2.0.txt</url>
         </license>
     </licenses>
-
-    <reporting>
-        <plugins>
-            <plugin>
-                <groupId>org.owasp</groupId>
-                <artifactId>dependency-check-maven</artifactId>
-                <version>9.0.1</version>
-                <configuration>
-                    <failBuildOnCVSS>9</failBuildOnCVSS>
-                    <suppressionFiles>
-                        <suppressionFile>suppressions.xml</suppressionFile>
-                    </suppressionFiles>
-                    <retireJsAnalyzerEnabled>false</retireJsAnalyzerEnabled>
-                </configuration>
-                <reportSets>
-                    <reportSet>
-                        <reports>
-                            <report>aggregate</report>
-                        </reports>
-                    </reportSet>
-                </reportSets>
-            </plugin>
-            <plugin>
-                <groupId>org.apache.maven.plugins</groupId>
-                <artifactId>maven-plugin-report-plugin</artifactId>
-                <version>${maven-plugin-tools.version}</version>
-            </plugin>
-        </plugins>
-    </reporting>
 
     <developers>
         <developer>
@@ -61,10 +33,9 @@
         </developer>
     </developers>
 
-    <organization>
-        <name>Moderne, Inc.</name>
-        <url>https://moderne.io/</url>
-    </organization>
+    <prerequisites>
+        <maven>3.3.1</maven>
+    </prerequisites>
 
     <scm>
         <connection>scm:git:https://github.com/openrewrite/rewrite-maven-plugin.git</connection>
@@ -77,6 +48,17 @@
         <system>GitHub Issues</system>
         <url>https://github.com/openrewrite/rewrite-maven-plugin/issues</url>
     </issueManagement>
+
+    <distributionManagement>
+        <snapshotRepository>
+            <id>ossrh</id>
+            <url>https://oss.sonatype.org/content/repositories/snapshots</url>
+        </snapshotRepository>
+        <repository>
+            <id>ossrh</id>
+            <url>https://oss.sonatype.org/service/local/staging/deploy/maven2</url>
+        </repository>
+    </distributionManagement>
 
     <properties>
         <!-- Pinned versions, as RELEASE would make it into the published pom.xml -->
@@ -385,6 +367,20 @@
         </dependency>
     </dependencies>
 
+    <repositories>
+        <repository>
+            <!-- for consuming upstream openrewrite snapshot artifacts from ossrh during development -->
+            <id>ossrh-snapshots</id>
+            <url>https://oss.sonatype.org/content/repositories/snapshots</url>
+            <snapshots>
+                <enabled>true</enabled>
+            </snapshots>
+            <releases>
+                <enabled>false</enabled>
+            </releases>
+        </repository>
+    </repositories>
+
     <build>
         <testResources>
             <testResource>
@@ -554,6 +550,35 @@
         </plugins>
     </build>
 
+    <reporting>
+        <plugins>
+            <plugin>
+                <groupId>org.owasp</groupId>
+                <artifactId>dependency-check-maven</artifactId>
+                <version>9.0.1</version>
+                <configuration>
+                    <failBuildOnCVSS>9</failBuildOnCVSS>
+                    <suppressionFiles>
+                        <suppressionFile>suppressions.xml</suppressionFile>
+                    </suppressionFiles>
+                    <retireJsAnalyzerEnabled>false</retireJsAnalyzerEnabled>
+                </configuration>
+                <reportSets>
+                    <reportSet>
+                        <reports>
+                            <report>aggregate</report>
+                        </reports>
+                    </reportSet>
+                </reportSets>
+            </plugin>
+            <plugin>
+                <groupId>org.apache.maven.plugins</groupId>
+                <artifactId>maven-plugin-report-plugin</artifactId>
+                <version>${maven-plugin-tools.version}</version>
+            </plugin>
+        </plugins>
+    </reporting>
+
     <profiles>
         <profile>
             <id>sign-artifacts</id>
@@ -618,29 +643,4 @@
             </properties>
         </profile>
     </profiles>
-
-    <repositories>
-        <repository>
-            <!-- for consuming upstream openrewrite snapshot artifacts from ossrh during development -->
-            <id>ossrh-snapshots</id>
-            <url>https://oss.sonatype.org/content/repositories/snapshots</url>
-            <snapshots>
-                <enabled>true</enabled>
-            </snapshots>
-            <releases>
-                <enabled>false</enabled>
-            </releases>
-        </repository>
-    </repositories>
-
-    <distributionManagement>
-        <snapshotRepository>
-            <id>ossrh</id>
-            <url>https://oss.sonatype.org/content/repositories/snapshots</url>
-        </snapshotRepository>
-        <repository>
-            <id>ossrh</id>
-            <url>https://oss.sonatype.org/service/local/staging/deploy/maven2</url>
-        </repository>
-    </distributionManagement>
 </project>
