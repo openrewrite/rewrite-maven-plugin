@@ -118,6 +118,7 @@
         file name: reactor-netty-core-1.0.32.jar
         ]]></notes>
         <packageUrl regex="true">^pkg:maven/io\.projectreactor\.netty/reactor\-netty\-core@.*$</packageUrl>
+        <cve>CVE-2023-34054</cve>
         <cve>CVE-2023-34062</cve>
     </suppress>
 </suppressions>
