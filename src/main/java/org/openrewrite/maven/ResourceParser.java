@@ -17,7 +17,6 @@ package org.openrewrite.maven;
 
 import org.apache.maven.plugin.logging.Log;
 import org.openrewrite.ExecutionContext;
-import org.openrewrite.InMemoryExecutionContext;
 import org.openrewrite.SourceFile;
 import org.openrewrite.groovy.GroovyParser;
 import org.openrewrite.hcl.HclParser;
@@ -38,7 +37,6 @@ import java.io.UncheckedIOException;
 import java.nio.file.*;
 import java.nio.file.attribute.BasicFileAttributes;
 import java.util.*;
-import java.util.function.Consumer;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
 
@@ -59,8 +57,10 @@ public class ResourceParser {
 
     private final KotlinParser.Builder kotlinParserBuilder;
 
+    private final ExecutionContext ctx;
+
     public ResourceParser(Path baseDir, Log logger, Collection<String> exclusions, Collection<String> plainTextMasks, int sizeThresholdMb, Collection<Path> excludedDirectories,
-                          JavaParser.Builder<? extends JavaParser, ?> javaParserBuilder, KotlinParser.Builder kotlinParserBuilder) {
+                          JavaParser.Builder<? extends JavaParser, ?> javaParserBuilder, KotlinParser.Builder kotlinParserBuilder, ExecutionContext ctx) {
         this.baseDir = baseDir;
         this.logger = logger;
         this.javaParserBuilder = javaParserBuilder;
@@ -69,6 +69,7 @@ public class ResourceParser {
         this.sizeThresholdMb = sizeThresholdMb;
         this.excludedDirectories = excludedDirectories;
         this.plainTextMasks = pathMatchers(baseDir, plainTextMasks);
+        this.ctx = ctx;
     }
 
     private Collection<PathMatcher> pathMatchers(Path basePath, Collection<String> pathExpressions) {
@@ -82,8 +83,6 @@ public class ResourceParser {
         if (!searchDir.toFile().exists()) {
             return sourceFiles;
         }
-        Consumer<Throwable> errorConsumer = t -> logger.debug("Error parsing", t);
-        InMemoryExecutionContext ctx = new InMemoryExecutionContext(errorConsumer);
 
         try {
             sourceFiles = Stream.concat(sourceFiles, parseSourceFiles(searchDir, alreadyParsed, ctx));

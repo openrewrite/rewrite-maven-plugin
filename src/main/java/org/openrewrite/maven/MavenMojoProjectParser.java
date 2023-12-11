@@ -183,7 +183,7 @@ public class MavenMojoProjectParser {
         // todo, add styles from autoDetect
         KotlinParser.Builder kotlinParserBuilder = KotlinParser.builder();
         ResourceParser rp = new ResourceParser(baseDir, logger, exclusions, plainTextMasks, sizeThresholdMb, pathsToOtherMavenProjects(mavenProject),
-                javaParserBuilder.clone(), kotlinParserBuilder.clone());
+                javaParserBuilder.clone(), kotlinParserBuilder.clone(), ctx);
 
         sourceFiles = Stream.concat(sourceFiles, processMainSources(mavenProject, javaParserBuilder.clone(), kotlinParserBuilder.clone(), rp, projectProvenance, alreadyParsed, ctx));
         sourceFiles = Stream.concat(sourceFiles, processTestSources(mavenProject, javaParserBuilder.clone(), kotlinParserBuilder.clone(), rp, projectProvenance, alreadyParsed, ctx));
