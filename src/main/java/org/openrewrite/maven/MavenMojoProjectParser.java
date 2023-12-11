@@ -32,6 +32,7 @@ import org.apache.maven.settings.crypto.SettingsDecryptionResult;
 import org.codehaus.plexus.util.xml.Xpp3Dom;
 import org.jetbrains.annotations.NotNull;
 import org.openrewrite.ExecutionContext;
+import org.openrewrite.ParseExceptionResult;
 import org.openrewrite.SourceFile;
 import org.openrewrite.internal.StringUtils;
 import org.openrewrite.internal.lang.Nullable;
@@ -232,6 +233,9 @@ public class MavenMojoProjectParser {
                             (mavenSession.getRequest().isShowErrors() ? "" : ", run with --errors to see full stack traces"));
             }
             logger.warn("There were problems parsing " + source.getSourcePath());
+            if (mavenSession.getRequest().isShowErrors()) {
+                source.getMarkers().findFirst(ParseExceptionResult.class).map(ParseExceptionResult::getMessage).ifPresent(logger::warn);
+            }
         }
         return source;
     }
