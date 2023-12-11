@@ -3,6 +3,8 @@ name: bump-snapshots
 
 on:
   workflow_dispatch: {}
+  schedule:
+    - cron: 0 11 * * WED
 
 jobs:
   bump-snapshots:
