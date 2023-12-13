@@ -392,7 +392,7 @@ public class MavenMojoProjectParser {
         alreadyParsed.addAll(testJavaSources);
 
         // scan Kotlin files
-        String kotlinSourceDir = getKotlinDirectory(mavenProject.getBuild().getSourceDirectory());
+        String kotlinSourceDir = getKotlinDirectory(mavenProject.getBuild().getTestSourceDirectory());
         List<Path> testKotlinSources = (kotlinSourceDir != null) ? listKotlinSources(mavenProject.getBasedir().toPath().resolve(kotlinSourceDir)) : Collections.emptyList();
         alreadyParsed.addAll(testKotlinSources);
 
