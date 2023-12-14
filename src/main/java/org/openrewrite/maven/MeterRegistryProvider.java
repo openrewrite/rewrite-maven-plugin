@@ -58,7 +58,9 @@ public class MeterRegistryProvider implements AutoCloseable {
     }
 
     public MeterRegistry registry() {
-        this.registry = buildRegistry();
+        if (this.registry == null) {
+            this.registry = buildRegistry();
+        }
         return this.registry;
     }
 
