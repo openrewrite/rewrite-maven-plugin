@@ -140,6 +140,7 @@ public abstract class ConfigurableRewriteMojo extends AbstractMojo {
                     "**/META-INF/spring/**",
                     "**/META-INF/spring.factories",
                     "**/mvnw",
+                    "**/mvnw.cmd",
                     "**/*.qute.java",
                     "**/.sdkmanrc",
                     "**/*.sh",
