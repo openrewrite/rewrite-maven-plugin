@@ -30,7 +30,6 @@ import org.apache.maven.settings.crypto.SettingsDecrypter;
 import org.apache.maven.settings.crypto.SettingsDecryptionRequest;
 import org.apache.maven.settings.crypto.SettingsDecryptionResult;
 import org.codehaus.plexus.util.xml.Xpp3Dom;
-import org.jetbrains.annotations.NotNull;
 import org.openrewrite.ExecutionContext;
 import org.openrewrite.ParseExceptionResult;
 import org.openrewrite.SourceFile;
@@ -45,10 +44,8 @@ import org.openrewrite.java.tree.J;
 import org.openrewrite.kotlin.KotlinParser;
 import org.openrewrite.marker.*;
 import org.openrewrite.marker.ci.BuildEnvironment;
-import org.openrewrite.maven.cache.CompositeMavenPomCache;
 import org.openrewrite.maven.cache.InMemoryMavenPomCache;
 import org.openrewrite.maven.cache.MavenPomCache;
-import org.openrewrite.maven.cache.RocksdbMavenPomCache;
 import org.openrewrite.maven.internal.RawRepositories;
 import org.openrewrite.maven.tree.ProfileActivation;
 import org.openrewrite.maven.utilities.MavenWrapper;
@@ -93,7 +90,7 @@ import static org.openrewrite.Tree.randomId;
 public class MavenMojoProjectParser {
 
     @Nullable
-    static MavenPomCache pomCache;
+    public static MavenPomCache POM_CACHE;
 
     private final Log logger;
     private final AtomicBoolean firstWarningLogged = new AtomicBoolean(false);
@@ -202,16 +199,15 @@ public class MavenMojoProjectParser {
         }).filter(Objects::nonNull);
 
         // Collect any additional files that were not parsed above.
+        int sourcesParsedBefore = alreadyParsed.size();
+        Stream<SourceFile> parsedResourceFiles;
         if (parseAdditionalResources) {
-            int sourcesParsedBefore = alreadyParsed.size();
-            Stream<SourceFile> parsedResourceFiles = rp.parse(mavenProject.getBasedir().toPath(), alreadyParsed)
+            parsedResourceFiles = rp.parse(mavenProject.getBasedir().toPath(), alreadyParsed)
                     .map(addProvenance(baseDir, projectProvenance, null));
             logDebug(mavenProject, "Parsed " + (alreadyParsed.size() - sourcesParsedBefore) + " additional files found within the project.");
-            sourceFiles = Stream.concat(sourceFiles, parsedResourceFiles);
         } else {
             // Only parse Maven wrapper files, such that UpdateMavenWrapper can use the version information.
-            int sourcesParsedBefore = alreadyParsed.size();
-            Stream<SourceFile> parsedResourceFiles = Stream.of(
+            parsedResourceFiles = Stream.of(
                             MavenWrapper.WRAPPER_BATCH_LOCATION,
                             MavenWrapper.WRAPPER_JAR_LOCATION,
                             MavenWrapper.WRAPPER_PROPERTIES_LOCATION,
@@ -219,8 +215,8 @@ public class MavenMojoProjectParser {
                     .flatMap(path -> rp.parse(mavenProject.getBasedir().toPath().resolve(path), alreadyParsed))
                     .map(addProvenance(baseDir, projectProvenance, null));
             logDebug(mavenProject, "Parsed " + (alreadyParsed.size() - sourcesParsedBefore) + " Maven wrapper files found within the project.");
-            sourceFiles = Stream.concat(sourceFiles, parsedResourceFiles);
         }
+        sourceFiles = Stream.concat(sourceFiles, parsedResourceFiles);
 
         // log parse errors here at the end, so that we don't log parse errors for files that were excluded
         return sourceFiles.map(this::logParseErrors);
@@ -441,7 +437,6 @@ public class MavenMojoProjectParser {
         return null;
     }
 
-    @NotNull
     private static JavaSourceSet sourceSet(String name, List<Path> dependencies, JavaTypeCache typeCache) {
         return JavaSourceSet.build(name, dependencies, typeCache, false);
     }
@@ -585,39 +580,13 @@ public class MavenMojoProjectParser {
     }
 
     private static MavenPomCache getPomCache(@Nullable String pomCacheDirectory, Log logger) {
-        if (pomCache == null) {
-            if (isJvm64Bit()) {
-                try {
-                    if (pomCacheDirectory == null) {
-                        //Default directory in the RocksdbMavenPomCache is ".rewrite-cache"
-                        pomCache = new CompositeMavenPomCache(
-                                new InMemoryMavenPomCache(),
-                                new RocksdbMavenPomCache(Paths.get(System.getProperty("user.home")))
-                        );
-                    } else {
-                        pomCache = new CompositeMavenPomCache(
-                                new InMemoryMavenPomCache(),
-                                new RocksdbMavenPomCache(Paths.get(pomCacheDirectory))
-                        );
-                    }
-                } catch (Throwable e) {
-                    logger.warn("Unable to initialize RocksdbMavenPomCache, falling back to InMemoryMavenPomCache");
-                    logger.debug(e);
-                }
-            } else {
-                logger.warn("RocksdbMavenPomCache is not supported on 32-bit JVM. falling back to InMemoryMavenPomCache");
-            }
+        if (POM_CACHE == null) {
+            POM_CACHE = new MavenPomCacheBuilder(logger).build(pomCacheDirectory);
         }
-        if (pomCache == null) {
-            pomCache = new InMemoryMavenPomCache();
+        if (POM_CACHE == null) {
+            POM_CACHE = new InMemoryMavenPomCache();
         }
-        return pomCache;
-    }
-
-    private static boolean isJvm64Bit() {
-        //It appears most JVM vendors set this property. Only return false if the
-        //property has been set AND it is set to 32.
-        return !"32".equals(System.getProperty("sun.arch.data.model", "64"));
+        return POM_CACHE;
     }
 
     public MavenSettings buildSettings() {
