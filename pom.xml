@@ -72,8 +72,8 @@
         <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
         <java.version>1.8</java.version>
 
-        <maven.compiler.testSource>21</maven.compiler.testSource>
-        <maven.compiler.testTarget>21</maven.compiler.testTarget>
+        <maven.compiler.testSource>17</maven.compiler.testSource>
+        <maven.compiler.testTarget>17</maven.compiler.testTarget>
 
         <!-- dependencies and plugins -->
         <jackson-bom.version>2.15.2</jackson-bom.version>
@@ -455,7 +455,7 @@
                     <compilerArgs>
                         <arg>-Xlint:deprecation</arg>
                         <arg>-Xlint:unchecked</arg>
-                        <arg>-proc:full</arg>
+                        <!--<arg>-proc:full</arg>-->
                     </compilerArgs>
                     <source>${java.version}</source>
                     <target>${java.version}</target>
