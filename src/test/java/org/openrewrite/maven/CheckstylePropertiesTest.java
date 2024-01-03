@@ -15,6 +15,20 @@
  */
 package org.openrewrite.maven;
 
-class CheckstylePropertiesTest {
+import com.soebes.itf.jupiter.extension.*;
+import com.soebes.itf.jupiter.maven.MavenExecutionResult;
 
+import static com.soebes.itf.extension.assertj.MavenITAssertions.assertThat;
+
+@MavenJupiterExtension
+@MavenOption(MavenCLIOptions.NO_TRANSFER_PROGRESS)
+@MavenOption(MavenCLIExtra.MUTE_PLUGIN_VALIDATION_WARNING)
+@MavenGoal("${project.groupId}:${project.artifactId}:${project.version}:run")
+class CheckstylePropertiesTest {
+    @MavenTest
+    void checkstyleProperties(MavenExecutionResult result) {
+//        assertThat(result)
+//                .isSuccessful()
+//                .out();
+    }
 }
