@@ -80,7 +80,7 @@
         <netty.version>4.1.101.Final</netty.version>
         <rocksdbjni.version>8.8.1</rocksdbjni.version>
         <rsocket.version>1.1.4</rsocket.version>
-        <itf-maven.version>0.12.0</itf-maven.version>
+        <itf-maven.version>0.13.1</itf-maven.version>
         <maven-dependencies.version>3.9.6</maven-dependencies.version>
         <maven-release-plugin.version>3.0.1</maven-release-plugin.version>
         <maven-plugin-tools.version>3.10.2</maven-plugin-tools.version>
