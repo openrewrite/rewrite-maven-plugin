@@ -62,9 +62,8 @@
 
     <properties>
         <!-- Pinned versions, as RELEASE would make it into the published pom.xml -->
-        <rewrite.version>8.14.0-SNAPSHOT</rewrite.version>
-        <rewrite.python.version>1.4.0-SNAPSHOT</rewrite.python.version>
-        <rewrite.kotlin.version>1.10.0-SNAPSHOT</rewrite.kotlin.version>
+        <rewrite.version>8.13.2</rewrite.version>
+        <rewrite.kotlin.version>1.9.1</rewrite.kotlin.version>
 
         <!-- using 'ssh' url scheme by default, which assumes a human is performing git operations leveraging an ssh key -->
         <developerConnectionUrl>scm:git:ssh://git@github.com/openrewrite/rewrite-maven-plugin.git
@@ -189,11 +188,6 @@
         <dependency>
             <groupId>org.openrewrite</groupId>
             <artifactId>rewrite-groovy</artifactId>
-        </dependency>
-        <dependency>
-            <groupId>org.openrewrite</groupId>
-            <artifactId>rewrite-python</artifactId>
-            <version>${rewrite.python.version}</version>
         </dependency>
         <dependency>
             <groupId>org.openrewrite</groupId>
