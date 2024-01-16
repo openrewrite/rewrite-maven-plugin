@@ -26,7 +26,7 @@ import static com.soebes.itf.extension.assertj.MavenITAssertions.assertThat;
 @MavenGoal("${project.groupId}:${project.artifactId}:${project.version}:run")
 class CheckstylePropertiesTest {
     @MavenTest
-    void checkstyleProperties(MavenExecutionResult result) {
+    void checkstyle_properties(MavenExecutionResult result) {
 //        assertThat(result)
 //                .isSuccessful()
 //                .out();
