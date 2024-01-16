@@ -25,7 +25,6 @@ import org.openrewrite.json.JsonParser;
 import org.openrewrite.kotlin.KotlinParser;
 import org.openrewrite.properties.PropertiesParser;
 import org.openrewrite.protobuf.ProtoParser;
-import org.openrewrite.python.PythonParser;
 import org.openrewrite.quark.QuarkParser;
 import org.openrewrite.text.PlainTextParser;
 import org.openrewrite.xml.XmlParser;
@@ -150,9 +149,6 @@ public class ResourceParser {
         ProtoParser protoParser = new ProtoParser();
         List<Path> protoPaths = new ArrayList<>();
 
-        PythonParser pythonParser = PythonParser.builder().build();
-        List<Path> pythonPaths = new ArrayList<>();
-
         KotlinParser kotlinParser = KotlinParser.builder().build();
         List<Path> kotlinPaths = new ArrayList<>();
 
@@ -181,8 +177,6 @@ public class ResourceParser {
                 propertiesPaths.add(path);
             } else if (protoParser.accept(path)) {
                 protoPaths.add(path);
-            } else if (pythonParser.accept(path)) {
-                pythonPaths.add(path);
             } else if (kotlinParser.accept(path)) {
                 kotlinPaths.add(path);
             } else if (groovyParser.accept(path)) {
@@ -222,11 +216,6 @@ public class ResourceParser {
         if (!protoPaths.isEmpty()) {
             sourceFiles = Stream.concat(sourceFiles, (Stream<S>) protoParser.parse(protoPaths, baseDir, ctx));
             alreadyParsed.addAll(protoPaths);
-        }
-
-        if (!pythonPaths.isEmpty()) {
-            sourceFiles = Stream.concat(sourceFiles, (Stream<S>) pythonParser.parse(pythonPaths, baseDir, ctx));
-            alreadyParsed.addAll(pythonPaths);
         }
 
         if (!kotlinPaths.isEmpty()) {

@@ -146,7 +146,8 @@ public abstract class ConfigurableRewriteMojo extends AbstractMojo {
                     "**/*.sh",
                     "**/*.sql",
                     "**/*.svg",
-                    "**/*.txt"
+                    "**/*.txt",
+                    "**/*.py"
             ));
         } else {
             Set<String> masks = toSet(rewritePlainTextMasks);

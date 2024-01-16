@@ -4,7 +4,7 @@
 
     <groupId>org.openrewrite.maven</groupId>
     <artifactId>rewrite-maven-plugin</artifactId>
-    <version>5.19.0-SNAPSHOT</version>
+    <version>5.21.0-SNAPSHOT</version>
     <packaging>maven-plugin</packaging>
 
     <name>rewrite-maven-plugin</name>
@@ -63,8 +63,7 @@
     <properties>
         <!-- Pinned versions, as RELEASE would make it into the published pom.xml -->
         <rewrite.version>8.14.0-SNAPSHOT</rewrite.version>
-        <rewrite.python.version>1.3.1</rewrite.python.version>
-        <rewrite.kotlin.version>1.9.1</rewrite.kotlin.version>
+        <rewrite.kotlin.version>1.10.0</rewrite.kotlin.version>
 
         <!-- using 'ssh' url scheme by default, which assumes a human is performing git operations leveraging an ssh key -->
         <developerConnectionUrl>scm:git:ssh://git@github.com/openrewrite/rewrite-maven-plugin.git
@@ -83,7 +82,7 @@
         <itf-maven.version>0.13.1</itf-maven.version>
         <maven-dependencies.version>3.9.6</maven-dependencies.version>
         <maven-release-plugin.version>3.0.1</maven-release-plugin.version>
-        <maven-plugin-tools.version>3.10.2</maven-plugin-tools.version>
+        <maven-plugin-tools.version>3.11.0</maven-plugin-tools.version>
         <kotlin.version>1.9.22</kotlin.version>
     </properties>
 
@@ -192,11 +191,6 @@
         </dependency>
         <dependency>
             <groupId>org.openrewrite</groupId>
-            <artifactId>rewrite-python</artifactId>
-            <version>${rewrite.python.version}</version>
-        </dependency>
-        <dependency>
-            <groupId>org.openrewrite</groupId>
             <artifactId>rewrite-kotlin</artifactId>
             <version>${rewrite.kotlin.version}</version>
         </dependency>
@@ -215,7 +209,7 @@
         <dependency>
             <groupId>org.codehaus.plexus</groupId>
             <artifactId>plexus-xml</artifactId>
-            <version>4.0.2</version>
+            <version>4.0.3</version>
         </dependency>
         <dependency>
             <groupId>com.fasterxml.jackson.module</groupId>
@@ -427,7 +421,7 @@
             <plugin>
                 <groupId>org.apache.maven.plugins</groupId>
                 <artifactId>maven-failsafe-plugin</artifactId>
-                <version>3.2.3</version>
+                <version>3.2.5</version>
                 <executions>
                     <execution>
                         <goals>
@@ -455,7 +449,7 @@
             <plugin>
                 <groupId>org.apache.maven.plugins</groupId>
                 <artifactId>maven-compiler-plugin</artifactId>
-                <version>3.11.0</version>
+                <version>3.12.1</version>
                 <configuration>
                     <compilerArgs>
                         <arg>-Xlint:deprecation</arg>
