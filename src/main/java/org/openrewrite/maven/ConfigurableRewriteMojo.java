@@ -40,7 +40,11 @@ public abstract class ConfigurableRewriteMojo extends AbstractMojo {
     @Parameter(property = "rewrite.configLocation", alias = "configLocation", defaultValue = "${maven.multiModuleProjectDirectory}/rewrite.yml")
     protected String configLocation;
 
+    /**
+     * @deprecated Use rewrite.activeRecipes instead.
+     */    
     @Parameter(property = "activeRecipes")
+    @Deprecated
     protected List<String> activeRecipes = Collections.emptyList();
 
     @Nullable
