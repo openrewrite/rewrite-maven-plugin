@@ -27,8 +27,7 @@ import static com.soebes.itf.extension.assertj.MavenITAssertions.assertThat;
 class CheckstylePropertiesTest {
     @MavenTest
     void checkstyle_properties(MavenExecutionResult result) {
-//        assertThat(result)
-//                .isSuccessful()
-//                .out();
+        assertThat(result)
+                .isSuccessful();
     }
 }
