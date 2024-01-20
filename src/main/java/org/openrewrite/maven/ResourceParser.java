@@ -149,7 +149,7 @@ public class ResourceParser {
         ProtoParser protoParser = new ProtoParser();
         List<Path> protoPaths = new ArrayList<>();
 
-        KotlinParser kotlinParser = KotlinParser.builder().build();
+        KotlinParser kotlinParser = kotlinParserBuilder.build();
         List<Path> kotlinPaths = new ArrayList<>();
 
         GroovyParser groovyParser = GroovyParser.builder().build();
