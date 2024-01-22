@@ -118,6 +118,26 @@ public abstract class AbstractRewriteMojo extends ConfigurableRewriteMojo {
         return null;
     }
 
+    /**
+     * Is this project the last project in the reactor?
+     *
+     * @return true if last project (including only project)
+     */
+    protected boolean isLastProjectInReactor() {
+        List<MavenProject> sortedProjects = mavenSession.getProjectDependencyGraph().getSortedProjects();
+
+        MavenProject lastProject = sortedProjects.isEmpty()
+            ? mavenSession.getCurrentProject()
+            : sortedProjects.get(sortedProjects.size() - 1);
+
+        if (getLog().isDebugEnabled()) {
+            getLog().debug("Current project: '" + mavenSession.getCurrentProject().getName() +
+                "', Last project to execute based on dependency graph: '" + lastProject.getName() + "'");
+        }
+
+        return mavenSession.getCurrentProject().equals(lastProject);
+    }
+
     protected Environment environment(@Nullable ClassLoader recipeClassLoader) throws MojoExecutionException {
         Environment.Builder env = Environment.builder(project.getProperties());
         if (recipeClassLoader == null) {
