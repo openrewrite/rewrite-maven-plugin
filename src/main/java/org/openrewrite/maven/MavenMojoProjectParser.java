@@ -165,7 +165,8 @@ public class MavenMojoProjectParser {
         Set<Path> alreadyParsed = new HashSet<>();
 
         if (maven != null) {
-            sourceFiles = Stream.of(maven);
+            sourceFiles = Stream.of(maven)
+                    .map(xml -> xml.withMarkers(xml.getMarkers().addIfAbsent(buildTool)));
             alreadyParsed.add(baseDir.resolve(maven.getSourcePath()));
         }
 
@@ -200,23 +201,24 @@ public class MavenMojoProjectParser {
 
         // Collect any additional files that were not parsed above.
         int sourcesParsedBefore = alreadyParsed.size();
-        Stream<SourceFile> parsedResourceFiles;
+
+        // Always parse Maven wrapper files, such that UpdateMavenWrapper can use the version information in BuildTool.
+        Stream<SourceFile> parsedResourceFiles = Stream.of(
+                        MavenWrapper.WRAPPER_BATCH_LOCATION,
+                        MavenWrapper.WRAPPER_JAR_LOCATION,
+                        MavenWrapper.WRAPPER_PROPERTIES_LOCATION,
+                        MavenWrapper.WRAPPER_SCRIPT_LOCATION)
+                .flatMap(path -> rp.parse(mavenProject.getBasedir().toPath().resolve(path), alreadyParsed))
+                .map(s -> s.withMarkers(s.getMarkers().addIfAbsent(buildTool)));
+        logDebug(mavenProject, "Parsed " + (alreadyParsed.size() - sourcesParsedBefore) + " Maven wrapper files found within the project.");
+
+        // Parse any additional files found within the project if configured to do so.
         if (parseAdditionalResources) {
-            parsedResourceFiles = rp.parse(mavenProject.getBasedir().toPath(), alreadyParsed)
-                    .map(addProvenance(baseDir, projectProvenance, null));
+            parsedResourceFiles = Stream.concat(parsedResourceFiles, rp.parse(mavenProject.getBasedir().toPath(), alreadyParsed));
             logDebug(mavenProject, "Parsed " + (alreadyParsed.size() - sourcesParsedBefore) + " additional files found within the project.");
-        } else {
-            // Only parse Maven wrapper files, such that UpdateMavenWrapper can use the version information.
-            parsedResourceFiles = Stream.of(
-                            MavenWrapper.WRAPPER_BATCH_LOCATION,
-                            MavenWrapper.WRAPPER_JAR_LOCATION,
-                            MavenWrapper.WRAPPER_PROPERTIES_LOCATION,
-                            MavenWrapper.WRAPPER_SCRIPT_LOCATION)
-                    .flatMap(path -> rp.parse(mavenProject.getBasedir().toPath().resolve(path), alreadyParsed))
-                    .map(addProvenance(baseDir, projectProvenance, null));
-            logDebug(mavenProject, "Parsed " + (alreadyParsed.size() - sourcesParsedBefore) + " Maven wrapper files found within the project.");
         }
-        sourceFiles = Stream.concat(sourceFiles, parsedResourceFiles);
+        sourceFiles = Stream.concat(sourceFiles, parsedResourceFiles
+                .map(addProvenance(baseDir, projectProvenance, null)));
 
         // log parse errors here at the end, so that we don't log parse errors for files that were excluded
         return sourceFiles.map(this::logParseErrors);
@@ -292,7 +294,6 @@ public class MavenMojoProjectParser {
                         buildEnvironment,
                         gitProvenance(baseDir, buildEnvironment),
                         OperatingSystemProvenance.current(),
-                        buildTool,
                         new JavaVersion(randomId(), javaRuntimeVersion, javaVendor, sourceCompatibility, targetCompatibility),
                         new JavaProject(randomId(), mavenProject.getName(), new JavaProject.Publication(
                                 mavenProject.getGroupId(),
@@ -351,8 +352,8 @@ public class MavenMojoProjectParser {
         List<Marker> mainProjectProvenance = new ArrayList<>(projectProvenance);
         mainProjectProvenance.add(sourceSet("main", dependencies, typeCache));
 
-        //Filter out any generated source files from the returned list, as we do not want to apply the recipe to the
-        //generated files.
+        // Filter out any generated source files from the returned list, as we do not want to apply the recipe to the
+        // generated files.
         Path buildDirectory = baseDir.relativize(Paths.get(mavenProject.getBuild().getDirectory()));
         Stream<SourceFile> sourceFiles = Stream.concat(parsedJava, parsedKotlin)
                 .filter(s -> !s.getSourcePath().startsWith(buildDirectory))
