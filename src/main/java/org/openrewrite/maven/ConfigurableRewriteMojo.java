@@ -40,12 +40,16 @@ public abstract class ConfigurableRewriteMojo extends AbstractMojo {
     @Parameter(property = "rewrite.configLocation", alias = "configLocation", defaultValue = "${maven.multiModuleProjectDirectory}/rewrite.yml")
     protected String configLocation;
 
+    /**
+     * @deprecated Use rewrite.activeRecipes instead.
+     */    
     @Parameter(property = "activeRecipes")
-    protected List<String> activeRecipes = Collections.emptyList();
+    @Deprecated
+    protected Set<String> deprecatedActiveRecipes = Collections.emptySet();
 
     @Nullable
     @Parameter(property = "rewrite.activeRecipes")
-    protected String rewriteActiveRecipes;
+    protected Set<String> activeRecipes = Collections.emptySet();
 
     @Parameter(property = "activeStyles")
     protected Set<String> activeStyles = Collections.emptySet();
@@ -190,13 +194,18 @@ public abstract class ConfigurableRewriteMojo extends AbstractMojo {
         if (computedRecipes == null) {
             synchronized (this) {
                 if (computedRecipes == null) {
-                    Set<String> res = toLinkedHashSet(rewriteActiveRecipes);
+                    assert activeRecipes != null;
+                    Set<String> res = activeRecipes.stream()
+                            .filter(Objects::nonNull)
+                            .map(String::trim)
+                            .collect(Collectors.toSet());
                     if (res.isEmpty()) {
                         res.addAll(
-                                activeRecipes
+                                deprecatedActiveRecipes
                                         .stream()
                                         .filter(Objects::nonNull)
-                                        .collect(Collectors.toList())
+                                        .map(String::trim)
+                                        .collect(Collectors.toSet())
                         );
                     }
                     computedRecipes = Collections.unmodifiableSet(res);
