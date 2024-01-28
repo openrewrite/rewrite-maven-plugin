@@ -55,6 +55,7 @@
                             <consoleOutput>true</consoleOutput>
                             <failsOnError>true</failsOnError>
                             <propertyExpansion>importControlFile=${project.basedir}/.checkstyle/import-control.xml</propertyExpansion>
+                            <suppressionsLocation>.checkstyle/checkstyle-suppressions.xml</suppressionsLocation>
                         </configuration>
                         <goals>
                             <goal>check</goal>
