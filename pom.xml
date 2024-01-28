@@ -4,7 +4,7 @@
 
     <groupId>org.openrewrite.maven</groupId>
     <artifactId>rewrite-maven-plugin</artifactId>
-    <version>5.21.0-SNAPSHOT</version>
+    <version>5.22.0-SNAPSHOT</version>
     <packaging>maven-plugin</packaging>
 
     <name>rewrite-maven-plugin</name>
@@ -62,8 +62,8 @@
 
     <properties>
         <!-- Pinned versions, as RELEASE would make it into the published pom.xml -->
-        <rewrite.version>8.14.0-SNAPSHOT</rewrite.version>
-        <rewrite.kotlin.version>1.11.0-SNAPSHOT</rewrite.kotlin.version>
+        <rewrite.version>8.15.0-SNAPSHOT</rewrite.version>
+        <rewrite.kotlin.version>1.12.0-SNAPSHOT</rewrite.kotlin.version>
 
         <!-- using 'ssh' url scheme by default, which assumes a human is performing git operations leveraging an ssh key -->
         <developerConnectionUrl>scm:git:ssh://git@github.com/openrewrite/rewrite-maven-plugin.git
@@ -76,7 +76,7 @@
 
         <!-- dependencies and plugins -->
         <jackson-bom.version>2.16.1</jackson-bom.version>
-        <netty.version>4.1.104.Final</netty.version>
+        <netty.version>4.1.106.Final</netty.version>
         <rocksdbjni.version>8.8.1</rocksdbjni.version>
         <rsocket.version>1.1.4</rsocket.version>
         <itf-maven.version>0.13.1</itf-maven.version>
@@ -112,7 +112,7 @@
             <dependency>
                 <groupId>org.assertj</groupId>
                 <artifactId>assertj-bom</artifactId>
-                <version>3.25.0</version>
+                <version>3.25.1</version>
                 <scope>import</scope>
                 <type>pom</type>
             </dependency>
@@ -223,7 +223,7 @@
         <dependency>
             <groupId>io.micrometer</groupId>
             <artifactId>micrometer-core</artifactId>
-            <version>1.12.1</version>
+            <version>1.12.2</version>
         </dependency>
         <dependency>
             <groupId>io.rsocket</groupId>
@@ -554,7 +554,7 @@
             <plugin>
                 <groupId>org.owasp</groupId>
                 <artifactId>dependency-check-maven</artifactId>
-                <version>9.0.7</version>
+                <version>9.0.9</version>
                 <configuration>
                     <failBuildOnCVSS>9</failBuildOnCVSS>
                     <suppressionFiles>
