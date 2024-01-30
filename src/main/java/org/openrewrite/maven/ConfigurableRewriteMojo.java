@@ -198,14 +198,14 @@ public abstract class ConfigurableRewriteMojo extends AbstractMojo {
                     Set<String> res = activeRecipes.stream()
                             .filter(Objects::nonNull)
                             .map(String::trim)
-                            .collect(Collectors.toSet());
+                            .collect(Collectors.toCollection(LinkedHashSet::new));
                     if (res.isEmpty()) {
                         res.addAll(
                                 deprecatedActiveRecipes
                                         .stream()
                                         .filter(Objects::nonNull)
                                         .map(String::trim)
-                                        .collect(Collectors.toSet())
+                                        .collect(Collectors.toCollection(LinkedHashSet::new))
                         );
                     }
                     computedRecipes = Collections.unmodifiableSet(res);
