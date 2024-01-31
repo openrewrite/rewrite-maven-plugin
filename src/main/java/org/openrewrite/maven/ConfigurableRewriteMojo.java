@@ -45,11 +45,11 @@ public abstract class ConfigurableRewriteMojo extends AbstractMojo {
      */    
     @Parameter(property = "activeRecipes")
     @Deprecated
-    protected Set<String> deprecatedActiveRecipes = Collections.emptySet();
+    protected LinkedHashSet<String> deprecatedActiveRecipes;
 
     @Nullable
     @Parameter(property = "rewrite.activeRecipes")
-    protected Set<String> activeRecipes = Collections.emptySet();
+    protected LinkedHashSet<String> activeRecipes;
 
     @Parameter(property = "activeStyles")
     protected Set<String> activeStyles = Collections.emptySet();
@@ -201,8 +201,7 @@ public abstract class ConfigurableRewriteMojo extends AbstractMojo {
                             .collect(Collectors.toCollection(LinkedHashSet::new));
                     if (res.isEmpty()) {
                         res.addAll(
-                                deprecatedActiveRecipes
-                                        .stream()
+                                deprecatedActiveRecipes.stream()
                                         .filter(Objects::nonNull)
                                         .map(String::trim)
                                         .collect(Collectors.toCollection(LinkedHashSet::new))
