@@ -38,8 +38,6 @@ class RewriteRunParallelIT {
                 .out()
                 .info()
                 .anySatisfy(line -> assertThat(line).contains("Delaying execution to the end of multi-module project for org.openrewrite.maven:b:1.0"));
-                //.filteredOn(line -> line.contains("Delaying execution to the end of multi-module project for org.openrewrite.maven:b:1.0"))
-                //.hasSize(1);
 
         assertThat(result)
                 .isSuccessful()
