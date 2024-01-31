@@ -30,11 +30,11 @@ import org.openrewrite.maven.tree.Scope;
 import java.util.List;
 import java.util.Objects;
 
-public class MavenLoggingResolutionListener implements ResolutionEventListener {
+public class MavenLoggingResolutionEventListener implements ResolutionEventListener {
 
     private final Log logger;
 
-    public MavenLoggingResolutionListener(Log logger) {
+    public MavenLoggingResolutionEventListener(Log logger) {
         this.logger = Objects.requireNonNull(logger, "logger cannot be null");
     }
 

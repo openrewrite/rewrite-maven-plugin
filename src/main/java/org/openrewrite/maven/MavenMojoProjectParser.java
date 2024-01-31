@@ -465,7 +465,7 @@ public class MavenMojoProjectParser {
         MavenSettings settings = buildSettings();
         MavenExecutionContextView mavenExecutionContext = MavenExecutionContextView.view(ctx);
         mavenExecutionContext.setMavenSettings(settings);
-        mavenExecutionContext.setResolutionListener(new MavenLoggingResolutionListener(logger));
+        mavenExecutionContext.setResolutionListener(new MavenLoggingResolutionEventListener(logger));
 
         if (pomCacheEnabled) {
             //The default pom cache is enabled as a two-layer cache L1 == in-memory and L2 == RocksDb
