@@ -49,12 +49,18 @@ public class AbstractRewriteDryRunMojo extends AbstractRewriteMojo {
     public void execute() throws MojoExecutionException {
         if (rewriteSkip) {
             getLog().info("Skipping execution");
+            putState(State.SKIPPED);
             return;
         }
+        putState(State.TO_BE_PROCESSED);
 
         // If the plugin is configured to run over all projects (at the end of the build) only proceed if the plugin
         // is being run on the last project.
-        if (!runPerSubmodule && !isLastProjectInReactor()) {
+        if (!runPerSubmodule && !allProjectsMarked()) {
+            getLog().info("REWRITE: Delaying execution to the end of multi-module project for "
+                + project.getGroupId() + ":"
+                + project.getArtifactId()+ ":"
+                + project.getVersion());
             return;
         }
 
@@ -140,5 +146,6 @@ public class AbstractRewriteDryRunMojo extends AbstractRewriteMojo {
         } else {
             getLog().info("Applying recipes would make no changes. No patch file generated.");
         }
+        putState(State.PROCESSED);
     }
 }
