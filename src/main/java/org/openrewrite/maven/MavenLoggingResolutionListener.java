@@ -61,11 +61,10 @@ public class MavenLoggingResolutionListener implements ResolutionEventListener {
 
     @Override
     public void downloadError(GroupArtifactVersion gav, List<String> attemptedUris, @Nullable Pom containing) {
-        if (logger.isInfoEnabled()) {
-            StringBuilder sb = new StringBuilder("Failed to download " + gav + pomContaining(containing));
-            attemptedUris.forEach(uri -> sb.append("\n  - ").append(uri));
-            logger.debug(sb);
-        }
+        StringBuilder sb = new StringBuilder("Failed to download " + gav + pomContaining(containing) + "\n");
+        sb.append("Attempted URIs:").append("\n");
+        attemptedUris.forEach(uri -> sb.append("\n  - ").append(uri));
+        logger.error(sb);
     }
 
     @Override
@@ -112,7 +111,7 @@ public class MavenLoggingResolutionListener implements ResolutionEventListener {
 
     @Override
     public void repositoryAccessFailed(String uri, Throwable e) {
-        logger.info("Failed to access maven repository " + uri, e);
+        logger.error("Failed to access maven repository " + uri, e);
     }
 
     private static String pomContaining(@Nullable Pom containing) {
