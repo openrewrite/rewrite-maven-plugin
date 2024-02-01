@@ -273,6 +273,7 @@ public abstract class ConfigurableRewriteMojo extends AbstractMojo {
         LinkedHashSet<String> collected = merged
                 .filter(Objects::nonNull)
                 .map(String::trim)
+                .filter(s -> !s.isEmpty())
                 .collect(Collectors.toCollection(LinkedHashSet::new));
         return Collections.unmodifiableSet(collected);
     }
