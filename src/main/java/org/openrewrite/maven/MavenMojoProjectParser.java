@@ -198,16 +198,12 @@ public class MavenMojoProjectParser {
             return sourceFile;
         }).filter(Objects::nonNull);
 
-        // Use runtime Java version for additional resources, as they do not explicitly use a source/target version.
-        List<Marker> additionalResourcesProvenance = new ArrayList<>(projectProvenance);
-        additionalResourcesProvenance.add(getJavaVersionMarker(null, null));
-
         // Collect any additional files that were not parsed above.
         int sourcesParsedBefore = alreadyParsed.size();
         Stream<SourceFile> parsedResourceFiles;
         if (parseAdditionalResources) {
             parsedResourceFiles = rp.parse(mavenProject.getBasedir().toPath(), alreadyParsed)
-                    .map(addProvenance(baseDir, additionalResourcesProvenance, null));
+                    .map(addProvenance(baseDir, projectProvenance, null));
             logDebug(mavenProject, "Parsed " + (alreadyParsed.size() - sourcesParsedBefore) + " additional files found within the project.");
         } else {
             // Only parse Maven wrapper files, such that UpdateMavenWrapper can use the version information.
@@ -217,7 +213,7 @@ public class MavenMojoProjectParser {
                             MavenWrapper.WRAPPER_PROPERTIES_LOCATION,
                             MavenWrapper.WRAPPER_SCRIPT_LOCATION)
                     .flatMap(path -> rp.parse(mavenProject.getBasedir().toPath().resolve(path), alreadyParsed))
-                    .map(addProvenance(baseDir, additionalResourcesProvenance, null));
+                    .map(addProvenance(baseDir, projectProvenance, null));
             logDebug(mavenProject, "Parsed " + (alreadyParsed.size() - sourcesParsedBefore) + " Maven wrapper files found within the project.");
         }
         sourceFiles = Stream.concat(sourceFiles, parsedResourceFiles);
