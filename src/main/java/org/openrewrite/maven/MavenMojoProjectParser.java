@@ -299,7 +299,7 @@ public class MavenMojoProjectParser {
         return getJavaVersionMarker(sourceCompatibility, targetCompatibility);
     }
 
-    private static JavaVersion getSrcTestJavaVersion(MavenProject mavenProject) {
+    static JavaVersion getSrcTestJavaVersion(MavenProject mavenProject) {
         String sourceCompatibility = null;
         String targetCompatibility = null;
 
