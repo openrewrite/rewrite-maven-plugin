@@ -198,12 +198,16 @@ public class MavenMojoProjectParser {
             return sourceFile;
         }).filter(Objects::nonNull);
 
+        // Use runtime Java version for additional resources, as they do not explicitly use a source/target version.
+        List<Marker> additionalResourcesProvenance = new ArrayList<>(projectProvenance);
+        additionalResourcesProvenance.add(getJavaVersionMarker(null, null));
+
         // Collect any additional files that were not parsed above.
         int sourcesParsedBefore = alreadyParsed.size();
         Stream<SourceFile> parsedResourceFiles;
         if (parseAdditionalResources) {
             parsedResourceFiles = rp.parse(mavenProject.getBasedir().toPath(), alreadyParsed)
-                    .map(addProvenance(baseDir, projectProvenance, null));
+                    .map(addProvenance(baseDir, additionalResourcesProvenance, null));
             logDebug(mavenProject, "Parsed " + (alreadyParsed.size() - sourcesParsedBefore) + " additional files found within the project.");
         } else {
             // Only parse Maven wrapper files, such that UpdateMavenWrapper can use the version information.
@@ -213,7 +217,7 @@ public class MavenMojoProjectParser {
                             MavenWrapper.WRAPPER_PROPERTIES_LOCATION,
                             MavenWrapper.WRAPPER_SCRIPT_LOCATION)
                     .flatMap(path -> rp.parse(mavenProject.getBasedir().toPath().resolve(path), alreadyParsed))
-                    .map(addProvenance(baseDir, projectProvenance, null));
+                    .map(addProvenance(baseDir, additionalResourcesProvenance, null));
             logDebug(mavenProject, "Parsed " + (alreadyParsed.size() - sourcesParsedBefore) + " Maven wrapper files found within the project.");
         }
         sourceFiles = Stream.concat(sourceFiles, parsedResourceFiles);
@@ -237,10 +241,22 @@ public class MavenMojoProjectParser {
     }
 
     public List<Marker> generateProvenance(MavenProject mavenProject) {
+        BuildEnvironment buildEnvironment = BuildEnvironment.build(System::getenv);
+        return Stream.of(
+                        buildEnvironment,
+                        gitProvenance(baseDir, buildEnvironment),
+                        OperatingSystemProvenance.current(),
+                        buildTool,
+                        new JavaProject(randomId(), mavenProject.getName(), new JavaProject.Publication(
+                                mavenProject.getGroupId(),
+                                mavenProject.getArtifactId(),
+                                mavenProject.getVersion()
+                        )))
+                .filter(Objects::nonNull)
+                .collect(toList());
+    }
 
-        String javaRuntimeVersion = System.getProperty("java.specification.version");
-        String javaVendor = System.getProperty("java.vm.vendor");
-
+    private static JavaVersion getSrcMainJavaVersion(MavenProject mavenProject) {
         String sourceCompatibility = null;
         String targetCompatibility = null;
 
@@ -280,27 +296,72 @@ public class MavenMojoProjectParser {
             }
         }
 
+        return getJavaVersionMarker(sourceCompatibility, targetCompatibility);
+    }
+
+    private static JavaVersion getSrcTestJavaVersion(MavenProject mavenProject) {
+        String sourceCompatibility = null;
+        String targetCompatibility = null;
+
+        Plugin compilerPlugin = mavenProject.getPlugin("org.apache.maven.plugins:maven-compiler-plugin");
+        if (compilerPlugin != null && compilerPlugin.getConfiguration() instanceof Xpp3Dom) {
+            Xpp3Dom dom = (Xpp3Dom) compilerPlugin.getConfiguration();
+            Xpp3Dom release = dom.getChild("testRelease");
+            if (release != null && StringUtils.isNotEmpty(release.getValue()) && !release.getValue().contains("${")) {
+                sourceCompatibility = release.getValue();
+                targetCompatibility = release.getValue();
+            } else {
+                Xpp3Dom source = dom.getChild("testSource");
+                if (source != null && StringUtils.isNotEmpty(source.getValue()) && !source.getValue().contains("${")) {
+                    sourceCompatibility = source.getValue();
+                }
+                Xpp3Dom target = dom.getChild("testTarget");
+                if (target != null && StringUtils.isNotEmpty(target.getValue()) && !target.getValue().contains("${")) {
+                    targetCompatibility = target.getValue();
+                }
+            }
+        }
+
+        if (sourceCompatibility == null || targetCompatibility == null) {
+            String propertiesReleaseCompatibility = (String) mavenProject.getProperties().get("maven.compiler.testRelease");
+            if (propertiesReleaseCompatibility != null) {
+                sourceCompatibility = propertiesReleaseCompatibility;
+                targetCompatibility = propertiesReleaseCompatibility;
+            } else {
+                String propertiesSourceCompatibility = (String) mavenProject.getProperties().get("maven.compiler.testSource");
+                if (sourceCompatibility == null && propertiesSourceCompatibility != null) {
+                    sourceCompatibility = propertiesSourceCompatibility;
+                }
+                String propertiesTargetCompatibility = (String) mavenProject.getProperties().get("maven.compiler.testTarget");
+                if (targetCompatibility == null && propertiesTargetCompatibility != null) {
+                    targetCompatibility = propertiesTargetCompatibility;
+                }
+            }
+        }
+
+        // Fall back to main source compatibility if test source compatibility is not set, or only partially set.
+        if (sourceCompatibility == null || targetCompatibility == null) {
+            JavaVersion srcMainJavaVersion = getSrcMainJavaVersion(mavenProject);
+            if (sourceCompatibility == null && targetCompatibility == null) {
+                return srcMainJavaVersion;
+            }
+            sourceCompatibility = sourceCompatibility == null ? srcMainJavaVersion.getSourceCompatibility() : sourceCompatibility;
+            targetCompatibility = targetCompatibility == null ? srcMainJavaVersion.getTargetCompatibility() : targetCompatibility;
+        }
+
+        return getJavaVersionMarker(sourceCompatibility, targetCompatibility);
+    }
+
+    private static JavaVersion getJavaVersionMarker(@Nullable String sourceCompatibility, @Nullable String targetCompatibility) {
+        String javaRuntimeVersion = System.getProperty("java.specification.version");
+        String javaVendor = System.getProperty("java.vm.vendor");
         if (sourceCompatibility == null) {
             sourceCompatibility = javaRuntimeVersion;
         }
         if (targetCompatibility == null) {
             targetCompatibility = sourceCompatibility;
         }
-
-        BuildEnvironment buildEnvironment = BuildEnvironment.build(System::getenv);
-        return Stream.of(
-                        buildEnvironment,
-                        gitProvenance(baseDir, buildEnvironment),
-                        OperatingSystemProvenance.current(),
-                        buildTool,
-                        new JavaVersion(randomId(), javaRuntimeVersion, javaVendor, sourceCompatibility, targetCompatibility),
-                        new JavaProject(randomId(), mavenProject.getName(), new JavaProject.Publication(
-                                mavenProject.getGroupId(),
-                                mavenProject.getArtifactId(),
-                                mavenProject.getVersion()
-                        )))
-                .filter(Objects::nonNull)
-                .collect(toList());
+        return new JavaVersion(randomId(), javaRuntimeVersion, javaVendor, sourceCompatibility, targetCompatibility);
     }
 
     private Stream<SourceFile> processMainSources(
@@ -350,6 +411,7 @@ public class MavenMojoProjectParser {
 
         List<Marker> mainProjectProvenance = new ArrayList<>(projectProvenance);
         mainProjectProvenance.add(sourceSet("main", dependencies, typeCache));
+        mainProjectProvenance.add(getSrcMainJavaVersion(mavenProject));
 
         //Filter out any generated source files from the returned list, as we do not want to apply the recipe to the
         //generated files.
@@ -406,6 +468,7 @@ public class MavenMojoProjectParser {
 
         List<Marker> markers = new ArrayList<>(projectProvenance);
         markers.add(sourceSet("test", testDependencies, typeCache));
+        markers.add(getSrcTestJavaVersion(mavenProject));
 
         // Any resources parsed from "test/resources" should also have the test source set added to them.
         int sourcesParsedBefore = alreadyParsed.size();
