@@ -31,6 +31,7 @@ import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.util.*;
 import java.util.stream.Collectors;
+import java.util.stream.Stream;
 
 import static java.util.Collections.emptyMap;
 
@@ -40,19 +41,27 @@ public abstract class ConfigurableRewriteMojo extends AbstractMojo {
     @Parameter(property = "rewrite.configLocation", alias = "configLocation", defaultValue = "${maven.multiModuleProjectDirectory}/rewrite.yml")
     protected String configLocation;
 
-    @Parameter(property = "activeRecipes")
-    protected List<String> activeRecipes = Collections.emptyList();
-
     @Nullable
     @Parameter(property = "rewrite.activeRecipes")
-    protected String rewriteActiveRecipes;
-
-    @Parameter(property = "activeStyles")
-    protected Set<String> activeStyles = Collections.emptySet();
+    protected LinkedHashSet<String> activeRecipes;
+    /**
+     * @deprecated Use {@code rewrite.activeRecipes} instead.
+     */
+    @Nullable
+    @Parameter(property = "activeRecipes")
+    @Deprecated
+    protected LinkedHashSet<String> deprecatedActiveRecipes;
 
     @Nullable
     @Parameter(property = "rewrite.activeStyles")
-    protected String rewriteActiveStyles;
+    protected LinkedHashSet<String> activeStyles;
+    /**
+     * @deprecated Use {@code rewrite.activeStyles} instead.
+     */
+    @Nullable
+    @Parameter(property = "activeStyles")
+    @Deprecated
+    protected LinkedHashSet<String> deprecatedActiveStyles;
 
     @Nullable
     @Parameter(property = "rewrite.metricsUri", alias = "metricsUri")
@@ -91,69 +100,66 @@ public abstract class ConfigurableRewriteMojo extends AbstractMojo {
     @Parameter(property = "rewrite.checkstyleDetectionEnabled", alias = "checkstyleDetectionEnabled", defaultValue = "true")
     protected boolean checkstyleDetectionEnabled;
 
-    @Parameter(property = "exclusions")
-    private Set<String> exclusions = Collections.emptySet();
-
     @Nullable
     @Parameter(property = "rewrite.exclusions")
-    private String rewriteExclusions;
+    private LinkedHashSet<String> exclusions;
+    /**
+     * @deprecated Use {@code rewrite.exclusions} instead.
+     */
+    @Nullable
+    @Deprecated
+    @Parameter(property = "exclusions")
+    private LinkedHashSet<String> deprecatedExclusions;
 
     protected Set<String> getExclusions() {
-        if (rewriteExclusions == null) {
-            return exclusions;
-        } else {
-            Set<String> allExclusions = toSet(rewriteExclusions);
-            allExclusions.addAll(exclusions);
-            return allExclusions;
-        }
+        return getMergedAndCleaned(exclusions, deprecatedExclusions);
     }
-
-    @Parameter(property = "plainTextMasks")
-    private Set<String> plainTextMasks = new HashSet<>();
 
     @Nullable
     @Parameter(property = "rewrite.plainTextMasks")
-    private String rewritePlainTextMasks;
+    private LinkedHashSet<String> plainTextMasks;
+    @Nullable
+    @Parameter(property = "plainTextMasks")
+    @Deprecated
+    private LinkedHashSet<String> deprecatedPlainTextMasks;
 
     protected Set<String> getPlainTextMasks() {
-        if (plainTextMasks.isEmpty() && rewritePlainTextMasks == null) {
-            //If not defined, use a default set of masks
-            return new HashSet<>(Arrays.asList(
-                    "**/*.adoc",
-                    "**/*.bash",
-                    "**/*.bat",
-                    "**/CODEOWNERS",
-                    "**/*.css",
-                    "**/*.config",
-                    "**/Dockerfile*",
-                    "**/.gitattributes",
-                    "**/.gitignore",
-                    "**/*.htm*",
-                    "**/gradlew",
-                    "**/.java-version",
-                    "**/*.jsp",
-                    "**/*.ksh",
-                    "**/lombok.config",
-                    "**/*.md",
-                    "**/*.mf",
-                    "**/META-INF/services/**",
-                    "**/META-INF/spring/**",
-                    "**/META-INF/spring.factories",
-                    "**/mvnw",
-                    "**/mvnw.cmd",
-                    "**/*.qute.java",
-                    "**/.sdkmanrc",
-                    "**/*.sh",
-                    "**/*.sql",
-                    "**/*.svg",
-                    "**/*.txt",
-                    "**/*.py"
-            ));
-        } else {
-            Set<String> masks = toSet(rewritePlainTextMasks);
-            masks.addAll(plainTextMasks);
+        Set<String> masks = getMergedAndCleaned(plainTextMasks, deprecatedPlainTextMasks);
+        if (!masks.isEmpty()) {
             return masks;
         }
+        //If not defined, use a default set of masks
+        return new HashSet<>(Arrays.asList(
+                "**/*.adoc",
+                "**/*.bash",
+                "**/*.bat",
+                "**/CODEOWNERS",
+                "**/*.css",
+                "**/*.config",
+                "**/Dockerfile*",
+                "**/.gitattributes",
+                "**/.gitignore",
+                "**/*.htm*",
+                "**/gradlew",
+                "**/.java-version",
+                "**/*.jsp",
+                "**/*.ksh",
+                "**/lombok.config",
+                "**/*.md",
+                "**/*.mf",
+                "**/META-INF/services/**",
+                "**/META-INF/spring/**",
+                "**/META-INF/spring.factories",
+                "**/mvnw",
+                "**/mvnw.cmd",
+                "**/*.qute.java",
+                "**/.sdkmanrc",
+                "**/*.sh",
+                "**/*.sql",
+                "**/*.svg",
+                "**/*.txt",
+                "**/*.py"
+        ));
     }
 
     @Nullable
@@ -175,11 +181,10 @@ public abstract class ConfigurableRewriteMojo extends AbstractMojo {
 
     @Nullable
     @Parameter(property = "rewrite.recipeArtifactCoordinates")
-    private String recipeArtifactCoordinates;
+    private LinkedHashSet<String> recipeArtifactCoordinates;
 
     @Nullable
     private volatile Set<String> computedRecipes;
-
     @Nullable
     private volatile Set<String> computedStyles;
 
@@ -190,20 +195,10 @@ public abstract class ConfigurableRewriteMojo extends AbstractMojo {
         if (computedRecipes == null) {
             synchronized (this) {
                 if (computedRecipes == null) {
-                    Set<String> res = toLinkedHashSet(rewriteActiveRecipes);
-                    if (res.isEmpty()) {
-                        res.addAll(
-                                activeRecipes
-                                        .stream()
-                                        .filter(Objects::nonNull)
-                                        .collect(Collectors.toList())
-                        );
-                    }
-                    computedRecipes = Collections.unmodifiableSet(res);
+                    computedRecipes = getMergedAndCleaned(activeRecipes, deprecatedActiveRecipes);
                 }
             }
         }
-
         //noinspection ConstantConditions
         return computedRecipes;
     }
@@ -212,15 +207,10 @@ public abstract class ConfigurableRewriteMojo extends AbstractMojo {
         if (computedStyles == null) {
             synchronized (this) {
                 if (computedStyles == null) {
-                    Set<String> res = toSet(rewriteActiveStyles);
-                    if (res.isEmpty()) {
-                        res.addAll(activeStyles);
-                    }
-                    computedStyles = Collections.unmodifiableSet(res);
+                    computedStyles = getMergedAndCleaned(activeStyles, deprecatedActiveStyles);
                 }
             }
         }
-
         //noinspection ConstantConditions
         return computedStyles;
     }
@@ -264,26 +254,27 @@ public abstract class ConfigurableRewriteMojo extends AbstractMojo {
         if (computedRecipeArtifactCoordinates == null) {
             synchronized (this) {
                 if (computedRecipeArtifactCoordinates == null) {
-                    computedRecipeArtifactCoordinates = Collections.unmodifiableSet(toSet(recipeArtifactCoordinates));
+                    computedRecipeArtifactCoordinates = getMergedAndCleaned(recipeArtifactCoordinates, null);
                 }
             }
         }
-
         //noinspection ConstantConditions
         return computedRecipeArtifactCoordinates;
     }
 
-    private static Set<String> toSet(@Nullable String propertyValue) {
-        return Optional.ofNullable(propertyValue)
+    private static Set<String> getMergedAndCleaned(@Nullable LinkedHashSet<String> set, @Nullable LinkedHashSet<String> deprecatedSet) {
+        Stream<String> merged = Stream.empty();
+        if (set != null) {
+            merged = set.stream();
+        }
+        if (deprecatedSet != null) {
+            merged = Stream.concat(merged, deprecatedSet.stream());
+        }
+        LinkedHashSet<String> collected = merged
+                .filter(Objects::nonNull)
+                .map(String::trim)
                 .filter(s -> !s.isEmpty())
-                .map(s -> new HashSet<>(Arrays.asList(s.split(","))))
-                .orElseGet(HashSet::new);
-    }
-
-    private static Set<String> toLinkedHashSet(@Nullable String propertyValue) {
-        return Optional.ofNullable(propertyValue)
-                .filter(s -> !s.isEmpty())
-                .map(s -> new LinkedHashSet<>(Arrays.asList(s.split(","))))
-                .orElseGet(LinkedHashSet::new);
+                .collect(Collectors.toCollection(LinkedHashSet::new));
+        return Collections.unmodifiableSet(collected);
     }
 }
