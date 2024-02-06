@@ -198,6 +198,11 @@ public class MavenMojoProjectParser {
             return sourceFile;
         }).filter(Objects::nonNull);
 
+        // Clear the charset after parsing or sources is complete, as it may not be applicable to other sources.
+        if (mavenSourceEncoding != null) {
+            ParsingExecutionContextView.view(ctx).setCharset(null);
+        }
+
         // Collect any additional files that were not parsed above.
         int sourcesParsedBefore = alreadyParsed.size();
         Stream<SourceFile> parsedResourceFiles;
