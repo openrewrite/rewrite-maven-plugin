@@ -16,8 +16,10 @@
 package org.openrewrite.maven;
 
 import com.puppycrawl.tools.checkstyle.Checker;
+import org.apache.maven.execution.MavenSession;
 import org.apache.maven.model.Plugin;
 import org.apache.maven.plugin.AbstractMojo;
+import org.apache.maven.plugin.descriptor.PluginDescriptor;
 import org.apache.maven.plugins.annotations.Parameter;
 import org.apache.maven.project.MavenProject;
 import org.codehaus.plexus.util.xml.Xpp3Dom;
@@ -178,6 +180,32 @@ public abstract class ConfigurableRewriteMojo extends AbstractMojo {
 
     @Parameter(property = "rewrite.runPerSubmodule", alias = "runPerSubmodule", defaultValue = "false")
     protected boolean runPerSubmodule;
+
+    @Parameter(defaultValue = "${session}", readonly = true)
+    protected MavenSession mavenSession;
+
+    @Parameter(defaultValue = "${plugin}", required = true, readonly = true)
+    protected PluginDescriptor pluginDescriptor;
+
+    protected enum State {
+        SKIPPED,
+        PROCESSED,
+        TO_BE_PROCESSED
+    }
+    private static final String OPENREWRITE_PROCESSED_MARKER = "openrewrite.processed";
+
+    protected void putState(State state) {
+        getPluginContext().put(OPENREWRITE_PROCESSED_MARKER, state.name());
+    }
+
+    private boolean hasState(MavenProject project) {
+        Map<String, Object> pluginContext = mavenSession.getPluginContext(pluginDescriptor, project);
+        return pluginContext.containsKey(OPENREWRITE_PROCESSED_MARKER);
+    }
+
+    protected boolean allProjectsMarked() {
+        return mavenSession.getProjects().stream().allMatch(this::hasState);
+    }
 
     @Nullable
     @Parameter(property = "rewrite.recipeArtifactCoordinates")
