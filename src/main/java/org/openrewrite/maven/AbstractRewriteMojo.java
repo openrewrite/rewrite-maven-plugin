@@ -17,9 +17,7 @@ package org.openrewrite.maven;
 
 import io.micrometer.core.instrument.Metrics;
 import org.apache.maven.artifact.DependencyResolutionRequiredException;
-import org.apache.maven.execution.MavenSession;
 import org.apache.maven.plugin.MojoExecutionException;
-import org.apache.maven.plugin.descriptor.PluginDescriptor;
 import org.apache.maven.plugins.annotations.Component;
 import org.apache.maven.plugins.annotations.Parameter;
 import org.apache.maven.project.MavenProject;
@@ -75,33 +73,7 @@ public abstract class AbstractRewriteMojo extends ConfigurableRewriteMojo {
     @Component
     protected RepositorySystem repositorySystem;
 
-    @Parameter(defaultValue = "${session}", readonly = true)
-    protected MavenSession mavenSession;
-
-    @Parameter(defaultValue = "${plugin}", required = true, readonly = true)
-    protected PluginDescriptor pluginDescriptor;
-
     private static final String RECIPE_NOT_FOUND_EXCEPTION_MSG = "Could not find recipe '%s' among available recipes";
-
-    protected enum State {
-        SKIPPED,
-        PROCESSED,
-        TO_BE_PROCESSED
-    }
-    private static final String OPENREWRITE_PROCESSED_MARKER = "openrewrite.processed";
-
-    protected void putState(State state) {
-        getPluginContext().put(OPENREWRITE_PROCESSED_MARKER, state.name());
-    }
-
-    private boolean hasState(MavenProject project) {
-        Map<String, Object> pluginContext = mavenSession.getPluginContext(pluginDescriptor, project);
-        return pluginContext.containsKey(OPENREWRITE_PROCESSED_MARKER);
-    }
-
-    protected boolean allProjectsMarked() {
-        return mavenSession.getProjects().stream().allMatch(this::hasState);
-    }
 
     protected Environment environment() throws MojoExecutionException {
         return environment(getRecipeArtifactCoordinatesClassloader());
