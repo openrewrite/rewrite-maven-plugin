@@ -17,7 +17,6 @@ package org.openrewrite.maven;
 
 import io.micrometer.core.instrument.Metrics;
 import org.apache.maven.artifact.DependencyResolutionRequiredException;
-import org.apache.maven.execution.MavenSession;
 import org.apache.maven.plugin.MojoExecutionException;
 import org.apache.maven.plugins.annotations.Component;
 import org.apache.maven.plugins.annotations.Parameter;
@@ -74,9 +73,6 @@ public abstract class AbstractRewriteMojo extends ConfigurableRewriteMojo {
     @Component
     protected RepositorySystem repositorySystem;
 
-    @Parameter(defaultValue = "${session}", readonly = true)
-    protected MavenSession mavenSession;
-
     private static final String RECIPE_NOT_FOUND_EXCEPTION_MSG = "Could not find recipe '%s' among available recipes";
 
     protected Environment environment() throws MojoExecutionException {
@@ -116,26 +112,6 @@ public abstract class AbstractRewriteMojo extends ConfigurableRewriteMojo {
         }
 
         return null;
-    }
-
-    /**
-     * Is this project the last project in the reactor?
-     *
-     * @return true if last project (including only project)
-     */
-    protected boolean isLastProjectInReactor() {
-        List<MavenProject> sortedProjects = mavenSession.getProjectDependencyGraph().getSortedProjects();
-
-        MavenProject lastProject = sortedProjects.isEmpty()
-            ? mavenSession.getCurrentProject()
-            : sortedProjects.get(sortedProjects.size() - 1);
-
-        if (getLog().isDebugEnabled()) {
-            getLog().debug("Current project: '" + mavenSession.getCurrentProject().getName() +
-                "', Last project to execute based on dependency graph: '" + lastProject.getName() + "'");
-        }
-
-        return mavenSession.getCurrentProject().equals(lastProject);
     }
 
     protected Environment environment(@Nullable ClassLoader recipeClassLoader) throws MojoExecutionException {
