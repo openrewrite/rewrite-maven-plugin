@@ -37,6 +37,15 @@ class RewriteDryRunIT {
     }
 
     @MavenTest
+    void module_info(MavenExecutionResult result) {
+        assertThat(result)
+                .isSuccessful()
+                .out()
+                .warn()
+                .anySatisfy(line -> assertThat(line).contains("Applying recipes would make no changes."));
+    }
+
+    @MavenTest
     void multi_module_project(MavenExecutionResult result) {
         assertThat(result)
                 .isSuccessful()
