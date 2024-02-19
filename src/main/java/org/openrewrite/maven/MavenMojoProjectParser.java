@@ -51,7 +51,6 @@ import org.openrewrite.maven.tree.ProfileActivation;
 import org.openrewrite.maven.utilities.MavenWrapper;
 import org.openrewrite.style.NamedStyles;
 import org.openrewrite.tree.ParseError;
-import org.openrewrite.tree.ParsingExecutionContextView;
 import org.openrewrite.xml.tree.Xml;
 
 import java.io.File;
@@ -169,13 +168,14 @@ public class MavenMojoProjectParser {
             alreadyParsed.add(baseDir.resolve(maven.getSourcePath()));
         }
 
-        Object mavenSourceEncoding = mavenProject.getProperties().get("project.build.sourceEncoding");
-        if (mavenSourceEncoding != null) {
-            ParsingExecutionContextView.view(ctx).setCharset(Charset.forName(mavenSourceEncoding.toString()));
-        }
         JavaParser.Builder<? extends JavaParser, ?> javaParserBuilder = JavaParser.fromJavaVersion()
                 .styles(styles)
                 .logCompilationWarningsAndErrors(false);
+
+        Object mavenSourceEncoding = mavenProject.getProperties().get("project.build.sourceEncoding");
+        if (mavenSourceEncoding != null) {
+            javaParserBuilder.charset(Charset.forName(mavenSourceEncoding.toString()));
+        }
 
         // todo, add styles from autoDetect
         KotlinParser.Builder kotlinParserBuilder = KotlinParser.builder();
@@ -197,14 +197,6 @@ public class MavenMojoProjectParser {
             }
             return sourceFile;
         }).filter(Objects::nonNull);
-
-        // Clear the charset after parsing or sources is complete, as it may not be applicable to other sources.
-        if (mavenSourceEncoding != null) {
-            sourceFiles = Stream.concat(sourceFiles, Stream.<SourceFile>generate(() -> null).filter(ignored -> {
-                ParsingExecutionContextView.view(ctx).setCharset(null);
-                return false;
-            }));
-        }
 
         // Collect any additional files that were not parsed above.
         int sourcesParsedBefore = alreadyParsed.size();
