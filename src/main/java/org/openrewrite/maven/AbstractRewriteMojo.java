@@ -64,6 +64,9 @@ public abstract class AbstractRewriteMojo extends ConfigurableRewriteMojo {
     @Parameter(defaultValue = "${project}", readonly = true, required = true)
     protected MavenProject project;
 
+    @Parameter(property = "rewrite.resolvePropertiesInYaml", defaultValue = "true")
+    protected boolean resolvePropertiesInYaml;
+
     @Component
     protected RuntimeInformation runtime;
 
@@ -127,7 +130,8 @@ public abstract class AbstractRewriteMojo extends ConfigurableRewriteMojo {
             Config rewriteConfig = getConfig();
             if (rewriteConfig != null) {
                 try (InputStream is = rewriteConfig.inputStream) {
-                    env.load(new YamlResourceLoader(is, rewriteConfig.uri, project.getProperties()));
+                    Properties propertiesToResolve = resolvePropertiesInYaml ? project.getProperties() : new Properties();
+                    env.load(new YamlResourceLoader(is, rewriteConfig.uri, propertiesToResolve));
                 }
             }
         } catch (IOException e) {
