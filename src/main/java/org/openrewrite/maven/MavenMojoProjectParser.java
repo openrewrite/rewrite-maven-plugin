@@ -171,11 +171,7 @@ public class MavenMojoProjectParser {
         JavaParser.Builder<? extends JavaParser, ?> javaParserBuilder = JavaParser.fromJavaVersion()
                 .styles(styles)
                 .logCompilationWarningsAndErrors(false);
-
-        Object mavenSourceEncoding = mavenProject.getProperties().get("project.build.sourceEncoding");
-        if (mavenSourceEncoding != null) {
-            javaParserBuilder.charset(Charset.forName(mavenSourceEncoding.toString()));
-        }
+        getCharset(mavenProject).ifPresent(javaParserBuilder::charset);
 
         // todo, add styles from autoDetect
         KotlinParser.Builder kotlinParserBuilder = KotlinParser.builder();
@@ -220,6 +216,24 @@ public class MavenMojoProjectParser {
 
         // log parse errors here at the end, so that we don't log parse errors for files that were excluded
         return sourceFiles.map(this::logParseErrors);
+    }
+
+    private static Optional<Charset> getCharset(MavenProject mavenProject) {
+        Object mavenSourceEncoding = mavenProject.getProperties().get("project.build.sourceEncoding");
+        if (mavenSourceEncoding != null) {
+            return Optional.of(Charset.forName(mavenSourceEncoding.toString()));
+        }
+
+        String compilerPluginKey = "org.apache.maven.plugins:maven-compiler-plugin";
+        Plugin plugin = Optional.ofNullable(mavenProject.getPlugin(compilerPluginKey))
+                .orElseGet(() -> mavenProject.getPluginManagement().getPluginsAsMap().get(compilerPluginKey));
+        if (plugin != null && plugin.getConfiguration() instanceof Xpp3Dom) {
+            Xpp3Dom encoding = ((Xpp3Dom) plugin.getConfiguration()).getChild("encoding");
+            if (encoding != null && StringUtils.isNotEmpty(encoding.getValue())) {
+                return Optional.of(Charset.forName(encoding.getValue()));
+            }
+        }
+        return Optional.empty();
     }
 
     private SourceFile logParseErrors(SourceFile source) {
