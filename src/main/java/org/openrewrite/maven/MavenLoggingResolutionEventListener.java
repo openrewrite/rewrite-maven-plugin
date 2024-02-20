@@ -17,39 +17,17 @@ package org.openrewrite.maven;
 
 import org.apache.maven.plugin.logging.Log;
 import org.openrewrite.internal.lang.Nullable;
-import org.openrewrite.maven.tree.GroupArtifactVersion;
-import org.openrewrite.maven.tree.ManagedDependency;
-import org.openrewrite.maven.tree.MavenRepository;
-import org.openrewrite.maven.tree.Pom;
-import org.openrewrite.maven.tree.ResolutionEventListener;
-import org.openrewrite.maven.tree.ResolvedDependency;
-import org.openrewrite.maven.tree.ResolvedGroupArtifactVersion;
-import org.openrewrite.maven.tree.ResolvedPom;
-import org.openrewrite.maven.tree.Scope;
+import org.openrewrite.maven.tree.*;
 
 import java.util.List;
 import java.util.Objects;
 
-public class MavenLoggingResolutionEventListener implements ResolutionEventListener {
+class MavenLoggingResolutionEventListener implements ResolutionEventListener {
 
     private final Log logger;
 
     public MavenLoggingResolutionEventListener(Log logger) {
         this.logger = Objects.requireNonNull(logger, "logger cannot be null");
-    }
-
-    @Override
-    public void downloadMetadata(GroupArtifactVersion gav) {
-        if (logger.isDebugEnabled()) {
-            logger.debug("Downloading metadata for " + gav);
-        }
-    }
-
-    @Override
-    public void download(GroupArtifactVersion gav) {
-        if (logger.isDebugEnabled()) {
-            logger.debug("Downloading " + gav);
-        }
     }
 
     @Override
@@ -61,52 +39,9 @@ public class MavenLoggingResolutionEventListener implements ResolutionEventListe
 
     @Override
     public void downloadError(GroupArtifactVersion gav, List<String> attemptedUris, @Nullable Pom containing) {
-        StringBuilder sb = new StringBuilder("Failed to download " + gav + pomContaining(containing) + "\n");
-        sb.append("Attempted URIs:").append("\n");
+        StringBuilder sb = new StringBuilder("Failed to download " + gav + pomContaining(containing) + ". Attempted URIs:");
         attemptedUris.forEach(uri -> sb.append("\n  - ").append(uri));
         logger.error(sb);
-    }
-
-    @Override
-    public void parent(Pom parent, Pom containing) {
-        if (logger.isDebugEnabled()) {
-            logger.debug("Resolved parent pom " + containing + pomContaining(containing));
-        }
-    }
-
-    @Override
-    public void dependency(Scope scope, ResolvedDependency resolvedDependency, ResolvedPom containing) {
-        if (logger.isDebugEnabled()) {
-            logger.debug("Resolved dependency " + resolvedDependency + " with scope " + scope + pomContaining(containing));
-        }
-    }
-
-    @Override
-    public void bomImport(ResolvedGroupArtifactVersion gav, Pom containing) {
-        if (logger.isDebugEnabled()) {
-            logger.debug("Resolved imported dependency " + gav + pomContaining(containing));
-        }
-    }
-
-    @Override
-    public void property(String key, String value, Pom containing) {
-        if (logger.isDebugEnabled()) {
-            logger.debug("Resolved property \"" + key + "\" with value \"" + value + "\"" + pomContaining(containing));
-        }
-    }
-
-    @Override
-    public void dependencyManagement(ManagedDependency dependencyManagement, Pom containing) {
-        if (logger.isDebugEnabled()) {
-            logger.debug("Resolved managed dependency " + dependencyManagement + " on " + pomContaining(containing));
-        }
-    }
-
-    @Override
-    public void repository(MavenRepository mavenRepository, @Nullable ResolvedPom containing) {
-        if (logger.isDebugEnabled()) {
-            logger.debug("Resolving maven repository " + mavenRepository + pomContaining(containing));
-        }
     }
 
     @Override
@@ -115,10 +50,10 @@ public class MavenLoggingResolutionEventListener implements ResolutionEventListe
     }
 
     private static String pomContaining(@Nullable Pom containing) {
-        return containing != null ? " on " + containing : "";
+        return containing != null ? " from " + containing.getGav() : "";
     }
 
     private static String pomContaining(@Nullable ResolvedPom containing) {
-        return containing != null ? " on " + containing : "";
+        return containing != null ? " from " + containing.getGav() : "";
     }
 }
