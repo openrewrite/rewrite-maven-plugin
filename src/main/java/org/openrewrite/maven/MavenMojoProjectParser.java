@@ -219,11 +219,6 @@ public class MavenMojoProjectParser {
     }
 
     private static Optional<Charset> getCharset(MavenProject mavenProject) {
-        Object mavenSourceEncoding = mavenProject.getProperties().get("project.build.sourceEncoding");
-        if (mavenSourceEncoding != null) {
-            return Optional.of(Charset.forName(mavenSourceEncoding.toString()));
-        }
-
         String compilerPluginKey = "org.apache.maven.plugins:maven-compiler-plugin";
         Plugin plugin = Optional.ofNullable(mavenProject.getPlugin(compilerPluginKey))
                 .orElseGet(() -> mavenProject.getPluginManagement().getPluginsAsMap().get(compilerPluginKey));
@@ -232,6 +227,11 @@ public class MavenMojoProjectParser {
             if (encoding != null && StringUtils.isNotEmpty(encoding.getValue())) {
                 return Optional.of(Charset.forName(encoding.getValue()));
             }
+        }
+
+        Object mavenSourceEncoding = mavenProject.getProperties().get("project.build.sourceEncoding");
+        if (mavenSourceEncoding != null) {
+            return Optional.of(Charset.forName(mavenSourceEncoding.toString()));
         }
         return Optional.empty();
     }
