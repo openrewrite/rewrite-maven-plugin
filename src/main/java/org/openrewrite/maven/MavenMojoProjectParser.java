@@ -51,7 +51,6 @@ import org.openrewrite.maven.tree.ProfileActivation;
 import org.openrewrite.maven.utilities.MavenWrapper;
 import org.openrewrite.style.NamedStyles;
 import org.openrewrite.tree.ParseError;
-import org.openrewrite.tree.ParsingExecutionContextView;
 import org.openrewrite.xml.tree.Xml;
 
 import java.io.File;
@@ -169,13 +168,10 @@ public class MavenMojoProjectParser {
             alreadyParsed.add(baseDir.resolve(maven.getSourcePath()));
         }
 
-        Object mavenSourceEncoding = mavenProject.getProperties().get("project.build.sourceEncoding");
-        if (mavenSourceEncoding != null) {
-            ParsingExecutionContextView.view(ctx).setCharset(Charset.forName(mavenSourceEncoding.toString()));
-        }
         JavaParser.Builder<? extends JavaParser, ?> javaParserBuilder = JavaParser.fromJavaVersion()
                 .styles(styles)
                 .logCompilationWarningsAndErrors(false);
+        getCharset(mavenProject).ifPresent(javaParserBuilder::charset);
 
         // todo, add styles from autoDetect
         KotlinParser.Builder kotlinParserBuilder = KotlinParser.builder();
@@ -220,6 +216,24 @@ public class MavenMojoProjectParser {
 
         // log parse errors here at the end, so that we don't log parse errors for files that were excluded
         return sourceFiles.map(this::logParseErrors);
+    }
+
+    private static Optional<Charset> getCharset(MavenProject mavenProject) {
+        String compilerPluginKey = "org.apache.maven.plugins:maven-compiler-plugin";
+        Plugin plugin = Optional.ofNullable(mavenProject.getPlugin(compilerPluginKey))
+                .orElseGet(() -> mavenProject.getPluginManagement().getPluginsAsMap().get(compilerPluginKey));
+        if (plugin != null && plugin.getConfiguration() instanceof Xpp3Dom) {
+            Xpp3Dom encoding = ((Xpp3Dom) plugin.getConfiguration()).getChild("encoding");
+            if (encoding != null && StringUtils.isNotEmpty(encoding.getValue())) {
+                return Optional.of(Charset.forName(encoding.getValue()));
+            }
+        }
+
+        Object mavenSourceEncoding = mavenProject.getProperties().get("project.build.sourceEncoding");
+        if (mavenSourceEncoding != null) {
+            return Optional.of(Charset.forName(mavenSourceEncoding.toString()));
+        }
+        return Optional.empty();
     }
 
     private SourceFile logParseErrors(SourceFile source) {
