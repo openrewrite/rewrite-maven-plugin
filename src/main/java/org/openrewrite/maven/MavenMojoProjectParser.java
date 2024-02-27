@@ -88,6 +88,7 @@ import static org.openrewrite.Tree.randomId;
 // -----------------------------------------------------------------------------------------------------------------
 public class MavenMojoProjectParser {
 
+    private static final String MVN_MAVEN_CONFIG = ".mvn/maven.config";
     @Nullable
     public static MavenPomCache POM_CACHE;
 
@@ -202,8 +203,9 @@ public class MavenMojoProjectParser {
                     .map(addProvenance(baseDir, projectProvenance, null));
             logDebug(mavenProject, "Parsed " + (alreadyParsed.size() - sourcesParsedBefore) + " additional files found within the project.");
         } else {
-            // Only parse Maven wrapper files, such that UpdateMavenWrapper can use the version information.
+            // Only parse Maven wrapper related files, such that UpdateMavenWrapper can use the version information.
             parsedResourceFiles = Stream.of(
+                            Paths.get(MVN_MAVEN_CONFIG),
                             MavenWrapper.WRAPPER_BATCH_LOCATION,
                             MavenWrapper.WRAPPER_JAR_LOCATION,
                             MavenWrapper.WRAPPER_PROPERTIES_LOCATION,
@@ -533,7 +535,7 @@ public class MavenMojoProjectParser {
         for (MavenProject mavenProject : mavenProjects) {
             mavenSession.getProjectDependencyGraph().getUpstreamProjects(mavenProject, true).forEach(p -> collectPoms(p, allPoms));
         }
-        MavenParser.Builder mavenParserBuilder = MavenParser.builder().mavenConfig(baseDir.resolve(".mvn/maven.config"));
+        MavenParser.Builder mavenParserBuilder = MavenParser.builder().mavenConfig(baseDir.resolve(MVN_MAVEN_CONFIG));
 
         MavenSettings settings = buildSettings();
         MavenExecutionContextView mavenExecutionContext = MavenExecutionContextView.view(ctx);
