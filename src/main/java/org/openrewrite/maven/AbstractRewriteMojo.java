@@ -28,6 +28,8 @@ import org.eclipse.aether.RepositorySystem;
 import org.eclipse.aether.artifact.Artifact;
 import org.openrewrite.*;
 import org.openrewrite.config.ClasspathScanningLoader;
+import org.openrewrite.config.ColumnDescriptor;
+import org.openrewrite.config.DataTableDescriptor;
 import org.openrewrite.config.Environment;
 import org.openrewrite.config.RecipeDescriptor;
 import org.openrewrite.config.YamlResourceLoader;
@@ -43,9 +45,13 @@ import org.openrewrite.style.NamedStyles;
 import org.openrewrite.xml.tree.Xml;
 
 import java.io.File;
+import java.io.FileNotFoundException;
+import java.io.FileOutputStream;
 import java.io.IOException;
 import java.io.InputStream;
+import java.io.PrintWriter;
 import java.io.UncheckedIOException;
+import java.lang.reflect.Field;
 import java.net.*;
 import java.nio.file.Files;
 import java.nio.file.Path;
@@ -57,6 +63,7 @@ import java.util.stream.Stream;
 import static java.util.Collections.emptyList;
 import static java.util.stream.Collectors.joining;
 import static java.util.stream.Collectors.toList;
+import static org.openrewrite.internal.RecipeIntrospectionUtils.dataTableDescriptorFromDataTable;
 
 @SuppressWarnings("NotNullFieldNotInitialized")
 public abstract class AbstractRewriteMojo extends ConfigurableRewriteMojo {
@@ -262,15 +269,61 @@ public abstract class AbstractRewriteMojo extends ConfigurableRewriteMojo {
 
     protected List<Result> runRecipe(Recipe recipe, LargeSourceSet sourceSet, ExecutionContext ctx) {
         getLog().info("Running recipe(s)...");
-        return recipe.run(sourceSet, ctx).getChangeset().getAllResults().stream()
-                .filter(source -> {
-                    // Remove ASTs originating from generated files
-                    if (source.getBefore() != null) {
-                        return !source.getBefore().getMarkers().findFirst(Generated.class).isPresent();
-                    }
-                    return true;
-                })
-                .collect(toList());
+        getLog().info("Available Datatables.....");
+        getLog().info("NAME | DISPLAY_NAME | DESCRIPTION");
+        for (DataTableDescriptor descriptor : recipe.getDataTableDescriptors()) {
+            printDataTableDescriptors(descriptor);
+        }
+        RecipeRun recipeRun = recipe.run(sourceSet, ctx);
+        writeDatatables(recipeRun.getDataTables());
+
+        return recipeRun.getChangeset().getAllResults().stream().filter(source -> {
+            // Remove ASTs originating from generated files
+            if (source.getBefore() != null) {
+                return !source.getBefore().getMarkers().findFirst(Generated.class).isPresent();
+            }
+            return true;
+        }).collect(toList());
+    }
+
+    private void printDataTableDescriptors(DataTableDescriptor descriptor) {
+        getLog().info(descriptor.getName() + " | " + descriptor.getDisplayName() + " | " + descriptor.getDescription()
+                .replace(",", "\\,"));
+    }
+
+    private void writeDatatables(Map<DataTable<?>, List<?>> dataTables) {
+        dataTables.forEach((dataTable, rows) -> {
+            File csv = new File("target/rewrite/" + dataTable.getName() + ".csv");
+            try (PrintWriter printWriter = new PrintWriter(new FileOutputStream(csv, false))) {
+                DataTableDescriptor descriptor = dataTableDescriptorFromDataTable(dataTable);
+                List<String> fieldNames = descriptor.getColumns().stream().map(ColumnDescriptor::getName)
+                        .collect(toList());
+                printWriter.println(descriptor.getColumns().stream()
+                        .map(columnDescriptor -> String.format("\"%s\"", columnDescriptor.getName()))
+                        .collect(joining(",")));
+                printWriter.println(descriptor.getColumns().stream()
+                        .map(columnDescriptor -> String.format("\"%s\"", columnDescriptor.getDescription()))
+                        .collect(joining(",")));
+                printRowData(printWriter, rows, fieldNames);
+            } catch (FileNotFoundException | IllegalAccessException e) {
+                getLog().error("FAILED TO WRITE A DATATABLE TO CSV");
+            }
+        });
+    }
+
+    private void printRowData(PrintWriter printWriter, List<?> rows, List<String> fieldNames)
+            throws IllegalAccessException {
+        rows.forEach(row ->
+            printWriter.println(fieldNames.stream().map(fieldName -> {
+                try {
+                    Field field = row.getClass().getDeclaredField(fieldName);
+                    field.setAccessible(true);
+                    //Assume every column value is printable with toString
+                    return field.get(row).toString();
+                } catch (NoSuchFieldException | IllegalAccessException e) {
+                    throw new RuntimeException(e);
+                }
+            }).collect(joining(","))));
     }
 
     private List<SourceFile> sourcesWithAutoDetectedStyles(Stream<SourceFile> sourceFiles) {
