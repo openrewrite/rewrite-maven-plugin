@@ -556,6 +556,7 @@
                 <artifactId>dependency-check-maven</artifactId>
                 <version>9.0.9</version>
                 <configuration>
+                    <nvdApiKey>${env.}</nvdApiKey>
                     <failBuildOnCVSS>9</failBuildOnCVSS>
                     <suppressionFiles>
                         <suppressionFile>suppressions.xml</suppressionFile>
