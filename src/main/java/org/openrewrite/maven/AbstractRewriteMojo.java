@@ -69,8 +69,8 @@ public abstract class AbstractRewriteMojo extends ConfigurableRewriteMojo {
 
     public final String DATATABLE_OUTPUT_PATH = "target/rewrite/";
 
-    @Parameter(property = "rewrite.printDatatables", defaultValue = "false")
-    protected boolean printDatatables;
+    @Parameter(property = "rewrite.exportDatatables", defaultValue = "false")
+    protected boolean exportDatatables;
 
     @Component
     protected RuntimeInformation runtime;
@@ -269,7 +269,7 @@ public abstract class AbstractRewriteMojo extends ConfigurableRewriteMojo {
         getLog().info("Running recipe(s)...");
         RecipeRun recipeRun = recipe.run(sourceSet, ctx);
 
-        if (printDatatables) {
+        if (exportDatatables) {
             getLog().info(String.format("Printing Available Datatables to: %s", DATATABLE_OUTPUT_PATH));
             recipeRun.exportDatatablesToCsv(DATATABLE_OUTPUT_PATH);
         }
