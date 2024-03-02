@@ -69,10 +69,11 @@
         <developerConnectionUrl>scm:git:ssh://git@github.com/openrewrite/rewrite-maven-plugin.git
         </developerConnectionUrl>
         <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
-        <java.version>1.8</java.version>
 
-        <maven.compiler.testSource>17</maven.compiler.testSource>
-        <maven.compiler.testTarget>17</maven.compiler.testTarget>
+        <maven.compiler.source>8</maven.compiler.source>
+        <maven.compiler.target>${maven.compiler.source}</maven.compiler.target>
+        <!-- a profile in the profiles section sets the maven.compiler.release property on supported JREs -->
+        <maven.compiler.testRelease>17</maven.compiler.testRelease>
 
         <!-- dependencies and plugins -->
         <jackson-bom.version>2.16.1</jackson-bom.version>
@@ -456,17 +457,12 @@
                         <arg>-Xlint:unchecked</arg>
                         <!--<arg>-proc:full</arg>-->
                     </compilerArgs>
-                    <source>${java.version}</source>
-                    <target>${java.version}</target>
                 </configuration>
             </plugin>
             <plugin>
                 <groupId>org.apache.maven.plugins</groupId>
                 <artifactId>maven-javadoc-plugin</artifactId>
                 <version>3.6.3</version>
-                <configuration>
-                    <source>${java.version}</source>
-                </configuration>
                 <executions>
                     <execution>
                         <phase>prepare-package</phase>
@@ -640,6 +636,16 @@
                 <!-- automation via the maven-release-plugin uses a GITHUB_TOKEN which requires 'https' urls for git pushing -->
                 <developerConnectionUrl>scm:git:https://github.com/openrewrite/rewrite-maven-plugin.git
                 </developerConnectionUrl>
+            </properties>
+        </profile>
+        <profile>
+            <!-- set maven.compiler.release on JRE 9+ -->
+            <id>avoid-maven-compiler-warnings</id>
+            <activation>
+                <jdk>[9,)</jdk>
+            </activation>
+            <properties>
+                <maven.compiler.release>8</maven.compiler.release>
             </properties>
         </profile>
     </profiles>
