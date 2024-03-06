@@ -39,7 +39,7 @@
             file name: guava-31.1-jre.jar
             Reverted in https://github.com/openrewrite/rewrite-python/commit/f487df7dabb8588ae2edb17e31ff7b8ba3ffc133 because Guava 32 introduces gradle module metadata which causes downstream breakage in build plugins.
         ]]></notes>
-        <packageUrl regex="true">^pkg:maven/com\.google\.guava/guava@31.1-jre$</packageUrl>
+        <packageUrl regex="true">^pkg:maven/com\.google\.guava/guava@31\.0\.1-jre$</packageUrl>
         <cve>CVE-2023-2976</cve>
         <cve>CVE-2020-8908</cve>
     </suppress>
@@ -118,6 +118,14 @@
         file name: reactor-netty-core-1.0.32.jar
         ]]></notes>
         <packageUrl regex="true">^pkg:maven/io\.projectreactor\.netty/reactor\-netty\-core@.*$</packageUrl>
+        <cve>CVE-2023-34054</cve>
+        <cve>CVE-2023-34062</cve>
+    </suppress>
+    <suppress until="2024-12-13Z">
+        <notes><![CDATA[
+        file name: reactor-netty-http-1.0.32.jar
+        ]]></notes>
+        <packageUrl regex="true">^pkg:maven/io\.projectreactor\.netty/reactor\-netty\-http@.*$</packageUrl>
         <cve>CVE-2023-34054</cve>
         <cve>CVE-2023-34062</cve>
     </suppress>
