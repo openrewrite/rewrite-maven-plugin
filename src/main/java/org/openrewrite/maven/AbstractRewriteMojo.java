@@ -50,6 +50,8 @@ import java.net.*;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
+import java.time.LocalDateTime;
+import java.time.format.DateTimeFormatter;
 import java.util.*;
 import java.util.function.UnaryOperator;
 import java.util.stream.Stream;
@@ -66,8 +68,6 @@ public abstract class AbstractRewriteMojo extends ConfigurableRewriteMojo {
 
     @Parameter(property = "rewrite.resolvePropertiesInYaml", defaultValue = "true")
     protected boolean resolvePropertiesInYaml;
-
-    public final String DATATABLE_OUTPUT_PATH = "target/rewrite/";
 
     @Parameter(property = "rewrite.exportDatatables", defaultValue = "false")
     protected boolean exportDatatables;
@@ -270,8 +270,10 @@ public abstract class AbstractRewriteMojo extends ConfigurableRewriteMojo {
         RecipeRun recipeRun = recipe.run(sourceSet, ctx);
 
         if (exportDatatables) {
-            getLog().info(String.format("Printing Available Datatables to: %s", DATATABLE_OUTPUT_PATH));
-            recipeRun.exportDatatablesToCsv(DATATABLE_OUTPUT_PATH);
+            String timestamp = LocalDateTime.now().format(DateTimeFormatter.ofPattern("yyyy-MM-dd_HH-mm-ss-SSS"));
+            Path datatableDirectoryPath = Paths.get("target/rewrite/", "datatables", timestamp);
+            getLog().info(String.format("Printing Available Datatables to: %s", datatableDirectoryPath));
+            recipeRun.exportDatatablesToCsv(datatableDirectoryPath, ctx);
         }
 
         return recipeRun.getChangeset().getAllResults().stream().filter(source -> {
