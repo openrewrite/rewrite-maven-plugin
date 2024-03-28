@@ -397,7 +397,7 @@ public class MavenMojoProjectParser {
 
         // scan Kotlin files
         String kotlinSourceDir = getKotlinDirectory(mavenProject.getBuild().getSourceDirectory());
-        List<Path> mainKotlinSources = (kotlinSourceDir != null) ? listKotlinSources(mavenProject.getBasedir().toPath().resolve(kotlinSourceDir)) : Collections.emptyList();
+        List<Path> mainKotlinSources = kotlinSourceDir != null ? listKotlinSources(mavenProject.getBasedir().toPath().resolve(kotlinSourceDir)) : Collections.emptyList();
         alreadyParsed.addAll(mainKotlinSources);
 
         logInfo(mavenProject, "Parsing source files");
@@ -463,7 +463,7 @@ public class MavenMojoProjectParser {
 
         // scan Kotlin files
         String kotlinSourceDir = getKotlinDirectory(mavenProject.getBuild().getTestSourceDirectory());
-        List<Path> testKotlinSources = (kotlinSourceDir != null) ? listKotlinSources(mavenProject.getBasedir().toPath().resolve(kotlinSourceDir)) : Collections.emptyList();
+        List<Path> testKotlinSources = kotlinSourceDir != null ? listKotlinSources(mavenProject.getBasedir().toPath().resolve(kotlinSourceDir)) : Collections.emptyList();
         alreadyParsed.addAll(testKotlinSources);
 
         Stream<SourceFile> parsedJava = Stream.empty();
@@ -502,7 +502,7 @@ public class MavenMojoProjectParser {
             File[] subdirectories = parentDirectory.listFiles(File::isDirectory);
             if (subdirectories != null) {
                 for (File subdirectory : subdirectories) {
-                    if (subdirectory.getName().equals("kotlin")) {
+                    if ("kotlin".equals(subdirectory.getName())) {
                         return subdirectory.getAbsolutePath();
                     }
                 }
