@@ -50,6 +50,8 @@ import java.net.*;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
+import java.time.LocalDateTime;
+import java.time.format.DateTimeFormatter;
 import java.util.*;
 import java.util.function.UnaryOperator;
 import java.util.stream.Stream;
@@ -66,6 +68,9 @@ public abstract class AbstractRewriteMojo extends ConfigurableRewriteMojo {
 
     @Parameter(property = "rewrite.resolvePropertiesInYaml", defaultValue = "true")
     protected boolean resolvePropertiesInYaml;
+
+    @Parameter(property = "rewrite.exportDatatables", defaultValue = "false")
+    protected boolean exportDatatables;
 
     @Component
     protected RuntimeInformation runtime;
@@ -262,15 +267,22 @@ public abstract class AbstractRewriteMojo extends ConfigurableRewriteMojo {
 
     protected List<Result> runRecipe(Recipe recipe, LargeSourceSet sourceSet, ExecutionContext ctx) {
         getLog().info("Running recipe(s)...");
-        return recipe.run(sourceSet, ctx).getChangeset().getAllResults().stream()
-                .filter(source -> {
-                    // Remove ASTs originating from generated files
-                    if (source.getBefore() != null) {
-                        return !source.getBefore().getMarkers().findFirst(Generated.class).isPresent();
-                    }
-                    return true;
-                })
-                .collect(toList());
+        RecipeRun recipeRun = recipe.run(sourceSet, ctx);
+
+        if (exportDatatables) {
+            String timestamp = LocalDateTime.now().format(DateTimeFormatter.ofPattern("yyyy-MM-dd_HH-mm-ss-SSS"));
+            Path datatableDirectoryPath = Paths.get("target", "rewrite", "datatables", timestamp);
+            getLog().info(String.format("Printing Available Datatables to: %s", datatableDirectoryPath));
+            recipeRun.exportDatatablesToCsv(datatableDirectoryPath, ctx);
+        }
+
+        return recipeRun.getChangeset().getAllResults().stream().filter(source -> {
+            // Remove ASTs originating from generated files
+            if (source.getBefore() != null) {
+                return !source.getBefore().getMarkers().findFirst(Generated.class).isPresent();
+            }
+            return true;
+        }).collect(toList());
     }
 
     private List<SourceFile> sourcesWithAutoDetectedStyles(Stream<SourceFile> sourceFiles) {
