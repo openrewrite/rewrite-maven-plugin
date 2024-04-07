@@ -50,6 +50,15 @@ class RewriteRunIT {
     }
 
     @MavenTest
+    void checkstyle_inline_rules(MavenExecutionResult result) {
+        assertThat(result)
+                .isSuccessful()
+                .out()
+                .warn()
+                .noneSatisfy(line -> assertThat(line).contains("Unable to parse checkstyle configuration"));
+    }
+
+    @MavenTest
     void recipe_project(MavenExecutionResult result) {
         assertThat(result)
                 .isFailure()

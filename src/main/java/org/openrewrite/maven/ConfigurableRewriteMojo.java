@@ -16,6 +16,8 @@
 package org.openrewrite.maven;
 
 import com.puppycrawl.tools.checkstyle.Checker;
+import java.io.IOException;
+import java.io.StringWriter;
 import org.apache.maven.execution.MavenSession;
 import org.apache.maven.model.Plugin;
 import org.apache.maven.plugin.AbstractMojo;
@@ -23,6 +25,8 @@ import org.apache.maven.plugin.descriptor.PluginDescriptor;
 import org.apache.maven.plugins.annotations.Parameter;
 import org.apache.maven.project.MavenProject;
 import org.codehaus.plexus.util.xml.Xpp3Dom;
+import org.codehaus.plexus.util.xml.pull.MXSerializer;
+import org.intellij.lang.annotations.Language;
 import org.openrewrite.config.Environment;
 import org.openrewrite.internal.lang.Nullable;
 import org.openrewrite.java.style.CheckstyleConfigLoader;
@@ -39,6 +43,10 @@ import static java.util.Collections.emptyMap;
 
 @SuppressWarnings("FieldMayBeFinal")
 public abstract class ConfigurableRewriteMojo extends AbstractMojo {
+
+    private static final String CHECKSTYLE_DOCTYPE = "module PUBLIC "
+                                                     + "\"-//Checkstyle//DTD Checkstyle Configuration 1.3//EN\" "
+                                                     + "\"https://checkstyle.org/dtds/configuration_1_3.dtd\"";
 
     @Parameter(property = "rewrite.configLocation", alias = "configLocation", defaultValue = "${maven.multiModuleProjectDirectory}/rewrite.yml")
     protected String configLocation;
@@ -256,10 +264,16 @@ public abstract class ConfigurableRewriteMojo extends AbstractMojo {
                     Xpp3Dom xmlConfigLocation = xmlCheckstyleConf.getChild("configLocation");
 
                     if (xmlConfigLocation == null) {
-                        // When no config location is specified, the maven-checkstyle-plugin falls back on sun_checks.xml
-                        try (InputStream is = Checker.class.getResourceAsStream("/sun_checks.xml")) {
-                            if (is != null) {
-                                styles.add(CheckstyleConfigLoader.loadCheckstyleConfig(is, emptyMap()));
+                        Xpp3Dom xmlCheckstyleRules = xmlCheckstyleConf.getChild("checkstyleRules");
+                        if (xmlCheckstyleRules != null && xmlCheckstyleRules.getChildCount() > 0) {
+                            @Language("XML") String checkStyleDocument = toCheckStyleDocument(xmlCheckstyleRules.getChild(0));
+                            styles.add(CheckstyleConfigLoader.loadCheckstyleConfig(checkStyleDocument, emptyMap()));
+                        } else {
+                            // When no config location is specified, the maven-checkstyle-plugin falls back on sun_checks.xml
+                            try (InputStream is = Checker.class.getResourceAsStream("/sun_checks.xml")) {
+                                if (is != null) {
+                                    styles.add(CheckstyleConfigLoader.loadCheckstyleConfig(is, emptyMap()));
+                                }
                             }
                         }
                     } else {
@@ -276,6 +290,18 @@ public abstract class ConfigurableRewriteMojo extends AbstractMojo {
             getLog().warn("Unable to parse checkstyle configuration. Checkstyle will not inform rewrite execution.", e);
         }
         return styles;
+    }
+
+    private String toCheckStyleDocument(final Xpp3Dom dom) throws IOException {
+        StringWriter stringWriter = new StringWriter();
+
+        MXSerializer serializer = new MXSerializer();
+        serializer.setOutput(stringWriter);
+        serializer.docdecl(CHECKSTYLE_DOCTYPE);
+
+        dom.writeToSerializer("", serializer);
+
+        return stringWriter.toString();
     }
 
     protected Set<String> getRecipeArtifactCoordinates() {
