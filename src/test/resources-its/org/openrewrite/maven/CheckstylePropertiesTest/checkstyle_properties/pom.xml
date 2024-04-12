@@ -26,6 +26,9 @@
                     <activeRecipes>
                         <recipe>org.openrewrite.staticanalysis.CodeCleanup</recipe>
                     </activeRecipes>
+                    <checkstyleProperties>
+                        <property name="importControlFile" value="${project.basedir}/.checkstyle/import-control.xml"/>
+                    </checkstyleProperties>
                 </configuration>
                 <dependencies>
                     <dependency>
