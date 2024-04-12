@@ -97,6 +97,15 @@ public class RewriteDiscoverMojo extends AbstractRewriteMojo {
         }
     }
 
+    private static final String RECIPE_NOT_FOUND_EXCEPTION_MSG = "Could not find recipe '%s' among available recipes";
+
+    private static RecipeDescriptor getRecipeDescriptor(String recipe, Collection<RecipeDescriptor> recipeDescriptors) throws MojoExecutionException {
+        return recipeDescriptors.stream()
+                .filter(r -> r.getName().equalsIgnoreCase(recipe))
+                .findAny()
+                .orElseThrow(() -> new MojoExecutionException(String.format(RECIPE_NOT_FOUND_EXCEPTION_MSG, recipe)));
+    }
+
     private void writeDiscovery(Collection<RecipeDescriptor> availableRecipeDescriptors, Collection<RecipeDescriptor> activeRecipeDescriptors, Collection<NamedStyles> availableStyles) {
         List<RecipeDescriptor> availableRecipesSorted = new ArrayList<>(availableRecipeDescriptors);
         availableRecipesSorted.sort(Comparator.comparing(RecipeDescriptor::getName, String.CASE_INSENSITIVE_ORDER));

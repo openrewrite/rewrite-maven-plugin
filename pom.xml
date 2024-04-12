@@ -4,7 +4,7 @@
 
     <groupId>org.openrewrite.maven</groupId>
     <artifactId>rewrite-maven-plugin</artifactId>
-    <version>5.23.0-SNAPSHOT</version>
+    <version>5.29.0-SNAPSHOT</version>
     <packaging>maven-plugin</packaging>
 
     <name>rewrite-maven-plugin</name>
@@ -62,28 +62,29 @@
 
     <properties>
         <!-- Pinned versions, as RELEASE would make it into the published pom.xml -->
-        <rewrite.version>8.16.0-SNAPSHOT</rewrite.version>
-        <rewrite.kotlin.version>1.12.0-SNAPSHOT</rewrite.kotlin.version>
+        <rewrite.version>8.24.0-SNAPSHOT</rewrite.version>
+        <rewrite.kotlin.version>1.14.0-SNAPSHOT</rewrite.kotlin.version>
 
         <!-- using 'ssh' url scheme by default, which assumes a human is performing git operations leveraging an ssh key -->
         <developerConnectionUrl>scm:git:ssh://git@github.com/openrewrite/rewrite-maven-plugin.git
         </developerConnectionUrl>
         <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
-        <java.version>1.8</java.version>
 
-        <maven.compiler.testSource>17</maven.compiler.testSource>
-        <maven.compiler.testTarget>17</maven.compiler.testTarget>
+        <maven.compiler.source>8</maven.compiler.source>
+        <maven.compiler.target>${maven.compiler.source}</maven.compiler.target>
+        <!-- a profile in the profiles section sets the maven.compiler.release property on supported JREs -->
+        <maven.compiler.testRelease>17</maven.compiler.testRelease>
 
         <!-- dependencies and plugins -->
-        <jackson-bom.version>2.16.1</jackson-bom.version>
-        <netty.version>4.1.106.Final</netty.version>
+        <jackson-bom.version>2.16.2</jackson-bom.version>
+        <netty.version>4.1.107.Final</netty.version>
         <rocksdbjni.version>8.8.1</rocksdbjni.version>
         <rsocket.version>1.1.4</rsocket.version>
         <itf-maven.version>0.13.1</itf-maven.version>
         <maven-dependencies.version>3.9.6</maven-dependencies.version>
         <maven-release-plugin.version>3.0.1</maven-release-plugin.version>
         <maven-plugin-tools.version>3.11.0</maven-plugin-tools.version>
-        <kotlin.version>1.9.22</kotlin.version>
+        <kotlin.version>1.9.23</kotlin.version>
     </properties>
 
     <dependencyManagement>
@@ -223,7 +224,7 @@
         <dependency>
             <groupId>io.micrometer</groupId>
             <artifactId>micrometer-core</artifactId>
-            <version>1.12.2</version>
+            <version>1.12.3</version>
         </dependency>
         <dependency>
             <groupId>io.rsocket</groupId>
@@ -268,7 +269,7 @@
         <dependency>
             <groupId>org.apache.maven.shared</groupId>
             <artifactId>maven-filtering</artifactId>
-            <version>3.3.1</version>
+            <version>3.3.2</version>
         </dependency>
 
         <dependency>
@@ -456,17 +457,12 @@
                         <arg>-Xlint:unchecked</arg>
                         <!--<arg>-proc:full</arg>-->
                     </compilerArgs>
-                    <source>${java.version}</source>
-                    <target>${java.version}</target>
                 </configuration>
             </plugin>
             <plugin>
                 <groupId>org.apache.maven.plugins</groupId>
                 <artifactId>maven-javadoc-plugin</artifactId>
                 <version>3.6.3</version>
-                <configuration>
-                    <source>${java.version}</source>
-                </configuration>
                 <executions>
                     <execution>
                         <phase>prepare-package</phase>
@@ -556,6 +552,7 @@
                 <artifactId>dependency-check-maven</artifactId>
                 <version>9.0.9</version>
                 <configuration>
+                    <nvdApiKey>${env.NVD_API_KEY}</nvdApiKey>
                     <failBuildOnCVSS>9</failBuildOnCVSS>
                     <suppressionFiles>
                         <suppressionFile>suppressions.xml</suppressionFile>
@@ -639,6 +636,16 @@
                 <!-- automation via the maven-release-plugin uses a GITHUB_TOKEN which requires 'https' urls for git pushing -->
                 <developerConnectionUrl>scm:git:https://github.com/openrewrite/rewrite-maven-plugin.git
                 </developerConnectionUrl>
+            </properties>
+        </profile>
+        <profile>
+            <!-- set maven.compiler.release on JRE 9+ -->
+            <id>avoid-maven-compiler-warnings</id>
+            <activation>
+                <jdk>[9,)</jdk>
+            </activation>
+            <properties>
+                <maven.compiler.release>8</maven.compiler.release>
             </properties>
         </profile>
     </profiles>

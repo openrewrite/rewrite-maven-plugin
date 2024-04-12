@@ -64,6 +64,9 @@ public abstract class AbstractRewriteMojo extends ConfigurableRewriteMojo {
     @Parameter(defaultValue = "${project}", readonly = true, required = true)
     protected MavenProject project;
 
+    @Parameter(property = "rewrite.resolvePropertiesInYaml", defaultValue = "true")
+    protected boolean resolvePropertiesInYaml;
+
     @Component
     protected RuntimeInformation runtime;
 
@@ -72,8 +75,6 @@ public abstract class AbstractRewriteMojo extends ConfigurableRewriteMojo {
 
     @Component
     protected RepositorySystem repositorySystem;
-
-    private static final String RECIPE_NOT_FOUND_EXCEPTION_MSG = "Could not find recipe '%s' among available recipes";
 
     protected Environment environment() throws MojoExecutionException {
         return environment(getRecipeArtifactCoordinatesClassloader());
@@ -109,6 +110,8 @@ public abstract class AbstractRewriteMojo extends ConfigurableRewriteMojo {
 
         if (rewriteConfig.exists()) {
             return new Config(Files.newInputStream(rewriteConfig.toPath()), rewriteConfig.toURI());
+        } else {
+            getLog().debug("No rewrite configuration found at " + absoluteConfigLocation);
         }
 
         return null;
@@ -127,7 +130,8 @@ public abstract class AbstractRewriteMojo extends ConfigurableRewriteMojo {
             Config rewriteConfig = getConfig();
             if (rewriteConfig != null) {
                 try (InputStream is = rewriteConfig.inputStream) {
-                    env.load(new YamlResourceLoader(is, rewriteConfig.uri, project.getProperties()));
+                    Properties propertiesToResolve = resolvePropertiesInYaml ? project.getProperties() : new Properties();
+                    env.load(new YamlResourceLoader(is, rewriteConfig.uri, propertiesToResolve));
                 }
             }
         } catch (IOException e) {
@@ -509,12 +513,5 @@ public abstract class AbstractRewriteMojo extends ConfigurableRewriteMojo {
         for (RecipeDescriptor rchild : rd.getRecipeList()) {
             logRecipe(rchild, prefix + "    ");
         }
-    }
-
-    public static RecipeDescriptor getRecipeDescriptor(String recipe, Collection<RecipeDescriptor> recipeDescriptors) throws MojoExecutionException {
-        return recipeDescriptors.stream()
-                .filter(r -> r.getName().equalsIgnoreCase(recipe))
-                .findAny()
-                .orElseThrow(() -> new MojoExecutionException(String.format(RECIPE_NOT_FOUND_EXCEPTION_MSG, recipe)));
     }
 }
