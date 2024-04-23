@@ -159,6 +159,7 @@ public abstract class ConfigurableRewriteMojo extends AbstractMojo {
                 "**/*.sh",
                 "**/*.sql",
                 "**/*.svg",
+                "**/*.tsx",
                 "**/*.txt",
                 "**/*.py"
         ));
