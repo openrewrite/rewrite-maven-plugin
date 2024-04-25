@@ -4,7 +4,7 @@
 
     <groupId>org.openrewrite.maven</groupId>
     <artifactId>rewrite-maven-plugin</artifactId>
-    <version>5.29.0-SNAPSHOT</version>
+    <version>5.30.0-SNAPSHOT</version>
     <packaging>maven-plugin</packaging>
 
     <name>rewrite-maven-plugin</name>
@@ -62,8 +62,8 @@
 
     <properties>
         <!-- Pinned versions, as RELEASE would make it into the published pom.xml -->
-        <rewrite.version>8.24.0-SNAPSHOT</rewrite.version>
-        <rewrite.kotlin.version>1.14.0-SNAPSHOT</rewrite.kotlin.version>
+        <rewrite.version>8.25.0-SNAPSHOT</rewrite.version>
+        <rewrite.kotlin.version>1.14.0</rewrite.kotlin.version>
 
         <!-- using 'ssh' url scheme by default, which assumes a human is performing git operations leveraging an ssh key -->
         <developerConnectionUrl>scm:git:ssh://git@github.com/openrewrite/rewrite-maven-plugin.git
@@ -77,13 +77,13 @@
 
         <!-- dependencies and plugins -->
         <jackson-bom.version>2.16.2</jackson-bom.version>
-        <netty.version>4.1.107.Final</netty.version>
+        <netty.version>4.1.109.Final</netty.version>
         <rocksdbjni.version>8.8.1</rocksdbjni.version>
         <rsocket.version>1.1.4</rsocket.version>
         <itf-maven.version>0.13.1</itf-maven.version>
         <maven-dependencies.version>3.9.6</maven-dependencies.version>
         <maven-release-plugin.version>3.0.1</maven-release-plugin.version>
-        <maven-plugin-tools.version>3.11.0</maven-plugin-tools.version>
+        <maven-plugin-tools.version>3.12.0</maven-plugin-tools.version>
         <kotlin.version>1.9.23</kotlin.version>
     </properties>
 
@@ -224,7 +224,7 @@
         <dependency>
             <groupId>io.micrometer</groupId>
             <artifactId>micrometer-core</artifactId>
-            <version>1.12.3</version>
+            <version>1.12.5</version>
         </dependency>
         <dependency>
             <groupId>io.rsocket</groupId>
@@ -450,7 +450,7 @@
             <plugin>
                 <groupId>org.apache.maven.plugins</groupId>
                 <artifactId>maven-compiler-plugin</artifactId>
-                <version>3.12.1</version>
+                <version>3.13.0</version>
                 <configuration>
                     <compilerArgs>
                         <arg>-Xlint:deprecation</arg>
@@ -476,7 +476,7 @@
             <plugin>
                 <groupId>org.apache.maven.plugins</groupId>
                 <artifactId>maven-source-plugin</artifactId>
-                <version>3.3.0</version>
+                <version>3.3.1</version>
                 <executions>
                     <execution>
                         <phase>prepare-package</phase>
@@ -550,7 +550,7 @@
             <plugin>
                 <groupId>org.owasp</groupId>
                 <artifactId>dependency-check-maven</artifactId>
-                <version>9.0.9</version>
+                <version>9.1.0</version>
                 <configuration>
                     <nvdApiKey>${env.NVD_API_KEY}</nvdApiKey>
                     <failBuildOnCVSS>9</failBuildOnCVSS>
@@ -583,7 +583,7 @@
                     <plugin>
                         <groupId>org.apache.maven.plugins</groupId>
                         <artifactId>maven-gpg-plugin</artifactId>
-                        <version>3.1.0</version>
+                        <version>3.2.3</version>
                         <executions>
                             <execution>
                                 <id>sign-artifacts</id>
