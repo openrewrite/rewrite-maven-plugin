@@ -33,7 +33,7 @@ import java.util.stream.Stream;
  * <p>
  * Generate warnings to the console for any recipe that would make changes, but do not make changes.
  */
-public class AbstractRewriteDryRunMojo extends AbstractRewriteMojo {
+public class AbstractRewriteDryRunMojo extends AbstractRewriteBaseRunMojo {
 
     @Parameter(property = "reportOutputDirectory")
     @Nullable
