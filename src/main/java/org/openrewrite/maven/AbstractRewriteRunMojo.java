@@ -37,7 +37,7 @@ import java.util.List;
  * <p>
  * Base mojo for rewrite:run and rewrite:runNoFork.
  */
-public class AbstractRewriteRunMojo extends AbstractRewriteMojo {
+public class AbstractRewriteRunMojo extends AbstractRewriteBaseRunMojo {
 
     @Override
     public void execute() throws MojoExecutionException {
