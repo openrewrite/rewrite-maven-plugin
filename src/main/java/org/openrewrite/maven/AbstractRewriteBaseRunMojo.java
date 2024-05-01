@@ -20,17 +20,7 @@ import org.apache.maven.artifact.DependencyResolutionRequiredException;
 import org.apache.maven.plugin.MojoExecutionException;
 import org.apache.maven.plugins.annotations.Parameter;
 import org.codehaus.plexus.classworlds.realm.ClassRealm;
-import org.openrewrite.Cursor;
-import org.openrewrite.ExecutionContext;
-import org.openrewrite.LargeSourceSet;
-import org.openrewrite.PrintOutputCapture;
-import org.openrewrite.Recipe;
-import org.openrewrite.RecipeRun;
-import org.openrewrite.Result;
-import org.openrewrite.SourceFile;
-import org.openrewrite.Tree;
-import org.openrewrite.TreeVisitor;
-import org.openrewrite.Validated;
+import org.openrewrite.*;
 import org.openrewrite.config.Environment;
 import org.openrewrite.config.RecipeDescriptor;
 import org.openrewrite.internal.InMemoryLargeSourceSet;
@@ -38,11 +28,7 @@ import org.openrewrite.internal.ListUtils;
 import org.openrewrite.internal.lang.Nullable;
 import org.openrewrite.java.tree.J;
 import org.openrewrite.kotlin.tree.K;
-import org.openrewrite.marker.Generated;
-import org.openrewrite.marker.Marker;
-import org.openrewrite.marker.Markers;
-import org.openrewrite.marker.Markup;
-import org.openrewrite.marker.SearchResult;
+import org.openrewrite.marker.*;
 import org.openrewrite.style.NamedStyles;
 import org.openrewrite.xml.tree.Xml;
 
@@ -55,17 +41,7 @@ import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.time.LocalDateTime;
 import java.time.format.DateTimeFormatter;
-import java.util.ArrayList;
-import java.util.Collection;
-import java.util.Collections;
-import java.util.HashMap;
-import java.util.HashSet;
-import java.util.LinkedHashSet;
-import java.util.List;
-import java.util.Map;
-import java.util.Objects;
-import java.util.Optional;
-import java.util.Set;
+import java.util.*;
 import java.util.function.UnaryOperator;
 import java.util.stream.Stream;
 
@@ -116,8 +92,8 @@ public abstract class AbstractRewriteBaseRunMojo extends AbstractRewriteMojo {
             Recipe recipe = env.activateRecipes(getActiveRecipes());
             if (recipe.getRecipeList().isEmpty()) {
                 getLog().warn("No recipes were activated. " +
-                        "Activate a recipe with <activeRecipes><recipe>com.fully.qualified.RecipeClassName</recipe></activeRecipes> in this plugin's <configuration> in your pom.xml, " +
-                        "or on the command line with -Drewrite.activeRecipes=com.fully.qualified.RecipeClassName");
+                              "Activate a recipe with <activeRecipes><recipe>com.fully.qualified.RecipeClassName</recipe></activeRecipes> in this plugin's <configuration> in your pom.xml, " +
+                              "or on the command line with -Drewrite.activeRecipes=com.fully.qualified.RecipeClassName");
                 return new ResultsContainer(repositoryRoot, emptyList());
             }
 
@@ -129,7 +105,7 @@ public abstract class AbstractRewriteBaseRunMojo extends AbstractRewriteMojo {
             if (!failedValidations.isEmpty()) {
                 failedValidations.forEach(failedValidation -> getLog().error(
                         "Recipe validation error in " + failedValidation.getProperty() + ": " +
-                                failedValidation.getMessage(), failedValidation.getException()));
+                        failedValidation.getMessage(), failedValidation.getException()));
                 if (failOnInvalidActiveRecipes) {
                     throw new MojoExecutionException("Recipe validation errors detected as part of one or more activeRecipe(s). Please check error logs.");
                 } else {
