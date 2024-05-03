@@ -39,6 +39,7 @@ import java.net.URLClassLoader;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
+import java.time.Duration;
 import java.time.LocalDateTime;
 import java.time.format.DateTimeFormatter;
 import java.util.*;
@@ -365,5 +366,20 @@ public abstract class AbstractRewriteBaseRunMojo extends AbstractRewriteMojo {
         for (RecipeDescriptor rchild : rd.getRecipeList()) {
             logRecipe(rchild, prefix + "    ");
         }
+    }
+
+    protected Duration estimateTimeSavedSum(Result result, Duration timeSaving) {
+        if (null != result.getTimeSavings()) {
+            return timeSaving.plus(result.getTimeSavings());
+        }
+        return timeSaving;
+    }
+
+    protected String formatDuration(Duration duration) {
+        return duration.toString()
+                .substring(2)
+                .replaceAll("(\\d[HMS])(?!$)", "$1 ")
+                .toLowerCase()
+                .trim();
     }
 }
