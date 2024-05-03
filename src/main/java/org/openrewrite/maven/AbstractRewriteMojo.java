@@ -190,19 +190,4 @@ public abstract class AbstractRewriteMojo extends ConfigurableRewriteMojo {
                 AbstractRewriteMojo.class.getClassLoader()
         );
     }
-
-    protected Duration estimateTimeSavedSum(Result result, Duration timeSaving) {
-        if (null != result.getTimeSavings()) {
-            return timeSaving.plus(result.getTimeSavings());
-        }
-        return timeSaving;
-    }
-
-    protected String formatDuration(Duration duration) {
-        return duration.toString()
-                .substring(2)
-                .replaceAll("(\\d[HMS])(?!$)", "$1 ")
-                .toLowerCase()
-                .trim();
-    }
 }
