@@ -26,6 +26,7 @@ import java.io.IOException;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
+import java.time.Duration;
 import java.util.stream.Stream;
 
 /**
@@ -33,7 +34,7 @@ import java.util.stream.Stream;
  * <p>
  * Generate warnings to the console for any recipe that would make changes, but do not make changes.
  */
-public class AbstractRewriteDryRunMojo extends AbstractRewriteMojo {
+public class AbstractRewriteDryRunMojo extends AbstractRewriteBaseRunMojo {
 
     @Parameter(property = "reportOutputDirectory")
     @Nullable
@@ -74,12 +75,14 @@ public class AbstractRewriteDryRunMojo extends AbstractRewriteMojo {
         }
 
         if (results.isNotEmpty()) {
+            Duration estimateTimeSaved = Duration.ZERO;
             for (Result result : results.generated) {
                 assert result.getAfter() != null;
                 getLog().warn("These recipes would generate a new file " +
                               result.getAfter().getSourcePath() +
                               ":");
                 logRecipesThatMadeChanges(result);
+                estimateTimeSaved = estimateTimeSavedSum(result, estimateTimeSaved);
             }
             for (Result result : results.deleted) {
                 assert result.getBefore() != null;
@@ -87,6 +90,7 @@ public class AbstractRewriteDryRunMojo extends AbstractRewriteMojo {
                               result.getBefore().getSourcePath() +
                               ":");
                 logRecipesThatMadeChanges(result);
+                estimateTimeSaved = estimateTimeSavedSum(result, estimateTimeSaved);
             }
             for (Result result : results.moved) {
                 assert result.getBefore() != null;
@@ -95,6 +99,7 @@ public class AbstractRewriteDryRunMojo extends AbstractRewriteMojo {
                               result.getBefore().getSourcePath() + " to " +
                               result.getAfter().getSourcePath() + ":");
                 logRecipesThatMadeChanges(result);
+                estimateTimeSaved = estimateTimeSavedSum(result, estimateTimeSaved);
             }
             for (Result result : results.refactoredInPlace) {
                 assert result.getBefore() != null;
@@ -102,6 +107,7 @@ public class AbstractRewriteDryRunMojo extends AbstractRewriteMojo {
                               result.getBefore().getSourcePath() +
                               ":");
                 logRecipesThatMadeChanges(result);
+                estimateTimeSaved = estimateTimeSavedSum(result, estimateTimeSaved);
             }
 
             Path outPath;
@@ -138,6 +144,7 @@ public class AbstractRewriteDryRunMojo extends AbstractRewriteMojo {
             }
             getLog().warn("Patch file available:");
             getLog().warn("    " + patchFile.normalize());
+            getLog().warn("Estimate time saved: " + formatDuration(estimateTimeSaved));
             getLog().warn("Run 'mvn rewrite:run' to apply the recipes.");
 
             if (failOnDryRunResults) {

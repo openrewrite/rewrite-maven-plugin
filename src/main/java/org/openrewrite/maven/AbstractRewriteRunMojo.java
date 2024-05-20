@@ -30,6 +30,7 @@ import java.nio.charset.Charset;
 import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
 import java.nio.file.Path;
+import java.time.Duration;
 import java.util.List;
 
 /**
@@ -37,7 +38,7 @@ import java.util.List;
  * <p>
  * Base mojo for rewrite:run and rewrite:runNoFork.
  */
-public class AbstractRewriteRunMojo extends AbstractRewriteMojo {
+public class AbstractRewriteRunMojo extends AbstractRewriteBaseRunMojo {
 
     @Override
     public void execute() throws MojoExecutionException {
@@ -67,12 +68,14 @@ public class AbstractRewriteRunMojo extends AbstractRewriteMojo {
         }
 
         if (results.isNotEmpty()) {
+            Duration estimateTimeSaved = Duration.ZERO;
             for (Result result : results.generated) {
                 assert result.getAfter() != null;
                 getLog().warn("Generated new file " +
                               result.getAfter().getSourcePath().normalize() +
                               " by:");
                 logRecipesThatMadeChanges(result);
+                estimateTimeSaved = estimateTimeSavedSum(result, estimateTimeSaved);
             }
             for (Result result : results.deleted) {
                 assert result.getBefore() != null;
@@ -80,6 +83,7 @@ public class AbstractRewriteRunMojo extends AbstractRewriteMojo {
                               result.getBefore().getSourcePath().normalize() +
                               " by:");
                 logRecipesThatMadeChanges(result);
+                estimateTimeSaved = estimateTimeSavedSum(result, estimateTimeSaved);
             }
             for (Result result : results.moved) {
                 assert result.getAfter() != null;
@@ -88,6 +92,7 @@ public class AbstractRewriteRunMojo extends AbstractRewriteMojo {
                               result.getBefore().getSourcePath().normalize() + " to " +
                               result.getAfter().getSourcePath().normalize() + " by:");
                 logRecipesThatMadeChanges(result);
+                estimateTimeSaved = estimateTimeSavedSum(result, estimateTimeSaved);
             }
             for (Result result : results.refactoredInPlace) {
                 assert result.getBefore() != null;
@@ -95,9 +100,11 @@ public class AbstractRewriteRunMojo extends AbstractRewriteMojo {
                               result.getBefore().getSourcePath().normalize() +
                               " by:");
                 logRecipesThatMadeChanges(result);
+                estimateTimeSaved = estimateTimeSavedSum(result, estimateTimeSaved);
             }
 
             getLog().warn("Please review and commit the results.");
+            getLog().warn("Estimate time saved: " + formatDuration(estimateTimeSaved));
 
             try {
                 for (Result result : results.generated) {

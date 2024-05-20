@@ -163,6 +163,7 @@ public abstract class ConfigurableRewriteMojo extends AbstractMojo {
                 "**/*.css",
                 "**/*.config",
                 "**/Dockerfile*",
+                "**/*.env",
                 "**/.gitattributes",
                 "**/.gitignore",
                 "**/*.htm*",
