@@ -56,7 +56,7 @@
                         <configuration>
                             <configLocation>.checkstyle/checkstyle.xml</configLocation>
                             <consoleOutput>true</consoleOutput>
-                            <failsOnError>true</failsOnError>
+                            <failsOnError>false</failsOnError>
                             <propertyExpansion>importControlFile=${project.basedir}/.checkstyle/import-control.xml</propertyExpansion>
                             <suppressionsLocation>.checkstyle/checkstyle-suppressions.xml</suppressionsLocation>
                         </configuration>
