@@ -514,7 +514,7 @@
             <plugin>
                 <groupId>com.mycila</groupId>
                 <artifactId>license-maven-plugin</artifactId>
-                <version>4.3</version>
+                <version>4.5</version>
                 <configuration>
                     <defaultProperties>
                         <project.inceptionYear>2020</project.inceptionYear>
@@ -538,7 +538,7 @@
                         <groupId>com.mycila</groupId>
                         <artifactId>license-maven-plugin-git</artifactId>
                         <!-- make sure you use the same version as license-maven-plugin -->
-                        <version>4.3</version>
+                        <version>4.5</version>
                     </dependency>
                 </dependencies>
             </plugin>
