@@ -112,12 +112,6 @@ public class MavenMojoProjectParser {
     private final boolean runPerSubmodule;
     private final boolean parseAdditionalResources;
 
-    @Deprecated
-    @SuppressWarnings("BooleanParameter")
-    public MavenMojoProjectParser(Log logger, Path baseDir, boolean pomCacheEnabled, @Nullable String pomCacheDirectory, RuntimeInformation runtime, boolean skipMavenParsing, Collection<String> exclusions, Collection<String> plainTextMasks, int sizeThresholdMb, MavenSession session, SettingsDecrypter settingsDecrypter, boolean runPerSubmodule) {
-        this(logger, baseDir, pomCacheEnabled, pomCacheDirectory, runtime, skipMavenParsing, exclusions, plainTextMasks, sizeThresholdMb, session, settingsDecrypter, runPerSubmodule, false);
-    }
-
     @SuppressWarnings("BooleanParameter")
     public MavenMojoProjectParser(Log logger, Path baseDir, boolean pomCacheEnabled, @Nullable String pomCacheDirectory, RuntimeInformation runtime, boolean skipMavenParsing, Collection<String> exclusions, Collection<String> plainTextMasks, int sizeThresholdMb, MavenSession session, SettingsDecrypter settingsDecrypter, boolean runPerSubmodule, boolean parseAdditionalResources) {
         this.logger = logger;
