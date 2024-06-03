@@ -141,6 +141,7 @@ public abstract class ConfigurableRewriteMojo extends AbstractMojo {
         //If not defined, use a default set of masks
         return new HashSet<>(Arrays.asList(
                 "**/*.adoc",
+                "**/*.aj",
                 "**/*.bash",
                 "**/*.bat",
                 "**/CODEOWNERS",
