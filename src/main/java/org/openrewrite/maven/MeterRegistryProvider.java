@@ -37,10 +37,13 @@ import java.util.Base64;
 
 public class MeterRegistryProvider implements AutoCloseable {
     private final Log log;
+
     @Nullable
     private final String uriString;
+
     @Nullable
     private final String username;
+
     @Nullable
     private final String password;
 

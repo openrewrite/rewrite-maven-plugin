@@ -54,6 +54,7 @@ public abstract class ConfigurableRewriteMojo extends AbstractMojo {
     @Nullable
     @Parameter(property = "rewrite.activeRecipes")
     protected LinkedHashSet<String> activeRecipes;
+
     /**
      * @deprecated Use {@code rewrite.activeRecipes} instead.
      */
@@ -65,6 +66,7 @@ public abstract class ConfigurableRewriteMojo extends AbstractMojo {
     @Nullable
     @Parameter(property = "rewrite.activeStyles")
     protected LinkedHashSet<String> activeStyles;
+
     /**
      * @deprecated Use {@code rewrite.activeStyles} instead.
      */
@@ -113,6 +115,7 @@ public abstract class ConfigurableRewriteMojo extends AbstractMojo {
     @Nullable
     @Parameter(property = "rewrite.exclusions")
     private LinkedHashSet<String> exclusions;
+
     /**
      * @deprecated Use {@code rewrite.exclusions} instead.
      */
@@ -128,6 +131,7 @@ public abstract class ConfigurableRewriteMojo extends AbstractMojo {
     @Nullable
     @Parameter(property = "rewrite.plainTextMasks")
     private LinkedHashSet<String> plainTextMasks;
+
     @Nullable
     @Parameter(property = "plainTextMasks")
     @Deprecated
@@ -225,6 +229,7 @@ public abstract class ConfigurableRewriteMojo extends AbstractMojo {
 
     @Nullable
     private volatile Set<String> computedRecipes;
+
     @Nullable
     private volatile Set<String> computedStyles;
 
