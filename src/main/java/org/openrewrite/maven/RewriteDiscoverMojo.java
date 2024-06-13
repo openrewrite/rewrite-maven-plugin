@@ -28,11 +28,7 @@ import org.openrewrite.internal.lang.Nullable;
 import org.openrewrite.maven.ui.RecipeDescriptorTreePrompter;
 import org.openrewrite.style.NamedStyles;
 
-import java.util.ArrayList;
-import java.util.Collection;
-import java.util.Comparator;
-import java.util.HashSet;
-import java.util.List;
+import java.util.*;
 
 /**
  * Generate a report of the available recipes and styles found on the classpath.<br>

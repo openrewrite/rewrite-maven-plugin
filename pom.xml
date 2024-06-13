@@ -4,7 +4,7 @@
 
     <groupId>org.openrewrite.maven</groupId>
     <artifactId>rewrite-maven-plugin</artifactId>
-    <version>5.33.0-SNAPSHOT</version>
+    <version>5.34.0-SNAPSHOT</version>
     <packaging>maven-plugin</packaging>
 
     <name>rewrite-maven-plugin</name>
@@ -63,7 +63,7 @@
     <properties>
         <!-- Pinned versions, as RELEASE would make it into the published pom.xml -->
         <rewrite.version>8.28.0-SNAPSHOT</rewrite.version>
-        <rewrite.kotlin.version>1.17.0-SNAPSHOT</rewrite.kotlin.version>
+        <rewrite.kotlin.version>1.18.0-SNAPSHOT</rewrite.kotlin.version>
 
         <!-- using 'ssh' url scheme by default, which assumes a human is performing git operations leveraging an ssh key -->
         <developerConnectionUrl>scm:git:ssh://git@github.com/openrewrite/rewrite-maven-plugin.git
@@ -77,13 +77,13 @@
 
         <!-- dependencies and plugins -->
         <jackson-bom.version>2.16.2</jackson-bom.version>
-        <netty.version>4.1.109.Final</netty.version>
+        <netty.version>4.1.110.Final</netty.version>
         <rocksdbjni.version>8.8.1</rocksdbjni.version>
         <rsocket.version>1.1.4</rsocket.version>
         <itf-maven.version>0.13.1</itf-maven.version>
-        <maven-dependencies.version>3.9.6</maven-dependencies.version>
+        <maven-dependencies.version>3.9.7</maven-dependencies.version>
         <maven-release-plugin.version>3.0.1</maven-release-plugin.version>
-        <maven-plugin-tools.version>3.13.0</maven-plugin-tools.version>
+        <maven-plugin-tools.version>3.13.1</maven-plugin-tools.version>
         <kotlin.version>1.9.24</kotlin.version>
     </properties>
 
@@ -420,7 +420,7 @@
             <plugin>
                 <groupId>org.apache.maven.plugins</groupId>
                 <artifactId>maven-site-plugin</artifactId>
-                <version>4.0.0-M14</version>
+                <version>4.0.0-M15</version>
             </plugin>
             <!-- testing-related plugins -->
             <plugin>

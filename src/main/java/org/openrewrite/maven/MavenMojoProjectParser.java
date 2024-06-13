@@ -89,6 +89,7 @@ import static org.openrewrite.Tree.randomId;
 public class MavenMojoProjectParser {
 
     private static final String MVN_MAVEN_CONFIG = ".mvn/maven.config";
+
     @Nullable
     public static MavenPomCache POM_CACHE;
 

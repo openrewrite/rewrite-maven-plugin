@@ -200,6 +200,7 @@ public abstract class ConfigurableRewriteMojo extends AbstractMojo {
 
     @Nullable
     private volatile Set<String> computedRecipes;
+
     @Nullable
     private volatile Set<String> computedStyles;
 
