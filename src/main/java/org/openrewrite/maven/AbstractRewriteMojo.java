@@ -60,7 +60,12 @@ public abstract class AbstractRewriteMojo extends ConfigurableRewriteMojo {
     protected RepositorySystem repositorySystem;
 
     protected Environment environment() throws MojoExecutionException {
-        return environment(getRecipeArtifactCoordinatesClassloader());
+        URLClassLoader classLoader = getRecipeArtifactCoordinatesClassloader();
+        if (classLoader != null) {
+            return environment(classLoader);
+        }
+        classLoader = getRecipeArtifactFileClassloader();
+        return environment(classLoader);
     }
 
     static class Config {
@@ -190,4 +195,35 @@ public abstract class AbstractRewriteMojo extends ConfigurableRewriteMojo {
                 AbstractRewriteMojo.class.getClassLoader()
         );
     }
+
+    @Nullable
+    protected URLClassLoader getRecipeArtifactFileClassloader() throws MojoExecutionException {
+        if (getRecipeArtifactFiles().isEmpty()) {
+            return null;
+        }
+        ArtifactResolver resolver = new ArtifactResolver(repositorySystem, mavenSession);
+
+        URL[] urls = getRecipeArtifactFiles().stream()
+                .map(File::new)
+                .peek(file -> {
+                    if (!file.exists()) {
+                        throw new RuntimeException("Recipe Artifact file " + file.getPath() + " does not exist");
+                    }
+                })
+                .map(File::toURI)
+                .map(uri -> {
+                    try {
+                        return uri.toURL();
+                    } catch (MalformedURLException e) {
+                        throw new RuntimeException("Failed to resolve artifacts from rewrite.recipeArtifactFiles", e);
+                    }
+                })
+                .toArray(URL[]::new);
+
+        return new URLClassLoader(
+                urls,
+                AbstractRewriteMojo.class.getClassLoader()
+        );
+    }
+
 }

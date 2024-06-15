@@ -199,6 +199,10 @@ public abstract class ConfigurableRewriteMojo extends AbstractMojo {
     private LinkedHashSet<String> recipeArtifactCoordinates;
 
     @Nullable
+    @Parameter(property = "rewrite.recipeArtifactFiles")
+    private LinkedHashSet<String> recipeArtifactFiles;
+
+    @Nullable
     private volatile Set<String> computedRecipes;
 
     @Nullable
@@ -206,6 +210,9 @@ public abstract class ConfigurableRewriteMojo extends AbstractMojo {
 
     @Nullable
     private volatile Set<String> computedRecipeArtifactCoordinates;
+
+    @Nullable
+    private volatile Set<String> computedRecipeArtifactFiles;
 
     protected Set<String> getActiveRecipes() {
         if (computedRecipes == null) {
@@ -290,6 +297,18 @@ public abstract class ConfigurableRewriteMojo extends AbstractMojo {
         }
         //noinspection ConstantConditions
         return computedRecipeArtifactCoordinates;
+    }
+
+    protected Set<String> getRecipeArtifactFiles() {
+        if (computedRecipeArtifactFiles == null) {
+            synchronized (this) {
+                if (computedRecipeArtifactFiles == null) {
+                    computedRecipeArtifactFiles = getCleanedSet(recipeArtifactFiles);
+                }
+            }
+        }
+        //noinspection ConstantConditions
+        return computedRecipeArtifactFiles;
     }
 
     private static Set<String> getCleanedSet(@Nullable Set<String> set) {

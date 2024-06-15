@@ -85,10 +85,19 @@ public abstract class AbstractRewriteBaseRunMojo extends AbstractRewriteMojo {
             }
 
             URLClassLoader recipeArtifactCoordinatesClassloader = getRecipeArtifactCoordinatesClassloader();
+            URLClassLoader fileRecipeFileClassLoader = getRecipeArtifactFileClassloader();
+            Environment env = null;
             if (recipeArtifactCoordinatesClassloader != null) {
                 merge(getClass().getClassLoader(), recipeArtifactCoordinatesClassloader);
+                env = environment(recipeArtifactCoordinatesClassloader);
             }
-            Environment env = environment(recipeArtifactCoordinatesClassloader);
+            else if (fileRecipeFileClassLoader != null) {
+                merge(getClass().getClassLoader(), fileRecipeFileClassLoader);
+                env = environment(fileRecipeFileClassLoader);
+            }
+            else {
+                env = environment();
+            }
 
             Recipe recipe = env.activateRecipes(getActiveRecipes());
             if (recipe.getRecipeList().isEmpty()) {
