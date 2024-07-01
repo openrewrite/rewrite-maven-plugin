@@ -82,7 +82,7 @@
         <rsocket.version>1.1.4</rsocket.version>
         <itf-maven.version>0.13.1</itf-maven.version>
         <maven-dependencies.version>3.9.8</maven-dependencies.version>
-        <maven-release-plugin.version>3.0.1</maven-release-plugin.version>
+        <maven-release-plugin.version>3.1.0</maven-release-plugin.version>
         <maven-plugin-tools.version>3.13.1</maven-plugin-tools.version>
         <kotlin.version>1.9.24</kotlin.version>
     </properties>
