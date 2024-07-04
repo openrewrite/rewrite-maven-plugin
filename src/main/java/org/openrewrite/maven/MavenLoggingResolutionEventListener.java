@@ -46,7 +46,8 @@ class MavenLoggingResolutionEventListener implements ResolutionEventListener {
 
     @Override
     public void repositoryAccessFailed(String uri, Throwable e) {
-        logger.warn("Failed to access maven repository " + uri, e);
+        logger.warn("Failed to access maven repository " + uri + " due to: " + e.getMessage());
+        logger.debug(e);
     }
 
     private static String pomContaining(@Nullable Pom containing) {
