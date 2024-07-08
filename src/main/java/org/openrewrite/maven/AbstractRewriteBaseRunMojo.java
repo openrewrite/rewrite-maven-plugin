@@ -16,11 +16,15 @@
 package org.openrewrite.maven;
 
 import io.micrometer.core.instrument.Metrics;
+
+import org.apache.commons.lang3.ObjectUtils;
 import org.apache.maven.artifact.DependencyResolutionRequiredException;
 import org.apache.maven.plugin.MojoExecutionException;
 import org.apache.maven.plugins.annotations.Parameter;
 import org.codehaus.plexus.classworlds.realm.ClassRealm;
 import org.openrewrite.*;
+import org.openrewrite.config.CompositeRecipe;
+import org.openrewrite.config.DeclarativeRecipe;
 import org.openrewrite.config.Environment;
 import org.openrewrite.config.RecipeDescriptor;
 import org.openrewrite.internal.InMemoryLargeSourceSet;
@@ -32,8 +36,11 @@ import org.openrewrite.marker.*;
 import org.openrewrite.style.NamedStyles;
 import org.openrewrite.xml.tree.Xml;
 
+import com.google.common.base.Splitter;
+
 import java.io.IOException;
 import java.io.UncheckedIOException;
+import java.lang.reflect.Field;
 import java.net.URL;
 import java.net.URLClassLoader;
 import java.nio.file.Files;
@@ -44,6 +51,7 @@ import java.time.LocalDateTime;
 import java.time.format.DateTimeFormatter;
 import java.util.*;
 import java.util.function.UnaryOperator;
+import java.util.stream.Collectors;
 import java.util.stream.Stream;
 
 import static java.util.Collections.emptyList;
@@ -54,6 +62,10 @@ public abstract class AbstractRewriteBaseRunMojo extends AbstractRewriteMojo {
 
     @Parameter(property = "rewrite.exportDatatables", defaultValue = "false")
     protected boolean exportDatatables;
+    @Parameter(property = "rewrite.options")
+    protected Map<String, String> options;
+    @Parameter(property = "rewrite.flatOptions")
+    protected String flatOptions;
 
     /**
      * Attempt to determine the root of the git repository for the given project.
@@ -98,6 +110,16 @@ public abstract class AbstractRewriteBaseRunMojo extends AbstractRewriteMojo {
                 return new ResultsContainer(repositoryRoot, emptyList());
             }
 
+            if (ObjectUtils.isEmpty(options) && !ObjectUtils.isEmpty(flatOptions)) {
+                Splitter comma = Splitter.on(',');
+                Splitter collon = Splitter.on(':');
+
+                options = comma.splitToStream(flatOptions).map(pair -> collon.splitToList(pair))
+                        .collect(Collectors.toMap(values -> values.get(0), values -> values.get(1)));
+            }
+
+            configureRecipeOptions(recipe);
+
             getLog().info("Validating active recipes...");
             List<Validated<Object>> validations = new ArrayList<>();
             recipe.validateAll(ctx, validations);
@@ -124,6 +146,62 @@ public abstract class AbstractRewriteBaseRunMojo extends AbstractRewriteMojo {
         } catch (DependencyResolutionRequiredException e) {
             throw new MojoExecutionException("Dependency resolution required", e);
         }
+    }
+
+    private void configureRecipeOptions(Recipe recipe) throws MojoExecutionException {
+        if (recipe instanceof CompositeRecipe) {
+            CompositeRecipe composite = (CompositeRecipe) recipe;
+            for (Recipe child : composite.getRecipeList()) {
+                this.configureRecipeOptions(child);
+            }
+        } else if (recipe instanceof DeclarativeRecipe) {
+            DeclarativeRecipe declarativeRecipe = (DeclarativeRecipe) recipe;
+            for (Recipe child : declarativeRecipe.getRecipeList()) {
+                this.configureRecipeOptions(child);
+            }
+        } else {
+            List<Field> optionFields = Arrays.stream(recipe.getClass().getDeclaredFields())
+                    .filter(field -> options.containsKey(field.getName())).collect(Collectors.toList());
+
+            for (Field field : optionFields) {
+                updateOption(recipe, field, options.get(field.getName()));
+            }
+        }
+    }
+
+    private void updateOption(Recipe recipe, Field field, String optionValue) throws MojoExecutionException {
+        Object convertedOptionValue = convertOptionValue(recipe, field.getName(), optionValue, field.getType());
+        try {
+            field.setAccessible(true);
+            field.set(recipe, convertedOptionValue);
+            field.setAccessible(false);
+        } catch (IllegalArgumentException | IllegalAccessException e) {
+            throw new MojoExecutionException(
+                    String.format("Unable to configure recipe '%s' option '%s' with value '%s'",
+                            recipe.getClass().getSimpleName(), field.getName(), optionValue));
+        }
+    }
+
+    private Object convertOptionValue(Recipe recipe, String name, String optionValue, Class<?> type)
+            throws MojoExecutionException {
+        if (optionValue == null) {
+            return null;
+        }
+        if (type.isAssignableFrom(String.class)) {
+            return optionValue;
+        }
+        if (type.isAssignableFrom(boolean.class) || type.isAssignableFrom(Boolean.class)) {
+            return Boolean.parseBoolean(optionValue);
+        }
+        if (type.isAssignableFrom(int.class) || type.isAssignableFrom(Integer.class)) {
+            return Integer.parseInt(optionValue);
+        }
+        if (type.isAssignableFrom(long.class) || type.isAssignableFrom(Long.class)) {
+            return Long.parseLong(optionValue);
+        }
+
+        throw new MojoExecutionException(
+                String.format("Unable to convert option: %s value: %s to type: %s", recipe, name, optionValue, type));
     }
 
     protected LargeSourceSet loadSourceSet(Path repositoryRoot, Environment env, ExecutionContext ctx) throws DependencyResolutionRequiredException, MojoExecutionException {
