@@ -31,8 +31,7 @@ public class MavenPomCacheBuilder {
         this.logger = logger;
     }
 
-    @Nullable
-    public MavenPomCache build(@Nullable String pomCacheDirectory) {
+    public @Nullable MavenPomCache build(@Nullable String pomCacheDirectory) {
         if (isJvm64Bit()) {
             try {
                 if (pomCacheDirectory == null) {

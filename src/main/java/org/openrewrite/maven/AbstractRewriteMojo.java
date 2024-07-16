@@ -160,8 +160,7 @@ public abstract class AbstractRewriteMojo extends ConfigurableRewriteMojo {
         }
     }
 
-    @Nullable
-    protected URLClassLoader getRecipeArtifactCoordinatesClassloader() throws MojoExecutionException {
+    protected @Nullable URLClassLoader getRecipeArtifactCoordinatesClassloader() throws MojoExecutionException {
         if (getRecipeArtifactCoordinates().isEmpty()) {
             return null;
         }
