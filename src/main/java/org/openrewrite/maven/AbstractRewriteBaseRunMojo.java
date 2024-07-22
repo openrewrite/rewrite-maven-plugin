@@ -60,6 +60,7 @@ public abstract class AbstractRewriteBaseRunMojo extends AbstractRewriteMojo {
     protected boolean exportDatatables;
 
     @Parameter(property = "rewrite.options")
+    @Nullable
     protected String options;
 
     /**
@@ -138,6 +139,10 @@ public abstract class AbstractRewriteBaseRunMojo extends AbstractRewriteMojo {
     }
 
     private static void configureRecipeOptions(Recipe recipe, String options) throws MojoExecutionException {
+        if (recipe instanceof CompositeRecipe && recipe.getRecipeList().size() == 1) {
+            // Unpack active recipe if it's a single recipe
+            recipe = recipe.getRecipeList().get(0);
+        }
         if (recipe instanceof CompositeRecipe ||
             recipe instanceof DeclarativeRecipe ||
             recipe instanceof Recipe.DelegatingRecipe ||
@@ -145,12 +150,12 @@ public abstract class AbstractRewriteBaseRunMojo extends AbstractRewriteMojo {
             // We don't (yet) support configuring potentially nested recipes, as recipes might occur more than once,
             // and setting the same value twice might lead to unexpected behavior.
             throw new MojoExecutionException(
-                    "Recipes containing other recipes can not be configured from the command line");
+                    "Recipes containing other recipes can not be configured from the command line: " + recipe);
         }
 
         Map<String, String> optionValues = new HashMap<>();
         for (String option : options.split(",")) {
-            String[] parts = option.split(":", 2);
+            String[] parts = option.split("=", 2);
             if (parts.length == 2) {
                 optionValues.put(parts[0], parts[1]);
             }
