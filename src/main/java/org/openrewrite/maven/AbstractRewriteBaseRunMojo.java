@@ -222,7 +222,7 @@ public abstract class AbstractRewriteBaseRunMojo extends AbstractRewriteMojo {
         if (exportDatatables) {
             String timestamp = LocalDateTime.now().format(DateTimeFormatter.ofPattern("yyyy-MM-dd_HH-mm-ss-SSS"));
             Path datatableDirectoryPath = Paths.get("target", "rewrite", "datatables", timestamp);
-            getLog().info(String.format("Printing Available Datatables to: %s", datatableDirectoryPath));
+            getLog().info(String.format("Printing available datatables to: %s", datatableDirectoryPath));
             recipeRun.exportDatatablesToCsv(datatableDirectoryPath, ctx);
         }
 
