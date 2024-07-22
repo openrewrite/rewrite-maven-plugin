@@ -149,28 +149,26 @@ public abstract class AbstractRewriteBaseRunMojo extends AbstractRewriteMojo {
     }
 
     private void configureRecipeOptions(Recipe recipe) throws MojoExecutionException {
-        if (recipe instanceof CompositeRecipe) {
-            CompositeRecipe composite = (CompositeRecipe) recipe;
-            for (Recipe child : composite.getRecipeList()) {
-                this.configureRecipeOptions(child);
-            }
-        } else if (recipe instanceof DeclarativeRecipe) {
-            DeclarativeRecipe declarativeRecipe = (DeclarativeRecipe) recipe;
-            for (Recipe child : declarativeRecipe.getRecipeList()) {
-                this.configureRecipeOptions(child);
-            }
-        } else {
-            List<Field> optionFields = Arrays.stream(recipe.getClass().getDeclaredFields())
-                    .filter(field -> options.containsKey(field.getName())).collect(Collectors.toList());
+        if (recipe instanceof CompositeRecipe ||
+            recipe instanceof DeclarativeRecipe ||
+            recipe instanceof Recipe.DelegatingRecipe ||
+            !recipe.getRecipeList().isEmpty()){
+            // We don't (yet) support configuring potentially nested recipes, as recipes might occur more than once,
+            // and setting the same value twice might lead to unexpected behavior.
+            throw new MojoExecutionException(
+                    "Recipes containing other recipes can not be configured from the command line");
+        }
+        List<Field> optionFields = Arrays.stream(recipe.getClass().getDeclaredFields())
+                .filter(field -> options.containsKey(field.getName()))
+                .collect(Collectors.toList());
 
-            for (Field field : optionFields) {
-                updateOption(recipe, field, options.get(field.getName()));
-            }
+        for (Field field : optionFields) {
+            updateOption(recipe, field, options.get(field.getName()));
         }
     }
 
-    private void updateOption(Recipe recipe, Field field, String optionValue) throws MojoExecutionException {
-        Object convertedOptionValue = convertOptionValue(recipe, field.getName(), optionValue, field.getType());
+    private void updateOption(Recipe recipe, Field field, @Nullable String optionValue) throws MojoExecutionException {
+        Object convertedOptionValue = convertOptionValue(field.getName(), optionValue, field.getType());
         try {
             field.setAccessible(true);
             field.set(recipe, convertedOptionValue);
@@ -182,7 +180,7 @@ public abstract class AbstractRewriteBaseRunMojo extends AbstractRewriteMojo {
         }
     }
 
-    private Object convertOptionValue(Recipe recipe, String name, String optionValue, Class<?> type)
+    private @Nullable Object convertOptionValue(String name, @Nullable String optionValue, Class<?> type)
             throws MojoExecutionException {
         if (optionValue == null) {
             return null;
@@ -201,7 +199,7 @@ public abstract class AbstractRewriteBaseRunMojo extends AbstractRewriteMojo {
         }
 
         throw new MojoExecutionException(
-                String.format("Unable to convert option: %s value: %s to type: %s", recipe, name, optionValue, type));
+                String.format("Unable to convert option: %s value: %s to type: %s", name, optionValue, type));
     }
 
     protected LargeSourceSet loadSourceSet(Path repositoryRoot, Environment env, ExecutionContext ctx) throws DependencyResolutionRequiredException, MojoExecutionException {
