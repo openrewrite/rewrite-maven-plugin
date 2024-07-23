@@ -27,7 +27,6 @@ import org.openrewrite.config.Environment;
 import org.openrewrite.config.RecipeDescriptor;
 import org.openrewrite.internal.InMemoryLargeSourceSet;
 import org.openrewrite.internal.ListUtils;
-import org.openrewrite.internal.StringUtils;
 import org.openrewrite.internal.lang.Nullable;
 import org.openrewrite.java.tree.J;
 import org.openrewrite.kotlin.tree.K;
@@ -61,7 +60,7 @@ public abstract class AbstractRewriteBaseRunMojo extends AbstractRewriteMojo {
 
     @Parameter(property = "rewrite.options")
     @Nullable
-    protected String options;
+    protected LinkedHashSet<String> options;
 
     /**
      * Attempt to determine the root of the git repository for the given project.
@@ -106,7 +105,7 @@ public abstract class AbstractRewriteBaseRunMojo extends AbstractRewriteMojo {
                 return new ResultsContainer(repositoryRoot, emptyList());
             }
 
-            if (!StringUtils.isBlank(options)) {
+            if (options != null && !options.isEmpty()) {
                 configureRecipeOptions(recipe, options);
             }
 
@@ -138,7 +137,7 @@ public abstract class AbstractRewriteBaseRunMojo extends AbstractRewriteMojo {
         }
     }
 
-    private static void configureRecipeOptions(Recipe recipe, String options) throws MojoExecutionException {
+    private static void configureRecipeOptions(Recipe recipe, Set<String> options) throws MojoExecutionException {
         if (recipe instanceof CompositeRecipe && recipe.getRecipeList().size() == 1) {
             // Unpack active recipe if it's a single recipe
             recipe = recipe.getRecipeList().get(0);
@@ -154,7 +153,7 @@ public abstract class AbstractRewriteBaseRunMojo extends AbstractRewriteMojo {
         }
 
         Map<String, String> optionValues = new HashMap<>();
-        for (String option : options.split(",")) {
+        for (String option : options) {
             String[] parts = option.split("=", 2);
             if (parts.length == 2) {
                 optionValues.put(parts[0], parts[1]);
