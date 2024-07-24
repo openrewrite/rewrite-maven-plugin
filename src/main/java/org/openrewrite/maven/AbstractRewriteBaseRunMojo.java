@@ -98,10 +98,10 @@ public abstract class AbstractRewriteBaseRunMojo extends AbstractRewriteMojo {
             Environment env = environment(recipeArtifactCoordinatesClassloader);
 
             Recipe recipe = env.activateRecipes(getActiveRecipes());
-            if (recipe.getRecipeList().isEmpty()) {
-                getLog().warn("No recipes were activated. " +
-                              "Activate a recipe with <activeRecipes><recipe>com.fully.qualified.RecipeClassName</recipe></activeRecipes> in this plugin's <configuration> in your pom.xml, " +
-                              "or on the command line with -Drewrite.activeRecipes=com.fully.qualified.RecipeClassName");
+            if (recipe.getName().equals("org.openrewrite.Recipe$Noop")) {
+                getLog().warn("No recipes were activated." +
+                              " Activate a recipe with <activeRecipes><recipe>com.fully.qualified.RecipeClassName</recipe></activeRecipes> in this plugin's <configuration> in your pom.xml," +
+                              " or on the command line with -Drewrite.activeRecipes=com.fully.qualified.RecipeClassName");
                 return new ResultsContainer(repositoryRoot, emptyList());
             }
 
