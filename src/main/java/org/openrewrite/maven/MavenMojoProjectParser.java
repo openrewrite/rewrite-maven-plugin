@@ -485,8 +485,7 @@ public class MavenMojoProjectParser {
                 .map(addProvenance(baseDir, markers, null));
     }
 
-    @Nullable
-    private String getKotlinDirectory(@Nullable String sourceDirectory) {
+    private @Nullable String getKotlinDirectory(@Nullable String sourceDirectory) {
         if (sourceDirectory == null) {
             return null;
         }
@@ -511,8 +510,7 @@ public class MavenMojoProjectParser {
         return JavaSourceSet.build(name, dependencies, typeCache, false);
     }
 
-    @Nullable
-    public Xml.Document parseMaven(MavenProject mavenProject, List<Marker> projectProvenance, ExecutionContext ctx) {
+    public @Nullable Xml.Document parseMaven(MavenProject mavenProject, List<Marker> projectProvenance, ExecutionContext ctx) {
         return parseMaven(singletonList(mavenProject), singletonMap(mavenProject, projectProvenance), ctx).get(mavenProject);
     }
 
@@ -708,8 +706,7 @@ public class MavenMojoProjectParser {
         return new MavenSettings(mer.getLocalRepositoryPath().toString(), profiles, activeProfiles, mirrors, servers);
     }
 
-    @Nullable
-    private static RawRepositories buildRawRepositories(@Nullable List<Repository> repositoriesToMap) {
+    private static @Nullable RawRepositories buildRawRepositories(@Nullable List<Repository> repositoriesToMap) {
         if (repositoriesToMap == null) {
             return null;
         }
@@ -768,8 +765,7 @@ public class MavenMojoProjectParser {
         }
     }
 
-    @Nullable
-    private GitProvenance gitProvenance(Path baseDir, @Nullable BuildEnvironment buildEnvironment) {
+    private @Nullable GitProvenance gitProvenance(Path baseDir, @Nullable BuildEnvironment buildEnvironment) {
         try {
             return GitProvenance.fromProjectDirectory(baseDir, buildEnvironment);
         } catch (Exception e) {

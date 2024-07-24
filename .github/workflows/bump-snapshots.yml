@@ -4,7 +4,7 @@ name: bump-snapshots
 on:
   workflow_dispatch: {}
   schedule:
-    - cron: 0 11 * * WED
+    - cron: 0 11 * * THU
 
 jobs:
   bump-snapshots:

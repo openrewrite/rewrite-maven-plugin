@@ -56,8 +56,7 @@ public class CycloneDxBomMojo extends AbstractRewriteMojo {
         }
     }
 
-    @Nullable
-    private File buildCycloneDxBom(Xml.Document pomAst) {
+    private @Nullable File buildCycloneDxBom(Xml.Document pomAst) {
         try {
             File cycloneDxBom = new File(project.getBuild().getDirectory(),
                     project.getArtifactId() + "-" + project.getVersion() + "-cyclonedx.xml");
