@@ -21,6 +21,8 @@ import org.apache.maven.plugin.MojoExecutionException;
 import org.apache.maven.plugins.annotations.Parameter;
 import org.codehaus.plexus.classworlds.realm.ClassRealm;
 import org.openrewrite.*;
+import org.openrewrite.config.CompositeRecipe;
+import org.openrewrite.config.DeclarativeRecipe;
 import org.openrewrite.config.Environment;
 import org.openrewrite.config.RecipeDescriptor;
 import org.openrewrite.internal.InMemoryLargeSourceSet;
@@ -34,6 +36,7 @@ import org.openrewrite.xml.tree.Xml;
 
 import java.io.IOException;
 import java.io.UncheckedIOException;
+import java.lang.reflect.Field;
 import java.net.URL;
 import java.net.URLClassLoader;
 import java.nio.file.Files;
@@ -54,6 +57,10 @@ public abstract class AbstractRewriteBaseRunMojo extends AbstractRewriteMojo {
 
     @Parameter(property = "rewrite.exportDatatables", defaultValue = "false")
     protected boolean exportDatatables;
+
+    @Parameter(property = "rewrite.options")
+    @Nullable
+    protected LinkedHashSet<String> options;
 
     /**
      * Attempt to determine the root of the git repository for the given project.
@@ -91,11 +98,15 @@ public abstract class AbstractRewriteBaseRunMojo extends AbstractRewriteMojo {
             Environment env = environment(recipeArtifactCoordinatesClassloader);
 
             Recipe recipe = env.activateRecipes(getActiveRecipes());
-            if (recipe.getRecipeList().isEmpty()) {
-                getLog().warn("No recipes were activated. " +
-                              "Activate a recipe with <activeRecipes><recipe>com.fully.qualified.RecipeClassName</recipe></activeRecipes> in this plugin's <configuration> in your pom.xml, " +
-                              "or on the command line with -Drewrite.activeRecipes=com.fully.qualified.RecipeClassName");
+            if (recipe.getName().equals("org.openrewrite.Recipe$Noop")) {
+                getLog().warn("No recipes were activated." +
+                              " Activate a recipe with <activeRecipes><recipe>com.fully.qualified.RecipeClassName</recipe></activeRecipes> in this plugin's <configuration> in your pom.xml," +
+                              " or on the command line with -Drewrite.activeRecipes=com.fully.qualified.RecipeClassName");
                 return new ResultsContainer(repositoryRoot, emptyList());
+            }
+
+            if (options != null && !options.isEmpty()) {
+                configureRecipeOptions(recipe, options);
             }
 
             getLog().info("Validating active recipes...");
@@ -126,6 +137,72 @@ public abstract class AbstractRewriteBaseRunMojo extends AbstractRewriteMojo {
         }
     }
 
+    private static void configureRecipeOptions(Recipe recipe, Set<String> options) throws MojoExecutionException {
+        if (recipe instanceof CompositeRecipe ||
+            recipe instanceof DeclarativeRecipe ||
+            recipe instanceof Recipe.DelegatingRecipe ||
+            !recipe.getRecipeList().isEmpty()) {
+            // We don't (yet) support configuring potentially nested recipes, as recipes might occur more than once,
+            // and setting the same value twice might lead to unexpected behavior.
+            throw new MojoExecutionException(
+                    "Recipes containing other recipes can not be configured from the command line: " + recipe);
+        }
+
+        Map<String, String> optionValues = new HashMap<>();
+        for (String option : options) {
+            String[] parts = option.split("=", 2);
+            if (parts.length == 2) {
+                optionValues.put(parts[0], parts[1]);
+            }
+        }
+        for (Field field : recipe.getClass().getDeclaredFields()) {
+            String removed = optionValues.remove(field.getName());
+            updateOption(recipe, field, removed);
+        }
+        if (!optionValues.isEmpty()) {
+            throw new MojoExecutionException(
+                    String.format("Unknown recipe options: %s", String.join(", ", optionValues.keySet())));
+        }
+    }
+
+    private static void updateOption(Recipe recipe, Field field, @Nullable String optionValue) throws MojoExecutionException {
+        Object convertedOptionValue = convertOptionValue(field.getName(), optionValue, field.getType());
+        if (convertedOptionValue == null) {
+            return;
+        }
+        try {
+            field.setAccessible(true);
+            field.set(recipe, convertedOptionValue);
+            field.setAccessible(false);
+        } catch (IllegalArgumentException | IllegalAccessException e) {
+            throw new MojoExecutionException(
+                    String.format("Unable to configure recipe '%s' option '%s' with value '%s'",
+                            recipe.getClass().getSimpleName(), field.getName(), optionValue));
+        }
+    }
+
+    private static @Nullable Object convertOptionValue(String name, @Nullable String optionValue, Class<?> type)
+            throws MojoExecutionException {
+        if (optionValue == null) {
+            return null;
+        }
+        if (type.isAssignableFrom(String.class)) {
+            return optionValue;
+        }
+        if (type.isAssignableFrom(boolean.class) || type.isAssignableFrom(Boolean.class)) {
+            return Boolean.parseBoolean(optionValue);
+        }
+        if (type.isAssignableFrom(int.class) || type.isAssignableFrom(Integer.class)) {
+            return Integer.parseInt(optionValue);
+        }
+        if (type.isAssignableFrom(long.class) || type.isAssignableFrom(Long.class)) {
+            return Long.parseLong(optionValue);
+        }
+
+        throw new MojoExecutionException(
+                String.format("Unable to convert option: %s value: %s to type: %s", name, optionValue, type));
+    }
+
     protected LargeSourceSet loadSourceSet(Path repositoryRoot, Environment env, ExecutionContext ctx) throws DependencyResolutionRequiredException, MojoExecutionException {
         List<NamedStyles> styles = loadStyles(project, env);
 
@@ -144,7 +221,7 @@ public abstract class AbstractRewriteBaseRunMojo extends AbstractRewriteMojo {
         if (exportDatatables) {
             String timestamp = LocalDateTime.now().format(DateTimeFormatter.ofPattern("yyyy-MM-dd_HH-mm-ss-SSS"));
             Path datatableDirectoryPath = Paths.get("target", "rewrite", "datatables", timestamp);
-            getLog().info(String.format("Printing Available Datatables to: %s", datatableDirectoryPath));
+            getLog().info(String.format("Printing available datatables to: %s", datatableDirectoryPath));
             recipeRun.exportDatatablesToCsv(datatableDirectoryPath, ctx);
         }
 
