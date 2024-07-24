@@ -138,10 +138,6 @@ public abstract class AbstractRewriteBaseRunMojo extends AbstractRewriteMojo {
     }
 
     private static void configureRecipeOptions(Recipe recipe, Set<String> options) throws MojoExecutionException {
-        if (recipe instanceof CompositeRecipe && recipe.getRecipeList().size() == 1) {
-            // Unpack active recipe if it's a single recipe
-            recipe = recipe.getRecipeList().get(0);
-        }
         if (recipe instanceof CompositeRecipe ||
             recipe instanceof DeclarativeRecipe ||
             recipe instanceof Recipe.DelegatingRecipe ||
