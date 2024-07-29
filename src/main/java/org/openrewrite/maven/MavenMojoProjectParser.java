@@ -88,6 +88,7 @@ import static org.openrewrite.Tree.randomId;
 // -----------------------------------------------------------------------------------------------------------------
 public class MavenMojoProjectParser {
 
+    private static final String MVN_JVM_CONFIG = ".mvn/jvm.config";
     private static final String MVN_MAVEN_CONFIG = ".mvn/maven.config";
 
     @Nullable
@@ -200,6 +201,7 @@ public class MavenMojoProjectParser {
         } else {
             // Only parse Maven wrapper related files, such that UpdateMavenWrapper can use the version information.
             parsedResourceFiles = Stream.of(
+                            Paths.get(MVN_JVM_CONFIG),
                             Paths.get(MVN_MAVEN_CONFIG),
                             MavenWrapper.WRAPPER_BATCH_LOCATION,
                             MavenWrapper.WRAPPER_JAR_LOCATION,
