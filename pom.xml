@@ -77,7 +77,7 @@
 
         <!-- dependencies and plugins -->
         <jackson-bom.version>2.16.2</jackson-bom.version>
-        <netty.version>4.1.110.Final</netty.version>
+        <netty.version>4.1.112.Final</netty.version>
         <rocksdbjni.version>8.8.1</rocksdbjni.version>
         <rsocket.version>1.1.4</rsocket.version>
         <itf-maven.version>0.13.1</itf-maven.version>
