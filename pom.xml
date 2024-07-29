@@ -113,7 +113,7 @@
             <dependency>
                 <groupId>org.assertj</groupId>
                 <artifactId>assertj-bom</artifactId>
-                <version>3.26.0</version>
+                <version>3.26.3</version>
                 <scope>import</scope>
                 <type>pom</type>
             </dependency>
