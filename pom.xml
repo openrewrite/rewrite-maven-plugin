@@ -160,6 +160,10 @@
         </dependency>
         <dependency>
             <groupId>org.openrewrite</groupId>
+            <artifactId>rewrite-java-21</artifactId>
+        </dependency>
+        <dependency>
+            <groupId>org.openrewrite</groupId>
             <artifactId>rewrite-xml</artifactId>
         </dependency>
         <dependency>
@@ -235,41 +239,9 @@
             <artifactId>rsocket-core</artifactId>
         </dependency>
         <dependency>
-            <!-- See https://github.com/advisories/GHSA-599f-7c49-w659 -->
-            <groupId>org.apache.commons</groupId>
-            <artifactId>commons-text</artifactId>
-            <version>1.12.0</version>
-        </dependency>
-        <dependency>
             <groupId>org.rocksdb</groupId>
             <artifactId>rocksdbjni</artifactId>
             <version>${rocksdbjni.version}</version>
-        </dependency>
-        <dependency>
-            <groupId>org.codehaus.plexus</groupId>
-            <artifactId>plexus-interactivity-api</artifactId>
-            <version>1.3</version>
-            <exclusions>
-                <!-- https://github.com/apache/maven-archetype/blob/5351651b33fde2cb046e2f103bbc6be3c38acbab/pom.xml -->
-                <exclusion>
-                    <groupId>org.codehaus.plexus</groupId>
-                    <artifactId>plexus-component-api</artifactId>
-                </exclusion>
-                <exclusion>
-                    <groupId>org.codehaus.plexus</groupId>
-                    <artifactId>plexus-container-default</artifactId>
-                </exclusion>
-                <exclusion>
-                    <groupId>junit</groupId>
-                    <artifactId>junit</artifactId>
-                </exclusion>
-            </exclusions>
-        </dependency>
-
-        <dependency>
-            <groupId>org.apache.maven.shared</groupId>
-            <artifactId>maven-filtering</artifactId>
-            <version>3.3.2</version>
         </dependency>
 
         <dependency>
@@ -344,25 +316,6 @@
             <groupId>com.soebes.itf.jupiter.extension</groupId>
             <artifactId>itf-extension-maven</artifactId>
             <version>${itf-maven.version}</version>
-            <scope>test</scope>
-        </dependency>
-
-        <dependency>
-            <groupId>org.apache.maven.plugin-testing</groupId>
-            <artifactId>maven-plugin-testing-harness</artifactId>
-            <version>3.3.0</version>
-            <scope>test</scope>
-            <exclusions>
-                <exclusion>
-                    <groupId>org.codehaus.plexus</groupId>
-                    <artifactId>plexus-container-default</artifactId>
-                </exclusion>
-            </exclusions>
-        </dependency>
-        <dependency>
-            <groupId>org.apache.maven.plugins</groupId>
-            <artifactId>maven-resources-plugin</artifactId>
-            <version>3.3.1</version>
             <scope>test</scope>
         </dependency>
     </dependencies>

@@ -16,16 +16,13 @@
 package org.openrewrite.maven;
 
 import org.apache.maven.plugin.MojoExecutionException;
-import org.apache.maven.plugins.annotations.Component;
 import org.apache.maven.plugins.annotations.Mojo;
 import org.apache.maven.plugins.annotations.Parameter;
-import org.codehaus.plexus.components.interactivity.Prompter;
 import org.openrewrite.config.Environment;
 import org.openrewrite.config.OptionDescriptor;
 import org.openrewrite.config.RecipeDescriptor;
 import org.openrewrite.internal.StringUtils;
 import org.openrewrite.internal.lang.Nullable;
-import org.openrewrite.maven.ui.RecipeDescriptorTreePrompter;
 import org.openrewrite.style.NamedStyles;
 
 import java.util.*;
@@ -60,16 +57,6 @@ public class RewriteDiscoverMojo extends AbstractRewriteMojo {
     @Parameter(property = "recursion", defaultValue = "0")
     int recursion;
 
-    /**
-     * Whether to enter an interactive shell to explore available recipes. For example:<br>
-     * {@code ./mvnw rewrite:discover -Dinteractive}
-     */
-    @Parameter(property = "interactive", defaultValue = "false")
-    boolean interactive;
-
-    @SuppressWarnings("NotNullFieldNotInitialized")
-    @Component
-    private Prompter prompter;
 
     @Override
     public void execute() throws MojoExecutionException {
@@ -78,11 +65,6 @@ public class RewriteDiscoverMojo extends AbstractRewriteMojo {
         if (recipe != null) {
             RecipeDescriptor rd = getRecipeDescriptor(recipe, availableRecipeDescriptors);
             writeRecipeDescriptor(rd, detail, 0, 0);
-        } else if (interactive) {
-            getLog().info("Entering interactive mode, Ctrl-C to exit...");
-            RecipeDescriptorTreePrompter treePrompter = new RecipeDescriptorTreePrompter(prompter);
-            RecipeDescriptor rd = treePrompter.execute(availableRecipeDescriptors);
-            writeRecipeDescriptor(rd, true, 0, 0);
         } else {
             Collection<RecipeDescriptor> activeRecipeDescriptors = new HashSet<>();
             for (String activeRecipe : getActiveRecipes()) {
