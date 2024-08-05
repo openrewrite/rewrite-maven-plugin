@@ -29,4 +29,4 @@ jobs:
       - name: bump-rewrite-properties-to-snapshots
         run: |
           ./mvnw versions:update-properties -DincludeProperties=rewrite.version,rewrite.kotlin.version -DallowSnapshots=true
-          git diff-index --quiet HEAD pom.xml || git commit -m "Bump rewrite.version properties" pom.xml && git push origin main && rm -f pom.xml.versionsBackup
+          git diff-index --quiet HEAD pom.xml || git commit -m "Bump rewrite.version properties" pom.xml && git push origin main

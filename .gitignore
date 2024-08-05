@@ -3,6 +3,7 @@ target/
 ry/
 release.properties
 pom.xml.releaseBackup
+pom.xml.versionsBackup
 .idea/
 *.iml
 .classpath
