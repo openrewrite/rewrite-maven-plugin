@@ -236,16 +236,18 @@ public class MavenMojoProjectParser {
     }
 
     private SourceFile logParseErrors(SourceFile source) {
-        if (source instanceof ParseError) {
+        source.getMarkers().findFirst(ParseExceptionResult.class).ifPresent(e -> {
             if (firstWarningLogged.compareAndSet(false, true)) {
                 logger.warn("There were problems parsing some source files" +
                             (mavenSession.getRequest().isShowErrors() ? "" : ", run with --errors to see full stack traces"));
             }
-            logger.warn("There were problems parsing " + source.getSourcePath());
+            String pomMessage = source instanceof Xml.Document
+                    ? "; the pom could not be resolved. Some recipes may not function correctly" : "";
+            logger.warn("There were problems parsing " + source.getSourcePath() + pomMessage);
             if (mavenSession.getRequest().isShowErrors()) {
-                source.getMarkers().findFirst(ParseExceptionResult.class).map(ParseExceptionResult::getMessage).ifPresent(logger::warn);
+                logger.warn(e.getMessage());
             }
-        }
+        });
         return source;
     }
 
