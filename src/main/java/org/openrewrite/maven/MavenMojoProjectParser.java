@@ -509,7 +509,7 @@ public class MavenMojoProjectParser {
     }
 
     private static JavaSourceSet sourceSet(String name, List<Path> dependencies, JavaTypeCache typeCache) {
-        return JavaSourceSet.build(name, dependencies, typeCache, false);
+        return JavaSourceSet.build(name, dependencies);
     }
 
     public @Nullable Xml.Document parseMaven(MavenProject mavenProject, List<Marker> projectProvenance, ExecutionContext ctx) {
