@@ -25,8 +25,8 @@ import org.apache.maven.project.MavenProject;
 import org.codehaus.plexus.util.xml.Xpp3Dom;
 import org.codehaus.plexus.util.xml.pull.MXSerializer;
 import org.intellij.lang.annotations.Language;
+import org.jspecify.annotations.Nullable;
 import org.openrewrite.config.Environment;
-import org.openrewrite.internal.lang.Nullable;
 import org.openrewrite.style.NamedStyles;
 
 import java.io.IOException;
