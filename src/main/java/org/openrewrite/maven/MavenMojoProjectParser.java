@@ -30,11 +30,11 @@ import org.apache.maven.settings.crypto.SettingsDecrypter;
 import org.apache.maven.settings.crypto.SettingsDecryptionRequest;
 import org.apache.maven.settings.crypto.SettingsDecryptionResult;
 import org.codehaus.plexus.util.xml.Xpp3Dom;
+import org.jspecify.annotations.Nullable;
 import org.openrewrite.ExecutionContext;
 import org.openrewrite.ParseExceptionResult;
 import org.openrewrite.SourceFile;
 import org.openrewrite.internal.StringUtils;
-import org.openrewrite.internal.lang.Nullable;
 import org.openrewrite.java.JavaParser;
 import org.openrewrite.java.internal.JavaTypeCache;
 import org.openrewrite.java.marker.JavaProject;
@@ -155,7 +155,7 @@ public class MavenMojoProjectParser {
         }
     }
 
-    public Stream<SourceFile> listSourceFiles(MavenProject mavenProject, @Nullable Xml.Document maven, List<Marker> projectProvenance, List<NamedStyles> styles,
+    public Stream<SourceFile> listSourceFiles(MavenProject mavenProject, Xml.@Nullable Document maven, List<Marker> projectProvenance, List<NamedStyles> styles,
                                               ExecutionContext ctx) throws DependencyResolutionRequiredException, MojoExecutionException {
         Stream<SourceFile> sourceFiles = Stream.empty();
         Set<Path> alreadyParsed = new HashSet<>();
@@ -514,7 +514,7 @@ public class MavenMojoProjectParser {
         return JavaSourceSet.build(name, dependencies);
     }
 
-    public @Nullable Xml.Document parseMaven(MavenProject mavenProject, List<Marker> projectProvenance, ExecutionContext ctx) {
+    public Xml.@Nullable Document parseMaven(MavenProject mavenProject, List<Marker> projectProvenance, ExecutionContext ctx) {
         return parseMaven(singletonList(mavenProject), singletonMap(mavenProject, projectProvenance), ctx).get(mavenProject);
     }
 

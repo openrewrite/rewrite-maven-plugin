@@ -16,7 +16,7 @@
 package org.openrewrite.maven;
 
 import org.apache.maven.plugin.logging.Log;
-import org.openrewrite.internal.lang.Nullable;
+import org.jspecify.annotations.Nullable;
 import org.openrewrite.maven.cache.CompositeMavenPomCache;
 import org.openrewrite.maven.cache.InMemoryMavenPomCache;
 import org.openrewrite.maven.cache.MavenPomCache;
