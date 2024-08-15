@@ -16,12 +16,12 @@
 package org.openrewrite.maven;
 
 import org.apache.maven.plugin.MojoExecutionException;
+import org.jspecify.annotations.Nullable;
 import org.openrewrite.ExecutionContext;
 import org.openrewrite.FileAttributes;
 import org.openrewrite.PrintOutputCapture;
 import org.openrewrite.Result;
 import org.openrewrite.binary.Binary;
-import org.openrewrite.internal.lang.Nullable;
 import org.openrewrite.quark.Quark;
 import org.openrewrite.remote.Remote;
 
