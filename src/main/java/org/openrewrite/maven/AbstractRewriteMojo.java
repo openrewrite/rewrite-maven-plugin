@@ -24,7 +24,8 @@ import org.apache.maven.settings.crypto.SettingsDecrypter;
 import org.eclipse.aether.RepositorySystem;
 import org.eclipse.aether.artifact.Artifact;
 import org.jspecify.annotations.Nullable;
-import org.openrewrite.*;
+import org.openrewrite.ExecutionContext;
+import org.openrewrite.InMemoryExecutionContext;
 import org.openrewrite.config.ClasspathScanningLoader;
 import org.openrewrite.config.Environment;
 import org.openrewrite.config.YamlResourceLoader;
@@ -38,7 +39,6 @@ import java.net.*;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
-import java.time.Duration;
 import java.util.*;
 
 @SuppressWarnings("NotNullFieldNotInitialized")
