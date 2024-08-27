@@ -77,6 +77,19 @@ class RewriteRunIT {
     }
 
     @MavenTest
+    @SystemProperties({
+            @SystemProperty(value = "rewrite.activeRecipes", content = "org.openrewrite.maven.RemovePlugin"),
+            @SystemProperty(value = "rewrite.options", content = "groupId=org.openrewrite.maven,artifactId=rewrite-maven-plugin")
+    })
+    void command_line_options(MavenExecutionResult result) {
+        assertThat(result).isSuccessful().out().error().isEmpty();
+        assertThat(result).isSuccessful().out().warn()
+                .contains("Changes have been made to target/maven-it/org/openrewrite/maven/RewriteRunIT/command_line_options/project/pom.xml by:")
+                .contains("    org.openrewrite.maven.RemovePlugin");
+        assertThat(result.getMavenProjectResult().getModel().getBuild()).isNull();
+    }
+
+    @MavenTest
     @Disabled("We should implement a simpler test to make sure that regular markers don't get added to source files")
     void java_upgrade_project(MavenExecutionResult result) {
         assertThat(result)
@@ -96,5 +109,4 @@ class RewriteRunIT {
                 .filteredOn(line -> line.contains("Changes have been made"))
                 .hasSize(1);
     }
-
 }

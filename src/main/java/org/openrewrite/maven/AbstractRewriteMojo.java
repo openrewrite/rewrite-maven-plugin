@@ -23,11 +23,12 @@ import org.apache.maven.rtinfo.RuntimeInformation;
 import org.apache.maven.settings.crypto.SettingsDecrypter;
 import org.eclipse.aether.RepositorySystem;
 import org.eclipse.aether.artifact.Artifact;
-import org.openrewrite.*;
+import org.jspecify.annotations.Nullable;
+import org.openrewrite.ExecutionContext;
+import org.openrewrite.InMemoryExecutionContext;
 import org.openrewrite.config.ClasspathScanningLoader;
 import org.openrewrite.config.Environment;
 import org.openrewrite.config.YamlResourceLoader;
-import org.openrewrite.internal.lang.Nullable;
 import org.openrewrite.ipc.http.HttpSender;
 import org.openrewrite.ipc.http.HttpUrlConnectionSender;
 
@@ -38,7 +39,6 @@ import java.net.*;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
-import java.time.Duration;
 import java.util.*;
 
 @SuppressWarnings("NotNullFieldNotInitialized")
@@ -160,8 +160,7 @@ public abstract class AbstractRewriteMojo extends ConfigurableRewriteMojo {
         }
     }
 
-    @Nullable
-    protected URLClassLoader getRecipeArtifactCoordinatesClassloader() throws MojoExecutionException {
+    protected @Nullable URLClassLoader getRecipeArtifactCoordinatesClassloader() throws MojoExecutionException {
         if (getRecipeArtifactCoordinates().isEmpty()) {
             return null;
         }

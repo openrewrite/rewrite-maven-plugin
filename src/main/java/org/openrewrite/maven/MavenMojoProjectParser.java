@@ -30,11 +30,11 @@ import org.apache.maven.settings.crypto.SettingsDecrypter;
 import org.apache.maven.settings.crypto.SettingsDecryptionRequest;
 import org.apache.maven.settings.crypto.SettingsDecryptionResult;
 import org.codehaus.plexus.util.xml.Xpp3Dom;
+import org.jspecify.annotations.Nullable;
 import org.openrewrite.ExecutionContext;
 import org.openrewrite.ParseExceptionResult;
 import org.openrewrite.SourceFile;
 import org.openrewrite.internal.StringUtils;
-import org.openrewrite.internal.lang.Nullable;
 import org.openrewrite.java.JavaParser;
 import org.openrewrite.java.internal.JavaTypeCache;
 import org.openrewrite.java.marker.JavaProject;
@@ -88,7 +88,9 @@ import static org.openrewrite.Tree.randomId;
 // -----------------------------------------------------------------------------------------------------------------
 public class MavenMojoProjectParser {
 
+    private static final String MVN_JVM_CONFIG = ".mvn/jvm.config";
     private static final String MVN_MAVEN_CONFIG = ".mvn/maven.config";
+
     @Nullable
     public static MavenPomCache POM_CACHE;
 
@@ -111,12 +113,6 @@ public class MavenMojoProjectParser {
     private final SettingsDecrypter settingsDecrypter;
     private final boolean runPerSubmodule;
     private final boolean parseAdditionalResources;
-
-    @Deprecated
-    @SuppressWarnings("BooleanParameter")
-    public MavenMojoProjectParser(Log logger, Path baseDir, boolean pomCacheEnabled, @Nullable String pomCacheDirectory, RuntimeInformation runtime, boolean skipMavenParsing, Collection<String> exclusions, Collection<String> plainTextMasks, int sizeThresholdMb, MavenSession session, SettingsDecrypter settingsDecrypter, boolean runPerSubmodule) {
-        this(logger, baseDir, pomCacheEnabled, pomCacheDirectory, runtime, skipMavenParsing, exclusions, plainTextMasks, sizeThresholdMb, session, settingsDecrypter, runPerSubmodule, false);
-    }
 
     @SuppressWarnings("BooleanParameter")
     public MavenMojoProjectParser(Log logger, Path baseDir, boolean pomCacheEnabled, @Nullable String pomCacheDirectory, RuntimeInformation runtime, boolean skipMavenParsing, Collection<String> exclusions, Collection<String> plainTextMasks, int sizeThresholdMb, MavenSession session, SettingsDecrypter settingsDecrypter, boolean runPerSubmodule, boolean parseAdditionalResources) {
@@ -159,7 +155,7 @@ public class MavenMojoProjectParser {
         }
     }
 
-    public Stream<SourceFile> listSourceFiles(MavenProject mavenProject, @Nullable Xml.Document maven, List<Marker> projectProvenance, List<NamedStyles> styles,
+    public Stream<SourceFile> listSourceFiles(MavenProject mavenProject, Xml.@Nullable Document maven, List<Marker> projectProvenance, List<NamedStyles> styles,
                                               ExecutionContext ctx) throws DependencyResolutionRequiredException, MojoExecutionException {
         Stream<SourceFile> sourceFiles = Stream.empty();
         Set<Path> alreadyParsed = new HashSet<>();
@@ -205,6 +201,7 @@ public class MavenMojoProjectParser {
         } else {
             // Only parse Maven wrapper related files, such that UpdateMavenWrapper can use the version information.
             parsedResourceFiles = Stream.of(
+                            Paths.get(MVN_JVM_CONFIG),
                             Paths.get(MVN_MAVEN_CONFIG),
                             MavenWrapper.WRAPPER_BATCH_LOCATION,
                             MavenWrapper.WRAPPER_JAR_LOCATION,
@@ -239,16 +236,18 @@ public class MavenMojoProjectParser {
     }
 
     private SourceFile logParseErrors(SourceFile source) {
-        if (source instanceof ParseError) {
+        source.getMarkers().findFirst(ParseExceptionResult.class).ifPresent(e -> {
             if (firstWarningLogged.compareAndSet(false, true)) {
                 logger.warn("There were problems parsing some source files" +
                             (mavenSession.getRequest().isShowErrors() ? "" : ", run with --errors to see full stack traces"));
             }
-            logger.warn("There were problems parsing " + source.getSourcePath());
+            String pomMessage = source instanceof Xml.Document
+                    ? "; the pom could not be resolved. Some recipes may not function correctly" : "";
+            logger.warn("There were problems parsing " + source.getSourcePath() + pomMessage);
             if (mavenSession.getRequest().isShowErrors()) {
-                source.getMarkers().findFirst(ParseExceptionResult.class).map(ParseExceptionResult::getMessage).ifPresent(logger::warn);
+                logger.warn(e.getMessage());
             }
-        }
+        });
         return source;
     }
 
@@ -490,8 +489,7 @@ public class MavenMojoProjectParser {
                 .map(addProvenance(baseDir, markers, null));
     }
 
-    @Nullable
-    private String getKotlinDirectory(@Nullable String sourceDirectory) {
+    private @Nullable String getKotlinDirectory(@Nullable String sourceDirectory) {
         if (sourceDirectory == null) {
             return null;
         }
@@ -513,11 +511,10 @@ public class MavenMojoProjectParser {
     }
 
     private static JavaSourceSet sourceSet(String name, List<Path> dependencies, JavaTypeCache typeCache) {
-        return JavaSourceSet.build(name, dependencies, typeCache, false);
+        return JavaSourceSet.build(name, dependencies);
     }
 
-    @Nullable
-    public Xml.Document parseMaven(MavenProject mavenProject, List<Marker> projectProvenance, ExecutionContext ctx) {
+    public Xml.@Nullable Document parseMaven(MavenProject mavenProject, List<Marker> projectProvenance, ExecutionContext ctx) {
         return parseMaven(singletonList(mavenProject), singletonMap(mavenProject, projectProvenance), ctx).get(mavenProject);
     }
 
@@ -713,8 +710,7 @@ public class MavenMojoProjectParser {
         return new MavenSettings(mer.getLocalRepositoryPath().toString(), profiles, activeProfiles, mirrors, servers);
     }
 
-    @Nullable
-    private static RawRepositories buildRawRepositories(@Nullable List<Repository> repositoriesToMap) {
+    private static @Nullable RawRepositories buildRawRepositories(@Nullable List<Repository> repositoriesToMap) {
         if (repositoriesToMap == null) {
             return null;
         }
@@ -773,10 +769,11 @@ public class MavenMojoProjectParser {
         }
     }
 
-    @Nullable
-    private GitProvenance gitProvenance(Path baseDir, @Nullable BuildEnvironment buildEnvironment) {
+    private static final Map<Path, GitProvenance> REPO_ROOT_TO_PROVENANCE = new HashMap<>();
+    private @Nullable GitProvenance gitProvenance(Path baseDir, @Nullable BuildEnvironment buildEnvironment) {
         try {
-            return GitProvenance.fromProjectDirectory(baseDir, buildEnvironment);
+            // Computing git provenance can be expensive for repositories with many commits, ensure we do it only once
+            return REPO_ROOT_TO_PROVENANCE.computeIfAbsent(baseDir, dir -> GitProvenance.fromProjectDirectory(dir, buildEnvironment));
         } catch (Exception e) {
             // Logging at a low level as this is unlikely to happen except in non-git projects, where it is expected
             logger.debug("Unable to determine git provenance", e);

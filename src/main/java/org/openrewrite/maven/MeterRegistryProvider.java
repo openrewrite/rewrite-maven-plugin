@@ -26,7 +26,7 @@ import io.rsocket.transport.ClientTransport;
 import io.rsocket.transport.netty.client.TcpClientTransport;
 import io.rsocket.transport.netty.client.WebsocketClientTransport;
 import org.apache.maven.plugin.logging.Log;
-import org.openrewrite.internal.lang.Nullable;
+import org.jspecify.annotations.Nullable;
 import reactor.netty.http.client.HttpClient;
 import reactor.netty.tcp.TcpClient;
 import reactor.util.retry.Retry;
@@ -37,10 +37,13 @@ import java.util.Base64;
 
 public class MeterRegistryProvider implements AutoCloseable {
     private final Log log;
+
     @Nullable
     private final String uriString;
+
     @Nullable
     private final String username;
+
     @Nullable
     private final String password;
 

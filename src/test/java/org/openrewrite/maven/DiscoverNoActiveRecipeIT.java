@@ -15,11 +15,7 @@
  */
 package org.openrewrite.maven;
 
-import com.soebes.itf.jupiter.extension.MavenCLIOptions;
-import com.soebes.itf.jupiter.extension.MavenGoal;
-import com.soebes.itf.jupiter.extension.MavenJupiterExtension;
-import com.soebes.itf.jupiter.extension.MavenOption;
-import com.soebes.itf.jupiter.extension.MavenTest;
+import com.soebes.itf.jupiter.extension.*;
 import com.soebes.itf.jupiter.maven.MavenExecutionResult;
 
 import static com.soebes.itf.extension.assertj.MavenITAssertions.assertThat;

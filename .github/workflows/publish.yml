@@ -30,7 +30,7 @@ jobs:
 
       - name: bump-rewrite-properties-to-releases
         run: |
-          ./mvnw versions:update-properties -DincludeProperties=rewrite.version,rewrite.python.version,rewrite.kotlin.version -DallowDowngrade=true
+          ./mvnw versions:update-properties -DincludeProperties=rewrite.version,rewrite.kotlin.version -DallowDowngrade=true
           git diff-index --quiet HEAD pom.xml || git commit -m "Bump rewrite.version properties" pom.xml && rm -f pom.xml.versionsBackup
 
       - name: publish-release
@@ -60,5 +60,5 @@ jobs:
 
       - name: bump-rewrite-properties-to-snapshots
         run: |
-          ./mvnw versions:update-properties -DincludeProperties=rewrite.version,rewrite.python.version,rewrite.kotlin.version -DallowSnapshots=true
-          git diff-index --quiet HEAD pom.xml || git commit -m "Bump rewrite.version properties" pom.xml && git push origin main && rm -f pom.xml.versionsBackup
+          ./mvnw versions:update-properties -DincludeProperties=rewrite.version,rewrite.kotlin.version -DallowSnapshots=true
+          git diff-index --quiet HEAD pom.xml || (git commit -m "Bump rewrite.version properties" pom.xml && git push origin main && rm -f pom.xml.versionsBackup)

@@ -4,7 +4,7 @@ name: bump-snapshots
 on:
   workflow_dispatch: {}
   schedule:
-    - cron: 0 11 * * WED
+    - cron: 0 11 * * THU
 
 jobs:
   bump-snapshots:
@@ -28,5 +28,5 @@ jobs:
 
       - name: bump-rewrite-properties-to-snapshots
         run: |
-          ./mvnw versions:update-properties -DincludeProperties=rewrite.version,rewrite.python.version,rewrite.kotlin.version -DallowSnapshots=true
-          git diff-index --quiet HEAD pom.xml || git commit -m "Bump rewrite.version properties" pom.xml && git push origin main && rm -f pom.xml.versionsBackup
+          ./mvnw versions:update-properties -DincludeProperties=rewrite.version,rewrite.kotlin.version -DallowSnapshots=true
+          git diff-index --quiet HEAD pom.xml || (git commit -m "Bump rewrite.version properties" pom.xml && git push origin main)

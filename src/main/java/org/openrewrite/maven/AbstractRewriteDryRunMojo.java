@@ -17,9 +17,9 @@ package org.openrewrite.maven;
 
 import org.apache.maven.plugin.MojoExecutionException;
 import org.apache.maven.plugins.annotations.Parameter;
+import org.jspecify.annotations.Nullable;
 import org.openrewrite.ExecutionContext;
 import org.openrewrite.Result;
-import org.openrewrite.internal.lang.Nullable;
 
 import java.io.BufferedWriter;
 import java.io.IOException;

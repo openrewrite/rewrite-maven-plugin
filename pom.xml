@@ -4,7 +4,7 @@
 
     <groupId>org.openrewrite.maven</groupId>
     <artifactId>rewrite-maven-plugin</artifactId>
-    <version>5.32.0-SNAPSHOT</version>
+    <version>5.40.0-SNAPSHOT</version>
     <packaging>maven-plugin</packaging>
 
     <name>rewrite-maven-plugin</name>
@@ -62,8 +62,8 @@
 
     <properties>
         <!-- Pinned versions, as RELEASE would make it into the published pom.xml -->
-        <rewrite.version>8.27.0-SNAPSHOT</rewrite.version>
-        <rewrite.kotlin.version>1.16.0</rewrite.kotlin.version>
+        <rewrite.version>8.34.0-SNAPSHOT</rewrite.version>
+        <rewrite.kotlin.version>1.20.0-SNAPSHOT</rewrite.kotlin.version>
 
         <!-- using 'ssh' url scheme by default, which assumes a human is performing git operations leveraging an ssh key -->
         <developerConnectionUrl>scm:git:ssh://git@github.com/openrewrite/rewrite-maven-plugin.git
@@ -76,14 +76,14 @@
         <maven.compiler.testRelease>17</maven.compiler.testRelease>
 
         <!-- dependencies and plugins -->
-        <jackson-bom.version>2.16.2</jackson-bom.version>
-        <netty.version>4.1.109.Final</netty.version>
+        <jackson-bom.version>2.17.2</jackson-bom.version>
+        <netty.version>4.1.112.Final</netty.version>
         <rocksdbjni.version>8.8.1</rocksdbjni.version>
         <rsocket.version>1.1.4</rsocket.version>
         <itf-maven.version>0.13.1</itf-maven.version>
-        <maven-dependencies.version>3.9.6</maven-dependencies.version>
-        <maven-release-plugin.version>3.0.1</maven-release-plugin.version>
-        <maven-plugin-tools.version>3.13.0</maven-plugin-tools.version>
+        <maven-dependencies.version>3.9.9</maven-dependencies.version>
+        <maven-release-plugin.version>3.1.1</maven-release-plugin.version>
+        <maven-plugin-tools.version>3.14.0</maven-plugin-tools.version>
         <kotlin.version>1.9.24</kotlin.version>
     </properties>
 
@@ -106,14 +106,14 @@
             <dependency>
                 <groupId>org.junit</groupId>
                 <artifactId>junit-bom</artifactId>
-                <version>5.10.2</version>
+                <version>5.11.0</version>
                 <scope>import</scope>
                 <type>pom</type>
             </dependency>
             <dependency>
                 <groupId>org.assertj</groupId>
                 <artifactId>assertj-bom</artifactId>
-                <version>3.25.3</version>
+                <version>3.26.3</version>
                 <scope>import</scope>
                 <type>pom</type>
             </dependency>
@@ -210,7 +210,7 @@
         <dependency>
             <groupId>org.codehaus.plexus</groupId>
             <artifactId>plexus-xml</artifactId>
-            <version>4.0.3</version>
+            <version>4.0.4</version>
         </dependency>
         <dependency>
             <groupId>com.fasterxml.jackson.module</groupId>
@@ -224,7 +224,7 @@
         <dependency>
             <groupId>io.micrometer</groupId>
             <artifactId>micrometer-core</artifactId>
-            <version>1.12.5</version>
+            <version>1.13.3</version>
         </dependency>
         <dependency>
             <groupId>io.rsocket</groupId>
@@ -235,41 +235,9 @@
             <artifactId>rsocket-core</artifactId>
         </dependency>
         <dependency>
-            <!-- See https://github.com/advisories/GHSA-599f-7c49-w659 -->
-            <groupId>org.apache.commons</groupId>
-            <artifactId>commons-text</artifactId>
-            <version>1.12.0</version>
-        </dependency>
-        <dependency>
             <groupId>org.rocksdb</groupId>
             <artifactId>rocksdbjni</artifactId>
             <version>${rocksdbjni.version}</version>
-        </dependency>
-        <dependency>
-            <groupId>org.codehaus.plexus</groupId>
-            <artifactId>plexus-interactivity-api</artifactId>
-            <version>1.3</version>
-            <exclusions>
-                <!-- https://github.com/apache/maven-archetype/blob/5351651b33fde2cb046e2f103bbc6be3c38acbab/pom.xml -->
-                <exclusion>
-                    <groupId>org.codehaus.plexus</groupId>
-                    <artifactId>plexus-component-api</artifactId>
-                </exclusion>
-                <exclusion>
-                    <groupId>org.codehaus.plexus</groupId>
-                    <artifactId>plexus-container-default</artifactId>
-                </exclusion>
-                <exclusion>
-                    <groupId>junit</groupId>
-                    <artifactId>junit</artifactId>
-                </exclusion>
-            </exclusions>
-        </dependency>
-
-        <dependency>
-            <groupId>org.apache.maven.shared</groupId>
-            <artifactId>maven-filtering</artifactId>
-            <version>3.3.2</version>
         </dependency>
 
         <dependency>
@@ -346,25 +314,6 @@
             <version>${itf-maven.version}</version>
             <scope>test</scope>
         </dependency>
-
-        <dependency>
-            <groupId>org.apache.maven.plugin-testing</groupId>
-            <artifactId>maven-plugin-testing-harness</artifactId>
-            <version>3.3.0</version>
-            <scope>test</scope>
-            <exclusions>
-                <exclusion>
-                    <groupId>org.codehaus.plexus</groupId>
-                    <artifactId>plexus-container-default</artifactId>
-                </exclusion>
-            </exclusions>
-        </dependency>
-        <dependency>
-            <groupId>org.apache.maven.plugins</groupId>
-            <artifactId>maven-resources-plugin</artifactId>
-            <version>3.3.1</version>
-            <scope>test</scope>
-        </dependency>
     </dependencies>
 
     <repositories>
@@ -396,8 +345,31 @@
         <plugins>
             <plugin>
                 <groupId>org.apache.maven.plugins</groupId>
+                <artifactId>maven-enforcer-plugin</artifactId>
+                <version>3.5.0</version>
+                <configuration>
+                    <rules>
+                        <requireJavaVersion>
+                            <version>17</version>
+                        </requireJavaVersion>
+                        <requireMavenVersion>
+                            <version>3.9.6</version>
+                        </requireMavenVersion>
+                    </rules>
+                </configuration>
+                <executions>
+                    <execution>
+                        <id>enforce</id>
+                        <goals>
+                            <goal>enforce</goal>
+                        </goals>
+                    </execution>
+                </executions>
+            </plugin>
+            <plugin>
+                <groupId>org.apache.maven.plugins</groupId>
                 <artifactId>maven-site-plugin</artifactId>
-                <version>4.0.0-M14</version>
+                <version>4.0.0-M16</version>
             </plugin>
             <!-- testing-related plugins -->
             <plugin>
@@ -422,7 +394,7 @@
             <plugin>
                 <groupId>org.apache.maven.plugins</groupId>
                 <artifactId>maven-failsafe-plugin</artifactId>
-                <version>3.2.5</version>
+                <version>3.4.0</version>
                 <executions>
                     <execution>
                         <goals>
@@ -462,7 +434,7 @@
             <plugin>
                 <groupId>org.apache.maven.plugins</groupId>
                 <artifactId>maven-javadoc-plugin</artifactId>
-                <version>3.6.3</version>
+                <version>3.8.0</version>
                 <executions>
                     <execution>
                         <phase>prepare-package</phase>
@@ -550,7 +522,7 @@
             <plugin>
                 <groupId>org.owasp</groupId>
                 <artifactId>dependency-check-maven</artifactId>
-                <version>9.1.0</version>
+                <version>10.0.3</version>
                 <configuration>
                     <nvdApiKey>${env.NVD_API_KEY}</nvdApiKey>
                     <failBuildOnCVSS>9</failBuildOnCVSS>
@@ -583,7 +555,7 @@
                     <plugin>
                         <groupId>org.apache.maven.plugins</groupId>
                         <artifactId>maven-gpg-plugin</artifactId>
-                        <version>3.2.4</version>
+                        <version>3.2.5</version>
                         <executions>
                             <execution>
                                 <id>sign-artifacts</id>
@@ -611,7 +583,7 @@
                     <plugin>
                         <groupId>org.sonatype.plugins</groupId>
                         <artifactId>nexus-staging-maven-plugin</artifactId>
-                        <version>1.6.13</version>
+                        <version>1.7.0</version>
                         <extensions>true</extensions>
                         <configuration>
                             <!-- https://help.sonatype.com/repomanager2/staging-releases/configuring-your-project-for-deployment -->

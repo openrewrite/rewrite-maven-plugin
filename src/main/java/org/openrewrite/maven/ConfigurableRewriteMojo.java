@@ -25,8 +25,8 @@ import org.apache.maven.project.MavenProject;
 import org.codehaus.plexus.util.xml.Xpp3Dom;
 import org.codehaus.plexus.util.xml.pull.MXSerializer;
 import org.intellij.lang.annotations.Language;
+import org.jspecify.annotations.Nullable;
 import org.openrewrite.config.Environment;
-import org.openrewrite.internal.lang.Nullable;
 import org.openrewrite.style.NamedStyles;
 
 import java.io.IOException;
@@ -37,7 +37,6 @@ import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.util.*;
 import java.util.stream.Collectors;
-import java.util.stream.Stream;
 
 import static java.util.Collections.emptyMap;
 import static org.openrewrite.java.style.CheckstyleConfigLoader.loadCheckstyleConfig;
@@ -55,24 +54,10 @@ public abstract class ConfigurableRewriteMojo extends AbstractMojo {
     @Nullable
     @Parameter(property = "rewrite.activeRecipes")
     protected LinkedHashSet<String> activeRecipes;
-    /**
-     * @deprecated Use {@code rewrite.activeRecipes} instead.
-     */
-    @Nullable
-    @Parameter(property = "activeRecipes")
-    @Deprecated
-    protected LinkedHashSet<String> deprecatedActiveRecipes;
 
     @Nullable
     @Parameter(property = "rewrite.activeStyles")
     protected LinkedHashSet<String> activeStyles;
-    /**
-     * @deprecated Use {@code rewrite.activeStyles} instead.
-     */
-    @Nullable
-    @Parameter(property = "activeStyles")
-    @Deprecated
-    protected LinkedHashSet<String> deprecatedActiveStyles;
 
     @Nullable
     @Parameter(property = "rewrite.metricsUri", alias = "metricsUri")
@@ -125,16 +110,9 @@ public abstract class ConfigurableRewriteMojo extends AbstractMojo {
     @Nullable
     @Parameter(property = "rewrite.exclusions")
     private LinkedHashSet<String> exclusions;
-    /**
-     * @deprecated Use {@code rewrite.exclusions} instead.
-     */
-    @Nullable
-    @Deprecated
-    @Parameter(property = "exclusions")
-    private LinkedHashSet<String> deprecatedExclusions;
 
     protected Set<String> getExclusions() {
-        return getMergedAndCleaned(exclusions, deprecatedExclusions);
+        return getCleanedSet(exclusions);
     }
 
     protected Set<String> getCheckstyleProperties() {
@@ -144,19 +122,16 @@ public abstract class ConfigurableRewriteMojo extends AbstractMojo {
     @Nullable
     @Parameter(property = "rewrite.plainTextMasks")
     private LinkedHashSet<String> plainTextMasks;
-    @Nullable
-    @Parameter(property = "plainTextMasks")
-    @Deprecated
-    private LinkedHashSet<String> deprecatedPlainTextMasks;
 
     protected Set<String> getPlainTextMasks() {
-        Set<String> masks = getMergedAndCleaned(plainTextMasks, deprecatedPlainTextMasks);
+        Set<String> masks = getCleanedSet(plainTextMasks);
         if (!masks.isEmpty()) {
             return masks;
         }
         //If not defined, use a default set of masks
         return new HashSet<>(Arrays.asList(
                 "**/*.adoc",
+                "**/*.aj",
                 "**/*.bash",
                 "**/*.bat",
                 "**/CODEOWNERS",
@@ -240,6 +215,7 @@ public abstract class ConfigurableRewriteMojo extends AbstractMojo {
 
     @Nullable
     private volatile Set<String> computedRecipes;
+
     @Nullable
     private volatile Set<String> computedStyles;
 
@@ -250,7 +226,7 @@ public abstract class ConfigurableRewriteMojo extends AbstractMojo {
         if (computedRecipes == null) {
             synchronized (this) {
                 if (computedRecipes == null) {
-                    computedRecipes = getMergedAndCleaned(activeRecipes, deprecatedActiveRecipes);
+                    computedRecipes = getCleanedSet(activeRecipes);
                 }
             }
         }
@@ -262,7 +238,7 @@ public abstract class ConfigurableRewriteMojo extends AbstractMojo {
         if (computedStyles == null) {
             synchronized (this) {
                 if (computedStyles == null) {
-                    computedStyles = getMergedAndCleaned(activeStyles, deprecatedActiveStyles);
+                    computedStyles = getCleanedSet(activeStyles);
                 }
             }
         }
@@ -332,7 +308,7 @@ public abstract class ConfigurableRewriteMojo extends AbstractMojo {
         if (computedRecipeArtifactCoordinates == null) {
             synchronized (this) {
                 if (computedRecipeArtifactCoordinates == null) {
-                    computedRecipeArtifactCoordinates = getMergedAndCleaned(recipeArtifactCoordinates, null);
+                    computedRecipeArtifactCoordinates = getCleanedSet(recipeArtifactCoordinates);
                 }
             }
         }
@@ -340,19 +316,15 @@ public abstract class ConfigurableRewriteMojo extends AbstractMojo {
         return computedRecipeArtifactCoordinates;
     }
 
-    private static Set<String> getMergedAndCleaned(@Nullable LinkedHashSet<String> set, @Nullable LinkedHashSet<String> deprecatedSet) {
-        Stream<String> merged = Stream.empty();
-        if (set != null) {
-            merged = set.stream();
+    private static Set<String> getCleanedSet(@Nullable Set<String> set) {
+        if (set == null) {
+            return Collections.emptySet();
         }
-        if (deprecatedSet != null) {
-            merged = Stream.concat(merged, deprecatedSet.stream());
-        }
-        LinkedHashSet<String> collected = merged
+        Set<String> cleaned = set.stream()
                 .filter(Objects::nonNull)
                 .map(String::trim)
                 .filter(s -> !s.isEmpty())
                 .collect(Collectors.toCollection(LinkedHashSet::new));
-        return Collections.unmodifiableSet(collected);
+        return Collections.unmodifiableSet(cleaned);
     }
 }
