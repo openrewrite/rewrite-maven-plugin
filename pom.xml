@@ -63,7 +63,7 @@
     <properties>
         <!-- Pinned versions, as RELEASE would make it into the published pom.xml -->
         <rewrite.version>8.34.0</rewrite.version>
-        <rewrite.kotlin.version>1.19.6</rewrite.kotlin.version>
+        <rewrite.kotlin.version>1.20.0-SNAPSHOT</rewrite.kotlin.version>
 
         <!-- using 'ssh' url scheme by default, which assumes a human is performing git operations leveraging an ssh key -->
         <developerConnectionUrl>scm:git:ssh://git@github.com/openrewrite/rewrite-maven-plugin.git
