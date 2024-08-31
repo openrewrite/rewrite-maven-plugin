@@ -52,6 +52,7 @@ import java.util.stream.Stream;
 import static java.util.Collections.emptyList;
 import static java.util.stream.Collectors.joining;
 import static java.util.stream.Collectors.toList;
+import static org.openrewrite.maven.MavenLog.logTo;
 
 public abstract class AbstractRewriteBaseRunMojo extends AbstractRewriteMojo {
 
@@ -61,6 +62,12 @@ public abstract class AbstractRewriteBaseRunMojo extends AbstractRewriteMojo {
     @Parameter(property = "rewrite.options")
     @Nullable
     protected LinkedHashSet<String> options;
+
+    /**
+     * The level used to log changes performed by recipes.
+     */
+    @Parameter(property = "rewrite.recipeChangeLogLevel", defaultValue = "WARN")
+    protected MavenLog.Level recipeChangeLogLevel;
 
     /**
      * Attempt to determine the root of the git repository for the given project.
@@ -438,7 +445,7 @@ public abstract class AbstractRewriteBaseRunMojo extends AbstractRewriteMojo {
                 recipeString.append(": {").append(opts).append("}");
             }
         }
-        getLog().warn(recipeString.toString());
+        logTo(getLog(), recipeChangeLogLevel, recipeString.toString());
         for (RecipeDescriptor rchild : rd.getRecipeList()) {
             logRecipe(rchild, prefix + "    ");
         }
