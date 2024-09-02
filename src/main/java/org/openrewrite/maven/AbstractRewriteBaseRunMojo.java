@@ -68,7 +68,7 @@ public abstract class AbstractRewriteBaseRunMojo extends AbstractRewriteMojo {
     @Parameter(property = "rewrite.recipeChangeLogLevel", defaultValue = "WARN")
     protected LogLevel recipeChangeLogLevel;
 
-    void log(CharSequence content) {
+    protected void log(CharSequence content) {
         switch (recipeChangeLogLevel) {
             case DEBUG:
                 getLog().debug(content);
