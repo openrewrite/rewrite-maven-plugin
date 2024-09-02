@@ -63,6 +63,29 @@ public abstract class AbstractRewriteBaseRunMojo extends AbstractRewriteMojo {
     protected LinkedHashSet<String> options;
 
     /**
+     * The level used to log changes performed by recipes.
+     */
+    @Parameter(property = "rewrite.recipeChangeLogLevel", defaultValue = "WARN")
+    protected LogLevel recipeChangeLogLevel;
+
+    protected void log(LogLevel logLevel, CharSequence content) {
+        switch (logLevel) {
+            case DEBUG:
+                getLog().debug(content);
+                break;
+            case INFO:
+                getLog().info(content);
+                break;
+            case WARN:
+                getLog().warn(content);
+                break;
+            case ERROR:
+                getLog().error(content);
+                break;
+        }
+    }
+
+    /**
      * Attempt to determine the root of the git repository for the given project.
      * Many Gradle builds co-locate the build root with the git repository root, but that is not required.
      * If no git repository can be located in any folder containing the build, the build root will be returned.
@@ -438,7 +461,7 @@ public abstract class AbstractRewriteBaseRunMojo extends AbstractRewriteMojo {
                 recipeString.append(": {").append(opts).append("}");
             }
         }
-        getLog().warn(recipeString.toString());
+        log(recipeChangeLogLevel, recipeString.toString());
         for (RecipeDescriptor rchild : rd.getRecipeList()) {
             logRecipe(rchild, prefix + "    ");
         }

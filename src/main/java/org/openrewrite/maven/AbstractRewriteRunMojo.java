@@ -71,40 +71,40 @@ public class AbstractRewriteRunMojo extends AbstractRewriteBaseRunMojo {
             Duration estimateTimeSaved = Duration.ZERO;
             for (Result result : results.generated) {
                 assert result.getAfter() != null;
-                getLog().warn("Generated new file " +
-                              result.getAfter().getSourcePath().normalize() +
-                              " by:");
+                log(recipeChangeLogLevel, "Generated new file " +
+                                          result.getAfter().getSourcePath().normalize() +
+                                          " by:");
                 logRecipesThatMadeChanges(result);
                 estimateTimeSaved = estimateTimeSavedSum(result, estimateTimeSaved);
             }
             for (Result result : results.deleted) {
                 assert result.getBefore() != null;
-                getLog().warn("Deleted file " +
-                              result.getBefore().getSourcePath().normalize() +
-                              " by:");
+                log(recipeChangeLogLevel, "Deleted file " +
+                                          result.getBefore().getSourcePath().normalize() +
+                                          " by:");
                 logRecipesThatMadeChanges(result);
                 estimateTimeSaved = estimateTimeSavedSum(result, estimateTimeSaved);
             }
             for (Result result : results.moved) {
                 assert result.getAfter() != null;
                 assert result.getBefore() != null;
-                getLog().warn("File has been moved from " +
-                              result.getBefore().getSourcePath().normalize() + " to " +
-                              result.getAfter().getSourcePath().normalize() + " by:");
+                log(recipeChangeLogLevel, "File has been moved from " +
+                                          result.getBefore().getSourcePath().normalize() + " to " +
+                                          result.getAfter().getSourcePath().normalize() + " by:");
                 logRecipesThatMadeChanges(result);
                 estimateTimeSaved = estimateTimeSavedSum(result, estimateTimeSaved);
             }
             for (Result result : results.refactoredInPlace) {
                 assert result.getBefore() != null;
-                getLog().warn("Changes have been made to " +
-                              result.getBefore().getSourcePath().normalize() +
-                              " by:");
+                log(recipeChangeLogLevel, "Changes have been made to " +
+                                          result.getBefore().getSourcePath().normalize() +
+                                          " by:");
                 logRecipesThatMadeChanges(result);
                 estimateTimeSaved = estimateTimeSavedSum(result, estimateTimeSaved);
             }
 
-            getLog().warn("Please review and commit the results.");
-            getLog().warn("Estimate time saved: " + formatDuration(estimateTimeSaved));
+            log(recipeChangeLogLevel, "Please review and commit the results.");
+            log(recipeChangeLogLevel, "Estimate time saved: " + formatDuration(estimateTimeSaved));
 
             try {
                 for (Result result : results.generated) {
