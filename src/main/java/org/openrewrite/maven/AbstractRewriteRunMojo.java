@@ -33,8 +33,6 @@ import java.nio.file.Path;
 import java.time.Duration;
 import java.util.List;
 
-import static org.openrewrite.maven.MavenLog.logTo;
-
 /**
  * Run the configured recipes and apply the changes locally.
  * <p>
@@ -73,40 +71,40 @@ public class AbstractRewriteRunMojo extends AbstractRewriteBaseRunMojo {
             Duration estimateTimeSaved = Duration.ZERO;
             for (Result result : results.generated) {
                 assert result.getAfter() != null;
-                logTo(getLog(), recipeChangeLogLevel, "Generated new file " +
-                              result.getAfter().getSourcePath().normalize() +
-                              " by:");
+                log("Generated new file " +
+                    result.getAfter().getSourcePath().normalize() +
+                    " by:");
                 logRecipesThatMadeChanges(result);
                 estimateTimeSaved = estimateTimeSavedSum(result, estimateTimeSaved);
             }
             for (Result result : results.deleted) {
                 assert result.getBefore() != null;
-                logTo(getLog(), recipeChangeLogLevel, "Deleted file " +
-                              result.getBefore().getSourcePath().normalize() +
-                              " by:");
+                log("Deleted file " +
+                    result.getBefore().getSourcePath().normalize() +
+                    " by:");
                 logRecipesThatMadeChanges(result);
                 estimateTimeSaved = estimateTimeSavedSum(result, estimateTimeSaved);
             }
             for (Result result : results.moved) {
                 assert result.getAfter() != null;
                 assert result.getBefore() != null;
-                logTo(getLog(), recipeChangeLogLevel, "File has been moved from " +
-                              result.getBefore().getSourcePath().normalize() + " to " +
-                              result.getAfter().getSourcePath().normalize() + " by:");
+                log("File has been moved from " +
+                    result.getBefore().getSourcePath().normalize() + " to " +
+                    result.getAfter().getSourcePath().normalize() + " by:");
                 logRecipesThatMadeChanges(result);
                 estimateTimeSaved = estimateTimeSavedSum(result, estimateTimeSaved);
             }
             for (Result result : results.refactoredInPlace) {
                 assert result.getBefore() != null;
-                logTo(getLog(), recipeChangeLogLevel, "Changes have been made to " +
-                              result.getBefore().getSourcePath().normalize() +
-                              " by:");
+                log("Changes have been made to " +
+                    result.getBefore().getSourcePath().normalize() +
+                    " by:");
                 logRecipesThatMadeChanges(result);
                 estimateTimeSaved = estimateTimeSavedSum(result, estimateTimeSaved);
             }
 
-            logTo(getLog(), recipeChangeLogLevel, "Please review and commit the results.");
-            logTo(getLog(), recipeChangeLogLevel, "Estimate time saved: " + formatDuration(estimateTimeSaved));
+            log("Please review and commit the results.");
+            log("Estimate time saved: " + formatDuration(estimateTimeSaved));
 
             try {
                 for (Result result : results.generated) {
