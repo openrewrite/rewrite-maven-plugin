@@ -38,6 +38,7 @@ import java.util.*;
 import java.util.stream.Collectors;
 
 import static java.util.Collections.emptyMap;
+import static java.util.Collections.unmodifiableSet;
 import static org.openrewrite.java.style.CheckstyleConfigLoader.loadCheckstyleConfig;
 
 @SuppressWarnings("FieldMayBeFinal")
@@ -103,9 +104,21 @@ public abstract class ConfigurableRewriteMojo extends AbstractMojo {
         return getCleanedSet(exclusions);
     }
 
+    /**
+     * Override default plain text masks. If this is specified,
+     * {@code rewrite.additionalPlainTextMasks} will have no effect.
+     */
     @Nullable
     @Parameter(property = "rewrite.plainTextMasks")
     private LinkedHashSet<String> plainTextMasks;
+
+    /**
+     * Allows to add additional plain text masks without overriding
+     * the defaults.
+     */
+    @Nullable
+    @Parameter(property = "rewrite.additionalPlainTextMasks")
+    private LinkedHashSet<String> additionalPlainTextMasks;
 
     protected Set<String> getPlainTextMasks() {
         Set<String> masks = getCleanedSet(plainTextMasks);
@@ -113,7 +126,7 @@ public abstract class ConfigurableRewriteMojo extends AbstractMojo {
             return masks;
         }
         //If not defined, use a default set of masks
-        return new HashSet<>(Arrays.asList(
+        masks = new HashSet<>(Arrays.asList(
                 "**/*.adoc",
                 "**/*.aj",
                 "**/*.bash",
@@ -147,6 +160,8 @@ public abstract class ConfigurableRewriteMojo extends AbstractMojo {
                 "**/*.txt",
                 "**/*.py"
         ));
+        masks.addAll(getCleanedSet(additionalPlainTextMasks));
+        return unmodifiableSet(masks);
     }
 
     @Nullable
@@ -300,6 +315,6 @@ public abstract class ConfigurableRewriteMojo extends AbstractMojo {
                 .map(String::trim)
                 .filter(s -> !s.isEmpty())
                 .collect(Collectors.toCollection(LinkedHashSet::new));
-        return Collections.unmodifiableSet(cleaned);
+        return unmodifiableSet(cleaned);
     }
 }

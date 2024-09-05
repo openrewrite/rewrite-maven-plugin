@@ -1,0 +1,9 @@
+---
+type: specs.openrewrite.org/v1beta/recipe
+name: com.example.RewriteRunIT.PlainTextMasks
+
+recipeList:
+  - org.openrewrite.text.FindAndReplace:
+      find: shouldBeChanged
+      replace: to this
+      regex: false
