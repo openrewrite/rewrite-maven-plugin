@@ -16,7 +16,6 @@
 package org.openrewrite.maven;
 
 import org.apache.maven.plugin.MojoExecutionException;
-import org.apache.maven.plugins.annotations.Component;
 import org.apache.maven.plugins.annotations.Parameter;
 import org.apache.maven.project.MavenProject;
 import org.apache.maven.rtinfo.RuntimeInformation;
@@ -32,6 +31,7 @@ import org.openrewrite.config.YamlResourceLoader;
 import org.openrewrite.ipc.http.HttpSender;
 import org.openrewrite.ipc.http.HttpUrlConnectionSender;
 
+import javax.inject.Inject;
 import java.io.File;
 import java.io.IOException;
 import java.io.InputStream;
@@ -50,13 +50,13 @@ public abstract class AbstractRewriteMojo extends ConfigurableRewriteMojo {
     @Parameter(property = "rewrite.resolvePropertiesInYaml", defaultValue = "true")
     protected boolean resolvePropertiesInYaml;
 
-    @Component
+    @Inject
     protected RuntimeInformation runtime;
 
-    @Component
+    @Inject
     protected SettingsDecrypter settingsDecrypter;
 
-    @Component
+    @Inject
     protected RepositorySystem repositorySystem;
 
     protected Environment environment() throws MojoExecutionException {
