@@ -31,6 +31,7 @@ import org.openrewrite.style.NamedStyles;
 
 import java.io.IOException;
 import java.io.InputStream;
+import java.nio.file.Files;
 import java.io.StringWriter;
 import java.nio.file.Path;
 import java.nio.file.Paths;
@@ -96,11 +97,26 @@ public abstract class ConfigurableRewriteMojo extends AbstractMojo {
     protected boolean checkstyleDetectionEnabled;
 
     @Nullable
+    @Parameter(property = "rewrite.checkstyleProperties", alias = "checkstyleProperties")
+    private LinkedHashSet<String> checkstyleProperties;
+    /**
+     * @deprecated Use {@code rewrite.checkstyleProperties} instead.
+     */
+    @Nullable
+    @Parameter(property = "checkstyleProperties")
+    @Deprecated
+    private LinkedHashSet<String> deprecatedCheckstyleProperties;
+
+    @Nullable
     @Parameter(property = "rewrite.exclusions")
     private LinkedHashSet<String> exclusions;
 
     protected Set<String> getExclusions() {
         return getCleanedSet(exclusions);
+    }
+
+    protected Set<String> getCheckstyleProperties() {
+        return getMergedAndCleaned(checkstyleProperties, deprecatedCheckstyleProperties);
     }
 
     @Nullable
@@ -235,7 +251,16 @@ public abstract class ConfigurableRewriteMojo extends AbstractMojo {
         try {
             Plugin checkstylePlugin = project.getPlugin("org.apache.maven.plugins:maven-checkstyle-plugin");
             if (checkstyleConfigFile != null && !checkstyleConfigFile.isEmpty()) {
-                styles.add(loadCheckstyleConfig(Paths.get(checkstyleConfigFile), emptyMap()));
+                // Convert the checkstyle config file contents to a String
+                String checkstyleConfig = new String(Files.readAllBytes(Paths.get(checkstyleConfigFile)));
+                Set<String> checkstyleProperties = getCheckstyleProperties();
+                if (!checkstyleProperties.isEmpty()) {
+                    checkstyleConfig = checkstyleProperties.stream()
+                            .map(s -> "-P" + s)
+                            .collect(Collectors.joining("\n", "", "\n")) + checkstyleConfig;
+                }
+                styles.add(loadCheckstyleConfig(checkstyleConfig, emptyMap()));
+//                styles.add(loadCheckstyleConfig(Paths.get(checkstyleConfigFile), emptyMap()));
             } else if (checkstyleDetectionEnabled && checkstylePlugin != null) {
                 Object checkstyleConfRaw = checkstylePlugin.getConfiguration();
                 if (checkstyleConfRaw instanceof Xpp3Dom) {
