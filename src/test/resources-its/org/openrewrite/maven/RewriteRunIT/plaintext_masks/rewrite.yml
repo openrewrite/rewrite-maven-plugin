@@ -4,6 +4,6 @@ name: com.example.RewriteRunIT.PlainTextMasks
 
 recipeList:
   - org.openrewrite.text.FindAndReplace:
-      find: shouldBeChanged
-      replace: to this
+      find: findMe
+      replace: replacedWith
       regex: false

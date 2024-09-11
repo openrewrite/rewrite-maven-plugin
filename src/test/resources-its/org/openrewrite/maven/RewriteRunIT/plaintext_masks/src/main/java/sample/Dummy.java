@@ -1,5 +1,5 @@
 package sample;
 
 public class Dummy {
-    private static final String shouldBeChanged = "shouldBeChanged";
+    private static final String findMe = "findMe";
 }
