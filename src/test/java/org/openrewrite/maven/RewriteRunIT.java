@@ -109,4 +109,21 @@ class RewriteRunIT {
                 .filteredOn(line -> line.contains("Changes have been made"))
                 .hasSize(1);
     }
+
+    @MavenTest
+    @SystemProperty(value = "rewrite.additionalPlainTextMasks", content = "**/*.ext,**/.in-root")
+    void plaintext_masks(MavenExecutionResult result) {
+        assertThat(result)
+            .isSuccessful()
+            .out()
+            .warn()
+            .contains(
+                "Changes have been made to target/maven-it/org/openrewrite/maven/RewriteRunIT/plaintext_masks/project/src/main/java/sample/in-src.ext by:",
+                "Changes have been made to target/maven-it/org/openrewrite/maven/RewriteRunIT/plaintext_masks/project/.in-root by:",
+                "Changes have been made to target/maven-it/org/openrewrite/maven/RewriteRunIT/plaintext_masks/project/from-default-list.py by:",
+                "Changes have been made to target/maven-it/org/openrewrite/maven/RewriteRunIT/plaintext_masks/project/src/main/java/sample/Dummy.java by:"
+            )
+            .doesNotContain("in-root.ignored");
+    }
+
 }
