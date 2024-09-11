@@ -38,7 +38,7 @@ jobs:
           java-version: 17
           cache: maven
       - name: site
-        run: ./mvnw --show-version --no-transfer-progress --update-snapshots clean site --file=pom.xml --fail-at-end --batch-mode -Dstyle.color=always  -Ddependency-check.skip=true
+        run: ./mvnw --show-version --no-transfer-progress --update-snapshots clean site --file=pom.xml --fail-at-end --batch-mode -Dstyle.color=always -Ddependency-check.skip=true
       - uses: actions/configure-pages@v5
       - uses: actions/upload-pages-artifact@v3
         with:
