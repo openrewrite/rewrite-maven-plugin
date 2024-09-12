@@ -219,10 +219,11 @@
             <artifactId>checkstyle</artifactId>
             <!--suppress MavenPackageUpdate Pinned to 9.3, because 10.x does not support Java 8. -->
             <version>9.3</version>
+            <!-- Only used to load checkstyle configuration files, don't need any of its transitive dependencies for that -->
             <exclusions>
                 <exclusion>
-                    <groupId>org.antlr</groupId>
-                    <artifactId>antlr4-runtime</artifactId>
+                <groupId>*</groupId>
+                <artifactId>*</artifactId>
                 </exclusion>
             </exclusions>
         </dependency>
