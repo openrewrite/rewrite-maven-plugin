@@ -21,7 +21,9 @@ import org.apache.maven.execution.MavenSession;
 import org.apache.maven.model.Plugin;
 import org.apache.maven.model.Profile;
 import org.apache.maven.model.Repository;
+import org.apache.maven.plugin.AbstractMojoExecutionException;
 import org.apache.maven.plugin.MojoExecutionException;
+import org.apache.maven.plugin.MojoFailureException;
 import org.apache.maven.plugin.logging.Log;
 import org.apache.maven.project.MavenProject;
 import org.apache.maven.rtinfo.RuntimeInformation;
@@ -50,7 +52,6 @@ import org.openrewrite.maven.internal.RawRepositories;
 import org.openrewrite.maven.tree.ProfileActivation;
 import org.openrewrite.maven.utilities.MavenWrapper;
 import org.openrewrite.style.NamedStyles;
-import org.openrewrite.tree.ParseError;
 import org.openrewrite.xml.tree.Xml;
 
 import java.io.File;
@@ -132,7 +133,7 @@ public class MavenMojoProjectParser {
     }
 
     public Stream<SourceFile> listSourceFiles(MavenProject mavenProject, List<NamedStyles> styles,
-                                              ExecutionContext ctx) throws DependencyResolutionRequiredException, MojoExecutionException {
+                                              ExecutionContext ctx) throws DependencyResolutionRequiredException, AbstractMojoExecutionException {
         if (runPerSubmodule) {
             //If running per submodule, parse the source files for only the current project.
             List<Marker> projectProvenance = generateProvenance(mavenProject);
@@ -241,9 +242,7 @@ public class MavenMojoProjectParser {
                 logger.warn("There were problems parsing some source files" +
                             (mavenSession.getRequest().isShowErrors() ? "" : ", run with --errors to see full stack traces"));
             }
-            String pomMessage = source instanceof Xml.Document
-                    ? "; the pom could not be resolved. Some recipes may not function correctly" : "";
-            logger.warn("There were problems parsing " + source.getSourcePath() + pomMessage);
+            logger.warn("There were problems parsing " + source.getSourcePath());
             if (mavenSession.getRequest().isShowErrors()) {
                 logger.warn(e.getMessage());
             }
@@ -514,11 +513,11 @@ public class MavenMojoProjectParser {
         return JavaSourceSet.build(name, dependencies);
     }
 
-    public Xml.@Nullable Document parseMaven(MavenProject mavenProject, List<Marker> projectProvenance, ExecutionContext ctx) {
+    public Xml.@Nullable Document parseMaven(MavenProject mavenProject, List<Marker> projectProvenance, ExecutionContext ctx) throws MojoFailureException {
         return parseMaven(singletonList(mavenProject), singletonMap(mavenProject, projectProvenance), ctx).get(mavenProject);
     }
 
-    public Map<MavenProject, Xml.Document> parseMaven(List<MavenProject> mavenProjects, Map<MavenProject, List<Marker>> projectProvenances, ExecutionContext ctx) {
+    public Map<MavenProject, Xml.Document> parseMaven(List<MavenProject> mavenProjects, Map<MavenProject, List<Marker>> projectProvenances, ExecutionContext ctx) throws MojoFailureException {
         if (skipMavenParsing) {
             logger.info("Skipping Maven parsing...");
             return emptyMap();
@@ -578,11 +577,15 @@ public class MavenMojoProjectParser {
             Path path = baseDir.resolve(document.getSourcePath());
             MavenProject mavenProject = projectsByPath.get(path);
             if (mavenProject != null) {
-                if (document instanceof Xml.Document) {
-                    projectMap.put(mavenProject, (Xml.Document) document);
-                } else if (document instanceof ParseError) {
-                    logError(mavenProject, "Parse error in Maven Project File '" + path + "': " + document);
+                Optional<ParseExceptionResult> parseExceptionResult = document.getMarkers().findFirst(ParseExceptionResult.class);
+                if (parseExceptionResult.isPresent()) {
+                    throw new MojoFailureException(
+                            mavenProject,
+                            "Failed to parse or resolve the Maven POM file or one of its dependencies; " +
+                            "We can not reliably continue without this information.",
+                            parseExceptionResult.get().getMessage());
                 }
+                projectMap.put(mavenProject, (Xml.Document) document);
             }
         }
         for (MavenProject mavenProject : mavenProjects) {
@@ -770,6 +773,7 @@ public class MavenMojoProjectParser {
     }
 
     private static final Map<Path, GitProvenance> REPO_ROOT_TO_PROVENANCE = new HashMap<>();
+
     private @Nullable GitProvenance gitProvenance(Path baseDir, @Nullable BuildEnvironment buildEnvironment) {
         try {
             // Computing git provenance can be expensive for repositories with many commits, ensure we do it only once
