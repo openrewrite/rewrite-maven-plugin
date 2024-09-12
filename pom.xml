@@ -222,8 +222,8 @@
             <!-- Only used to load checkstyle configuration files, don't need any of its transitive dependencies for that -->
             <exclusions>
                 <exclusion>
-                <groupId>*</groupId>
-                <artifactId>*</artifactId>
+                    <groupId>*</groupId>
+                    <artifactId>*</artifactId>
                 </exclusion>
             </exclusions>
         </dependency>
