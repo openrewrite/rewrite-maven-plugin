@@ -133,7 +133,7 @@ public class MavenMojoProjectParser {
     }
 
     public Stream<SourceFile> listSourceFiles(MavenProject mavenProject, List<NamedStyles> styles,
-                                              ExecutionContext ctx) throws DependencyResolutionRequiredException, AbstractMojoExecutionException {
+                                              ExecutionContext ctx) throws DependencyResolutionRequiredException, MojoExecutionException, MojoFailureException {
         if (runPerSubmodule) {
             //If running per submodule, parse the source files for only the current project.
             List<Marker> projectProvenance = generateProvenance(mavenProject);

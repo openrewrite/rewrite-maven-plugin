@@ -18,6 +18,7 @@ package org.openrewrite.maven;
 import io.micrometer.core.instrument.Metrics;
 import org.apache.maven.artifact.DependencyResolutionRequiredException;
 import org.apache.maven.plugin.MojoExecutionException;
+import org.apache.maven.plugin.MojoFailureException;
 import org.apache.maven.plugins.annotations.Parameter;
 import org.codehaus.plexus.classworlds.realm.ClassRealm;
 import org.jspecify.annotations.Nullable;
@@ -102,7 +103,7 @@ public abstract class AbstractRewriteBaseRunMojo extends AbstractRewriteMojo {
         return maybeBaseDir;
     }
 
-    protected ResultsContainer listResults(ExecutionContext ctx) throws MojoExecutionException {
+    protected ResultsContainer listResults(ExecutionContext ctx) throws MojoExecutionException, MojoFailureException {
         try (MeterRegistryProvider meterRegistryProvider = new MeterRegistryProvider(getLog(),
                 metricsUri, metricsUsername, metricsPassword)) {
             Metrics.addRegistry(meterRegistryProvider.registry());
@@ -226,7 +227,7 @@ public abstract class AbstractRewriteBaseRunMojo extends AbstractRewriteMojo {
                 String.format("Unable to convert option: %s value: %s to type: %s", name, optionValue, type));
     }
 
-    protected LargeSourceSet loadSourceSet(Path repositoryRoot, Environment env, ExecutionContext ctx) throws DependencyResolutionRequiredException, MojoExecutionException {
+    protected LargeSourceSet loadSourceSet(Path repositoryRoot, Environment env, ExecutionContext ctx) throws DependencyResolutionRequiredException, MojoExecutionException, MojoFailureException {
         List<NamedStyles> styles = loadStyles(project, env);
 
         //Parse and collect source files from each project in the maven session.

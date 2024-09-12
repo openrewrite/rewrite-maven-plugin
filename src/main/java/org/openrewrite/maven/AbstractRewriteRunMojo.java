@@ -16,6 +16,7 @@
 package org.openrewrite.maven;
 
 import org.apache.maven.plugin.MojoExecutionException;
+import org.apache.maven.plugin.MojoFailureException;
 import org.jspecify.annotations.Nullable;
 import org.openrewrite.ExecutionContext;
 import org.openrewrite.FileAttributes;
@@ -41,7 +42,7 @@ import java.util.List;
 public class AbstractRewriteRunMojo extends AbstractRewriteBaseRunMojo {
 
     @Override
-    public void execute() throws MojoExecutionException {
+    public void execute() throws MojoExecutionException, MojoFailureException {
         if (rewriteSkip) {
             getLog().info("Skipping execution");
             putState(State.SKIPPED);
