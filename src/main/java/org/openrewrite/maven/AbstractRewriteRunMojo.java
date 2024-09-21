@@ -53,10 +53,10 @@ public class AbstractRewriteRunMojo extends AbstractRewriteBaseRunMojo {
         // If the plugin is configured to run over all projects (at the end of the build) only proceed if the plugin
         // is being run on the last project.
         if (!runPerSubmodule && !allProjectsMarked()) {
-            getLog().info("REWRITE: Delaying execution to the end of multi-module project for "
-                + project.getGroupId() + ":"
-                + project.getArtifactId()+ ":"
-                + project.getVersion());
+            getLog().info("REWRITE: Delaying execution to the end of multi-module project for " +
+                project.getGroupId() + ":" +
+                project.getArtifactId()+ ":" +
+                project.getVersion());
             return;
         }
 
@@ -131,9 +131,9 @@ public class AbstractRewriteRunMojo extends AbstractRewriteBaseRunMojo {
                     Path afterLocation = results.getProjectRoot().resolve(result.getAfter().getSourcePath());
                     File afterParentDir = afterLocation.toFile().getParentFile();
                     // Rename the directory if its name case has been changed, e.g. camel case to lower case.
-                    if (afterParentDir.exists()
-                        && afterParentDir.getAbsolutePath().equalsIgnoreCase((originalParentDir.getAbsolutePath()))
-                        && !afterParentDir.getAbsolutePath().equals(originalParentDir.getAbsolutePath())) {
+                    if (afterParentDir.exists() &&
+                        afterParentDir.getAbsolutePath().equalsIgnoreCase((originalParentDir.getAbsolutePath())) &&
+                        !afterParentDir.getAbsolutePath().equals(originalParentDir.getAbsolutePath())) {
                         if (!originalParentDir.renameTo(afterParentDir)) {
                             throw new RuntimeException("Unable to rename directory from " + originalParentDir.getAbsolutePath() + " To: " + afterParentDir.getAbsolutePath());
                         }

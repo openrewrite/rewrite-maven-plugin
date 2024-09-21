@@ -59,10 +59,10 @@ public class AbstractRewriteDryRunMojo extends AbstractRewriteBaseRunMojo {
         // If the plugin is configured to run over all projects (at the end of the build) only proceed if the plugin
         // is being run on the last project.
         if (!runPerSubmodule && !allProjectsMarked()) {
-            getLog().info("REWRITE: Delaying execution to the end of multi-module project for "
-                + project.getGroupId() + ":"
-                + project.getArtifactId()+ ":"
-                + project.getVersion());
+            getLog().info("REWRITE: Delaying execution to the end of multi-module project for " +
+                project.getGroupId() + ":" +
+                project.getArtifactId()+ ":" +
+                project.getVersion());
             return;
         }
 

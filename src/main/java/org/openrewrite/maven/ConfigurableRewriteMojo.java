@@ -44,9 +44,9 @@ import static org.openrewrite.java.style.CheckstyleConfigLoader.loadCheckstyleCo
 @SuppressWarnings("FieldMayBeFinal")
 public abstract class ConfigurableRewriteMojo extends AbstractMojo {
 
-    private static final String CHECKSTYLE_DOCTYPE = "module PUBLIC "
-                                                     + "\"-//Checkstyle//DTD Checkstyle Configuration 1.3//EN\" "
-                                                     + "\"https://checkstyle.org/dtds/configuration_1_3.dtd\"";
+    private static final String CHECKSTYLE_DOCTYPE = "module PUBLIC " +
+                                                     "\"-//Checkstyle//DTD Checkstyle Configuration 1.3//EN\" " +
+                                                     "\"https://checkstyle.org/dtds/configuration_1_3.dtd\"";
 
     @Parameter(property = "rewrite.configLocation", alias = "configLocation", defaultValue = "${maven.multiModuleProjectDirectory}/rewrite.yml")
     protected String configLocation;
