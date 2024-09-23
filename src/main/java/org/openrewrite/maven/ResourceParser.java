@@ -40,6 +40,7 @@ import java.util.stream.Collectors;
 import java.util.stream.Stream;
 
 public class ResourceParser {
+    private static final Set<String> DEFAULT_ACCEPTED_DIRECTORIES = new HashSet<>(Arrays.asList("src"));
     private static final Set<String> DEFAULT_IGNORED_DIRECTORIES = new HashSet<>(Arrays.asList(
             "build", "target", "out",
             ".sonar", ".gradle", ".idea", ".project", "node_modules", ".git", ".metadata", ".DS_Store"));
@@ -283,6 +284,9 @@ public class ResourceParser {
 
     private boolean isIgnoredDirectory(Path searchDir, Path path) {
         for (Path pathSegment : searchDir.relativize(path)) {
+            if (DEFAULT_ACCEPTED_DIRECTORIES.contains(pathSegment.toString())){
+                return false;
+            }
             if (DEFAULT_IGNORED_DIRECTORIES.contains(pathSegment.toString())) {
                 return true;
             }
