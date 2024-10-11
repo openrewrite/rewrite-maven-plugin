@@ -4,7 +4,7 @@
 
     <groupId>org.openrewrite.maven</groupId>
     <artifactId>rewrite-maven-plugin</artifactId>
-    <version>5.43.0-SNAPSHOT</version>
+    <version>5.42.2-SNAPSHOT</version>
     <packaging>maven-plugin</packaging>
 
     <name>rewrite-maven-plugin</name>
@@ -62,8 +62,8 @@
 
     <properties>
         <!-- Pinned versions, as RELEASE would make it into the published pom.xml -->
-        <rewrite.version>8.38.0-SNAPSHOT</rewrite.version>
-        <rewrite.kotlin.version>1.22.0-SNAPSHOT</rewrite.kotlin.version>
+        <rewrite.version>8.37.2</rewrite.version>
+        <rewrite.kotlin.version>1.21.0</rewrite.kotlin.version>
 
         <!-- using 'ssh' url scheme by default, which assumes a human is performing git operations leveraging an ssh key -->
         <developerConnectionUrl>scm:git:ssh://git@github.com/openrewrite/rewrite-maven-plugin.git
@@ -217,19 +217,6 @@
             <groupId>org.openrewrite</groupId>
             <artifactId>rewrite-kotlin</artifactId>
             <version>${rewrite.kotlin.version}</version>
-        </dependency>
-        <dependency>
-            <groupId>com.puppycrawl.tools</groupId>
-            <artifactId>checkstyle</artifactId>
-            <!--suppress MavenPackageUpdate Pinned to 9.3, because 10.x does not support Java 8. -->
-            <version>9.3</version>
-            <!-- Only used to load checkstyle configuration files, don't need any of its transitive dependencies for that -->
-            <exclusions>
-                <exclusion>
-                    <groupId>*</groupId>
-                    <artifactId>*</artifactId>
-                </exclusion>
-            </exclusions>
         </dependency>
         <dependency>
             <groupId>org.codehaus.plexus</groupId>

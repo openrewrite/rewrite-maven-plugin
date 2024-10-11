@@ -15,7 +15,6 @@
  */
 package org.openrewrite.maven;
 
-import com.puppycrawl.tools.checkstyle.Checker;
 import org.apache.maven.execution.MavenSession;
 import org.apache.maven.model.Plugin;
 import org.apache.maven.plugin.AbstractMojo;
@@ -268,7 +267,7 @@ public abstract class ConfigurableRewriteMojo extends AbstractMojo {
                         styles.add(loadCheckstyleConfig(toCheckStyleDocument(xmlCheckstyleRules.getChild(0)), emptyMap()));
                     } else {
                         // When no config location is specified, the maven-checkstyle-plugin falls back on sun_checks.xml
-                        try (InputStream is = Checker.class.getResourceAsStream("/sun_checks.xml")) {
+                        try (InputStream is = org.openrewrite.tools.checkstyle.Checker.class.getResourceAsStream("/sun_checks.xml")) {
                             if (is != null) {
                                 styles.add(loadCheckstyleConfig(is, emptyMap()));
                             }
