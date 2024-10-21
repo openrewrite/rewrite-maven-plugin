@@ -500,7 +500,8 @@
             <plugin>
                 <groupId>com.mycila</groupId>
                 <artifactId>license-maven-plugin</artifactId>
-                <version>4.5</version>
+                <!-- 4.6 is the last version supporting Java 8 -->
+                <version>4.6</version>
                 <configuration>
                     <defaultProperties>
                         <project.inceptionYear>2020</project.inceptionYear>
