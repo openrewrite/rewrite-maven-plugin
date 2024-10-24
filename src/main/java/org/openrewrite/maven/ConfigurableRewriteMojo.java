@@ -112,7 +112,7 @@ public abstract class ConfigurableRewriteMojo extends AbstractMojo {
     private LinkedHashSet<String> plainTextMasks;
 
     /**
-     * Allows to add additional plain text masks without overriding
+     * Allows adding additional plain text masks without overriding
      * the defaults.
      */
     @Nullable
@@ -171,7 +171,7 @@ public abstract class ConfigurableRewriteMojo extends AbstractMojo {
      * Whether to throw an exception if an activeRecipe fails configuration validation.
      * This may happen if the activeRecipe is improperly configured, or any downstream recipes are improperly configured.
      * <p>
-     * For the time, this default is "false" to prevent one improperly recipe from failing the build.
+     * For the time, this default is "false" to prevent one improper recipe from failing the build.
      * In the future, this default may be changed to "true" to be more restrictive.
      */
     @Parameter(property = "rewrite.failOnInvalidActiveRecipes", alias = "failOnInvalidActiveRecipes", defaultValue = "false")

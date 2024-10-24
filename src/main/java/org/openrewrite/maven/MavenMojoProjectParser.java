@@ -48,7 +48,9 @@ import org.openrewrite.marker.ci.BuildEnvironment;
 import org.openrewrite.maven.cache.InMemoryMavenPomCache;
 import org.openrewrite.maven.cache.MavenPomCache;
 import org.openrewrite.maven.internal.RawRepositories;
+import org.openrewrite.maven.tree.Pom;
 import org.openrewrite.maven.tree.ProfileActivation;
+import org.openrewrite.maven.tree.ResolvedGroupArtifactVersion;
 import org.openrewrite.maven.utilities.MavenWrapper;
 import org.openrewrite.style.NamedStyles;
 import org.openrewrite.xml.tree.Xml;
@@ -88,6 +90,7 @@ public class MavenMojoProjectParser {
 
     private static final String MVN_JVM_CONFIG = ".mvn/jvm.config";
     private static final String MVN_MAVEN_CONFIG = ".mvn/maven.config";
+    private static final String MAVEN_COMPILER_PLUGIN = "org.apache.maven.plugins:maven-compiler-plugin";
 
     @Nullable
     public static MavenPomCache POM_CACHE;
@@ -137,7 +140,7 @@ public class MavenMojoProjectParser {
             Xml.Document maven = parseMaven(mavenProject, projectProvenance, ctx);
             return listSourceFiles(mavenProject, maven, projectProvenance, styles, ctx);
         } else {
-            //If running across all project, iterate and parse source files from each project
+            //If running across all projects, iterate and parse source files from each project
             Map<MavenProject, List<Marker>> projectProvenances = mavenSession.getProjects().stream()
                     .collect(Collectors.toMap(Function.identity(), this::generateProvenance));
             Map<MavenProject, Xml.Document> projectMap = parseMaven(mavenSession.getProjects(), projectProvenances, ctx);
@@ -216,7 +219,7 @@ public class MavenMojoProjectParser {
     }
 
     private static Optional<Charset> getCharset(MavenProject mavenProject) {
-        String compilerPluginKey = "org.apache.maven.plugins:maven-compiler-plugin";
+        String compilerPluginKey = MAVEN_COMPILER_PLUGIN;
         Plugin plugin = Optional.ofNullable(mavenProject.getPlugin(compilerPluginKey))
                 .orElseGet(() -> mavenProject.getPluginManagement().getPluginsAsMap().get(compilerPluginKey));
         if (plugin != null && plugin.getConfiguration() instanceof Xpp3Dom) {
@@ -267,7 +270,7 @@ public class MavenMojoProjectParser {
         String sourceCompatibility = null;
         String targetCompatibility = null;
 
-        Plugin compilerPlugin = mavenProject.getPlugin("org.apache.maven.plugins:maven-compiler-plugin");
+        Plugin compilerPlugin = mavenProject.getPlugin(MAVEN_COMPILER_PLUGIN);
         if (compilerPlugin != null && compilerPlugin.getConfiguration() instanceof Xpp3Dom) {
             Xpp3Dom dom = (Xpp3Dom) compilerPlugin.getConfiguration();
             Xpp3Dom release = dom.getChild("release");
@@ -310,7 +313,7 @@ public class MavenMojoProjectParser {
         String sourceCompatibility = null;
         String targetCompatibility = null;
 
-        Plugin compilerPlugin = mavenProject.getPlugin("org.apache.maven.plugins:maven-compiler-plugin");
+        Plugin compilerPlugin = mavenProject.getPlugin(MAVEN_COMPILER_PLUGIN);
         if (compilerPlugin != null && compilerPlugin.getConfiguration() instanceof Xpp3Dom) {
             Xpp3Dom dom = (Xpp3Dom) compilerPlugin.getConfiguration();
             Xpp3Dom release = dom.getChild("testRelease");
@@ -417,7 +420,7 @@ public class MavenMojoProjectParser {
         }
 
         List<Marker> mainProjectProvenance = new ArrayList<>(projectProvenance);
-        mainProjectProvenance.add(sourceSet("main", dependencies, typeCache));
+        mainProjectProvenance.add(sourceSet("main", dependencies));
         mainProjectProvenance.add(getSrcMainJavaVersion(mavenProject));
 
         //Filter out any generated source files from the returned list, as we do not want to apply the recipe to the
@@ -474,7 +477,7 @@ public class MavenMojoProjectParser {
         }
 
         List<Marker> markers = new ArrayList<>(projectProvenance);
-        markers.add(sourceSet("test", testDependencies, typeCache));
+        markers.add(sourceSet("test", testDependencies));
         markers.add(getSrcTestJavaVersion(mavenProject));
 
         // Any resources parsed from "test/resources" should also have the test source set added to them.
@@ -506,7 +509,7 @@ public class MavenMojoProjectParser {
         return null;
     }
 
-    private static JavaSourceSet sourceSet(String name, List<Path> dependencies, JavaTypeCache typeCache) {
+    private static JavaSourceSet sourceSet(String name, List<Path> dependencies) {
         return JavaSourceSet.build(name, dependencies);
     }
 
@@ -520,30 +523,29 @@ public class MavenMojoProjectParser {
             return emptyMap();
         }
 
-        MavenProject topLevelProject = mavenSession.getTopLevelProject();
-        logInfo(topLevelProject, "Resolving Poms...");
-
-        Set<Path> allPoms = new LinkedHashSet<>();
-        mavenProjects.forEach(p -> collectPoms(p, allPoms));
-        for (MavenProject mavenProject : mavenProjects) {
-            mavenSession.getProjectDependencyGraph().getUpstreamProjects(mavenProject, true).forEach(p -> collectPoms(p, allPoms));
-        }
-        MavenParser.Builder mavenParserBuilder = MavenParser.builder().mavenConfig(baseDir.resolve(MVN_MAVEN_CONFIG));
-
         MavenSettings settings = buildSettings();
         MavenExecutionContextView mavenExecutionContext = MavenExecutionContextView.view(ctx);
         mavenExecutionContext.setMavenSettings(settings);
         mavenExecutionContext.setResolutionListener(new MavenLoggingResolutionEventListener(logger));
 
-        if (pomCacheEnabled) {
-            //The default pom cache is enabled as a two-layer cache L1 == in-memory and L2 == RocksDb
-            //If the flag is set to false, only the default, in-memory cache is used.
-            mavenExecutionContext.setPomCache(getPomCache(pomCacheDirectory, logger));
+        // The default pom cache is enabled as a two-layer cache L1 == in-memory and L2 == RocksDb
+        // If the flag is set to false, only the default, in-memory cache is used.
+        MavenPomCache pomCache = pomCacheEnabled ? getPomCache(pomCacheDirectory, logger) : mavenExecutionContext.getPomCache();
+        mavenExecutionContext.setPomCache(pomCache);
+
+        MavenProject topLevelProject = mavenSession.getTopLevelProject();
+        logInfo(topLevelProject, "Resolving Poms...");
+
+        Set<Path> allPoms = new LinkedHashSet<>();
+        mavenProjects.forEach(p -> collectPoms(p, allPoms, mavenExecutionContext));
+        for (MavenProject mavenProject : mavenProjects) {
+            mavenSession.getProjectDependencyGraph().getUpstreamProjects(mavenProject, true).forEach(p -> collectPoms(p, allPoms, mavenExecutionContext));
         }
 
+        MavenParser.Builder mavenParserBuilder = MavenParser.builder().mavenConfig(baseDir.resolve(MVN_MAVEN_CONFIG));
         List<String> activeProfiles = topLevelProject.getActiveProfiles().stream().map(Profile::getId).collect(toList());
         if (!activeProfiles.isEmpty()) {
-            mavenParserBuilder.activeProfiles(activeProfiles.toArray(new String[]{}));
+            mavenParserBuilder.activeProfiles(activeProfiles.toArray(new String[0]));
         }
 
         List<SourceFile> mavens = mavenParserBuilder.build()
@@ -612,15 +614,17 @@ public class MavenMojoProjectParser {
      * @param project A maven project to examine for any children/parent poms.
      * @param paths   A list of paths to poms that have been collected so far.
      */
-    private void collectPoms(MavenProject project, Set<Path> paths) {
+    private void collectPoms(MavenProject project, Set<Path> paths, MavenExecutionContextView ctx) {
         paths.add(pomPath(project));
+        ResolvedGroupArtifactVersion gav = createResolvedGAV(project, ctx);
+        ctx.getPomCache().putPom(gav, createPom(gav, project));
 
         // children
         if (project.getCollectedProjects() != null) {
             for (MavenProject child : project.getCollectedProjects()) {
                 Path path = pomPath(child);
                 if (!paths.contains(path)) {
-                    collectPoms(child, paths);
+                    collectPoms(child, paths, ctx);
                 }
             }
         }
@@ -629,7 +633,7 @@ public class MavenMojoProjectParser {
         while (parent != null && parent.getFile() != null) {
             Path path = pomPath(parent);
             if (!paths.contains(path)) {
-                collectPoms(parent, paths);
+                collectPoms(parent, paths, ctx);
             }
             parent = parent.getParent();
         }
@@ -644,7 +648,7 @@ public class MavenMojoProjectParser {
         // org.eclipse.tycho:tycho-packaging-plugin:update-consumer-pom produces a synthetic pom
         if (pomPath.endsWith(".tycho-consumer-pom.xml")) {
             Path normalPom = mavenProject.getBasedir().toPath().resolve("pom.xml");
-            // check for existence of the POM, since Tycho can work pom-less
+            // check for the existence of the POM, since Tycho can work pom-less
             if (Files.isReadable(normalPom) && Files.isRegularFile(normalPom)) {
                 return normalPom;
             }
@@ -806,5 +810,23 @@ public class MavenMojoProjectParser {
     @SuppressWarnings({"RedundantThrows", "unchecked"})
     private static <E extends Throwable> E sneakyThrow(Throwable e) throws E {
         return (E) e;
+    }
+
+    private static ResolvedGroupArtifactVersion createResolvedGAV(MavenProject project, MavenExecutionContextView ctx) {
+        return new ResolvedGroupArtifactVersion(
+                ctx.getLocalRepository().getUri(),
+                project.getGroupId(),
+                project.getArtifactId(),
+                project.getVersion(),
+                project.getVersion().endsWith("-SNAPSHOT") ? null : project.getVersion()
+        );
+    }
+
+    private static Pom createPom(ResolvedGroupArtifactVersion gav, MavenProject project) {
+        Pom.PomBuilder builder = Pom.builder()
+                .gav(gav)
+                ;
+        // TODO: complete mapping
+        return builder.build();
     }
 }
