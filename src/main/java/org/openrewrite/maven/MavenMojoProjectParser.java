@@ -56,10 +56,8 @@ import org.openrewrite.xml.tree.Xml;
 import java.io.File;
 import java.io.IOException;
 import java.nio.charset.Charset;
-import java.nio.file.Files;
-import java.nio.file.Path;
-import java.nio.file.PathMatcher;
-import java.nio.file.Paths;
+import java.nio.file.*;
+import java.nio.file.attribute.BasicFileAttributes;
 import java.util.*;
 import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.function.Function;
@@ -763,9 +761,18 @@ public class MavenMojoProjectParser {
         if (!Files.exists(sourceDirectory)) {
             return emptyList();
         }
-
-        try (Stream<Path> files = Files.find(sourceDirectory, 16, (f, a) -> !a.isDirectory() && f.toString().endsWith(extension))) {
-            return files.collect(toList());
+        try {
+            List<Path> result = new ArrayList<>();
+            Files.walkFileTree(sourceDirectory, new SimpleFileVisitor<Path>() {
+                @Override
+                public FileVisitResult visitFile(Path file, BasicFileAttributes attrs) {
+                    if (file.toString().endsWith(extension)) {
+                        result.add(file);
+                    }
+                    return FileVisitResult.CONTINUE;
+                }
+            });
+            return result;
         } catch (IOException e) {
             throw new MojoExecutionException("Unable to list source files of " + extension, e);
         }
