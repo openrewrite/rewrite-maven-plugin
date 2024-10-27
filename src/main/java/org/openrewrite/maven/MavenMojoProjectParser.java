@@ -47,6 +47,7 @@ import org.openrewrite.marker.*;
 import org.openrewrite.marker.ci.BuildEnvironment;
 import org.openrewrite.maven.cache.InMemoryMavenPomCache;
 import org.openrewrite.maven.cache.MavenPomCache;
+import org.openrewrite.maven.internal.RawPom;
 import org.openrewrite.maven.internal.RawRepositories;
 import org.openrewrite.maven.tree.Pom;
 import org.openrewrite.maven.tree.ProfileActivation;
@@ -57,6 +58,7 @@ import org.openrewrite.xml.tree.Xml;
 
 import java.io.File;
 import java.io.IOException;
+import java.io.InputStream;
 import java.nio.charset.Charset;
 import java.nio.file.*;
 import java.nio.file.attribute.BasicFileAttributes;
@@ -615,7 +617,10 @@ public class MavenMojoProjectParser {
      * @param paths   A list of paths to poms that have been collected so far.
      */
     private void collectPoms(MavenProject project, Set<Path> paths, MavenExecutionContextView ctx) {
-        paths.add(pomPath(project));
+        if (!paths.add(pomPath(project))) {
+            return;
+        }
+
         ResolvedGroupArtifactVersion gav = createResolvedGAV(project, ctx);
         ctx.getPomCache().putPom(gav, createPom(gav, project));
 
@@ -822,11 +827,12 @@ public class MavenMojoProjectParser {
         );
     }
 
-    private static Pom createPom(ResolvedGroupArtifactVersion gav, MavenProject project) {
-        Pom.PomBuilder builder = Pom.builder()
-                .gav(gav)
-                ;
-        // TODO: complete mapping
-        return builder.build();
+    private static @Nullable Pom createPom(ResolvedGroupArtifactVersion gav, MavenProject project) {
+        try (InputStream is = Files.newInputStream(project.getFile().toPath())) {
+            RawPom rawPom = RawPom.parse(is, null);
+            return rawPom.toPom(project.getBasedir().toPath(), null);
+        } catch (IOException e) {
+            return null;
+        }
     }
 }
