@@ -422,6 +422,7 @@
                 <artifactId>maven-plugin-plugin</artifactId>
                 <version>${maven-plugin-tools.version}</version>
                 <configuration>
+                    <goalPrefix>rewrite</goalPrefix>
                     <requiredJavaVersion>8</requiredJavaVersion>
                 </configuration>
                 <executions>
