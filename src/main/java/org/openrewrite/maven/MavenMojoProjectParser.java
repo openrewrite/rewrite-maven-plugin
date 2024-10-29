@@ -825,9 +825,10 @@ public class MavenMojoProjectParser {
     }
 
     private static @Nullable Pom createPom(MavenProject project) {
-        try (InputStream is = Files.newInputStream(project.getFile().toPath())) {
+        Path pomPath = project.getFile().toPath();
+        try (InputStream is = Files.newInputStream(pomPath)) {
             RawPom rawPom = RawPom.parse(is, null);
-            return rawPom.toPom(project.getBasedir().toPath().relativize(project.getFile().toPath()), null);
+            return rawPom.toPom(project.getBasedir().toPath().relativize(pomPath), null);
         } catch (IOException e) {
             return null;
         }
