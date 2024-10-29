@@ -422,7 +422,7 @@ public class MavenMojoProjectParser {
         }
 
         List<Marker> mainProjectProvenance = new ArrayList<>(projectProvenance);
-        mainProjectProvenance.add(sourceSet("main", dependencies));
+        mainProjectProvenance.add(JavaSourceSet.build("main", dependencies));
         mainProjectProvenance.add(getSrcMainJavaVersion(mavenProject));
 
         //Filter out any generated source files from the returned list, as we do not want to apply the recipe to the
@@ -479,7 +479,7 @@ public class MavenMojoProjectParser {
         }
 
         List<Marker> markers = new ArrayList<>(projectProvenance);
-        markers.add(sourceSet("test", testDependencies));
+        markers.add(JavaSourceSet.build("test", testDependencies));
         markers.add(getSrcTestJavaVersion(mavenProject));
 
         // Any resources parsed from "test/resources" should also have the test source set added to them.
@@ -509,10 +509,6 @@ public class MavenMojoProjectParser {
         }
 
         return null;
-    }
-
-    private static JavaSourceSet sourceSet(String name, List<Path> dependencies) {
-        return JavaSourceSet.build(name, dependencies);
     }
 
     public Xml.@Nullable Document parseMaven(MavenProject mavenProject, List<Marker> projectProvenance, ExecutionContext ctx) throws MojoFailureException {
