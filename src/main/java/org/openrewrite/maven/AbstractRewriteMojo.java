@@ -79,7 +79,9 @@ public abstract class AbstractRewriteMojo extends ConfigurableRewriteMojo {
             URI uri = new URI(configLocation);
             if (uri.getScheme() != null && uri.getScheme().startsWith("http")) {
                 HttpSender httpSender = new HttpUrlConnectionSender();
-                return new Config(httpSender.get(configLocation).send().getBody(), uri);
+                try (HttpSender.Response send = httpSender.get(configLocation).send()) {
+                    return new Config(send.getBody(), uri);
+                }
             }
         } catch (URISyntaxException e) {
             // Try to load as a path

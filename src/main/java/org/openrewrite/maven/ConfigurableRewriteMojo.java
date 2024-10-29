@@ -91,7 +91,6 @@ public abstract class ConfigurableRewriteMojo extends AbstractMojo {
     @Parameter(property = "rewrite.checkstyleConfigFile", alias = "checkstyleConfigFile")
     protected String checkstyleConfigFile;
 
-    @Nullable
     @Parameter(property = "rewrite.checkstyleDetectionEnabled", alias = "checkstyleDetectionEnabled", defaultValue = "true")
     protected boolean checkstyleDetectionEnabled;
 
@@ -163,7 +162,6 @@ public abstract class ConfigurableRewriteMojo extends AbstractMojo {
         return unmodifiableSet(masks);
     }
 
-    @Nullable
     @Parameter(property = "sizeThresholdMb", defaultValue = "10")
     protected int sizeThresholdMb;
 
