@@ -611,6 +611,7 @@ public class MavenMojoProjectParser {
      *
      * @param project A maven project to examine for any children/parent poms.
      * @param paths   A list of paths to poms that have been collected so far.
+     * @param ctx     The execution context for the current project.
      */
     private void collectPoms(MavenProject project, Set<Path> paths, MavenExecutionContextView ctx) {
         if (!paths.add(pomPath(project))) {
@@ -618,7 +619,7 @@ public class MavenMojoProjectParser {
         }
 
         ResolvedGroupArtifactVersion gav = createResolvedGAV(project, ctx);
-        ctx.getPomCache().putPom(gav, createPom(gav, project));
+        ctx.getPomCache().putPom(gav, createPom(project));
 
         // children
         if (project.getCollectedProjects() != null) {
@@ -823,7 +824,7 @@ public class MavenMojoProjectParser {
         );
     }
 
-    private static @Nullable Pom createPom(ResolvedGroupArtifactVersion gav, MavenProject project) {
+    private static @Nullable Pom createPom(MavenProject project) {
         try (InputStream is = Files.newInputStream(project.getFile().toPath())) {
             RawPom rawPom = RawPom.parse(is, null);
             return rawPom.toPom(project.getBasedir().toPath(), null);
