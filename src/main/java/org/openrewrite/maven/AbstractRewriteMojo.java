@@ -102,19 +102,19 @@ public abstract class AbstractRewriteMojo extends ConfigurableRewriteMojo {
     }
 
     protected Environment environment(@Nullable ClassLoader recipeClassLoader) throws MojoExecutionException {
-        Environment.Builder env = Environment.builder(project.getProperties());
+        Properties propertiesToResolve = resolvePropertiesInYaml ? project.getProperties() : new Properties();
+        Environment.Builder env = Environment.builder(propertiesToResolve);
         if (recipeClassLoader == null) {
             env.scanRuntimeClasspath()
                     .scanUserHome();
         } else {
-            env.load(new ClasspathScanningLoader(project.getProperties(), recipeClassLoader));
+            env.load(new ClasspathScanningLoader(propertiesToResolve, recipeClassLoader));
         }
 
         try {
             Config rewriteConfig = getConfig();
             if (rewriteConfig != null) {
                 try (InputStream is = rewriteConfig.inputStream) {
-                    Properties propertiesToResolve = resolvePropertiesInYaml ? project.getProperties() : new Properties();
                     env.load(new YamlResourceLoader(is, rewriteConfig.uri, propertiesToResolve));
                 }
             }
