@@ -458,7 +458,10 @@ public class MavenMojoProjectParser {
         javaParserBuilder.classpath(testDependencies).typeCache(typeCache);
         kotlinParserBuilder.classpath(testDependencies).typeCache(new JavaTypeCache());
 
-        List<Path> testJavaSources = listJavaSources(mavenProject.getBasedir().toPath().resolve(mavenProject.getBuild().getTestSourceDirectory()));
+        Set<Path> testJavaSources = new LinkedHashSet<>(listJavaSources(mavenProject.getBasedir().toPath().resolve(mavenProject.getBuild().getTestSourceDirectory())));
+        for (String p : mavenProject.getTestCompileSourceRoots()) {
+            testJavaSources.addAll(listJavaSources(mavenProject.getBasedir().toPath().resolve(p)));
+        }
         alreadyParsed.addAll(testJavaSources);
 
         // scan Kotlin files

@@ -40,6 +40,21 @@ class RewriteRunIT {
     }
 
     @MavenTest
+    @SystemProperties({
+            @SystemProperty(value = "rewrite.activeRecipes", content = "org.openrewrite.java.search.FindTypes"),
+            @SystemProperty(value = "rewrite.options", content = "fullyQualifiedTypeName=org.junit.jupiter.api.Test")
+    })
+    @Disabled
+    void multi_source_sets_project(MavenExecutionResult result) {
+        assertThat(result)
+                .isSuccessful()
+                .out()
+                .warn()
+                .contains("Changes have been made to target/maven-it/org/openrewrite/maven/RewriteRunIT/multi_source_sets_project/project/src/integration-test/java/sample/SomeIntegrationTest.java by:")
+                .contains("Changes have been made to target/maven-it/org/openrewrite/maven/RewriteRunIT/multi_source_sets_project/project/src/test/java/sample/CoolTest.java by:");
+    }
+
+    @MavenTest
     void single_project(MavenExecutionResult result) {
         assertThat(result)
                 .isSuccessful()
