@@ -44,7 +44,7 @@ class RewriteRunIT {
             @SystemProperty(value = "rewrite.activeRecipes", content = "org.openrewrite.java.search.FindTypes"),
             @SystemProperty(value = "rewrite.options", content = "fullyQualifiedTypeName=org.junit.jupiter.api.Test")
     })
-    @Disabled("Fails to reproduce using the test framework, but works in practice")
+    @MavenGoal("generate-test-sources")
     void multi_source_sets_project(MavenExecutionResult result) {
         assertThat(result)
                 .isSuccessful()
