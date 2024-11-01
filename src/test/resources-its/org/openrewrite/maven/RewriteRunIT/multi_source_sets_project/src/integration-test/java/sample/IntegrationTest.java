@@ -4,7 +4,5 @@ import org.junit.jupiter.api.Test;
 
 class IntegrationTest {
     @Test
-    void testBar() {
-
-    }
+    void testBar() {}
 }
