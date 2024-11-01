@@ -193,6 +193,7 @@ public abstract class ConfigurableRewriteMojo extends AbstractMojo {
     private static final String OPENREWRITE_PROCESSED_MARKER = "openrewrite.processed";
 
     protected void putState(State state) {
+        //noinspection unchecked
         getPluginContext().put(OPENREWRITE_PROCESSED_MARKER, state.name());
     }
 

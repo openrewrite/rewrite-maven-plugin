@@ -115,6 +115,7 @@ public class MeterRegistryProvider implements AutoCloseable {
     }
 
     private ClientTransport getWebsocketClientTransport(TcpClient tcpClient) {
+        //noinspection deprecation
         HttpClient httpClient = HttpClient.from(tcpClient).wiretap(true);
         if (username != null && password != null) {
             httpClient = httpClient.headers(h -> h.add("Authorization", "Basic: " + Base64.getUrlEncoder()
