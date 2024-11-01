@@ -50,8 +50,8 @@ class RewriteRunIT {
                 .isSuccessful()
                 .out()
                 .warn()
-                .contains("Changes have been made to target/maven-it/org/openrewrite/maven/RewriteRunIT/multi_source_sets_project/project/src/integration-test/java/sample/SomeIntegrationTest.java by:")
-                .contains("Changes have been made to target/maven-it/org/openrewrite/maven/RewriteRunIT/multi_source_sets_project/project/src/test/java/sample/CoolTest.java by:");
+                .contains("Changes have been made to target/maven-it/org/openrewrite/maven/RewriteRunIT/multi_source_sets_project/project/src/integration-test/java/sample/IntegrationTest.java by:")
+                .contains("Changes have been made to target/maven-it/org/openrewrite/maven/RewriteRunIT/multi_source_sets_project/project/src/test/java/sample/RegularTest.java by:");
     }
 
     @MavenTest

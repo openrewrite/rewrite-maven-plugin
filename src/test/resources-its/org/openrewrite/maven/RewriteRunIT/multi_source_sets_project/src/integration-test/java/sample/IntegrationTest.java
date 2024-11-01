@@ -2,7 +2,7 @@ package sample;
 
 import org.junit.jupiter.api.Test;
 
-class SomeIntegrationTest {
+class IntegrationTest {
     @Test
     void testBar() {
 
