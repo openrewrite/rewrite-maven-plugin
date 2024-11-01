@@ -32,11 +32,6 @@
     <build>
         <plugins>
             <plugin>
-                <groupId>@project.groupId@</groupId>
-                <artifactId>@project.artifactId@</artifactId>
-                <version>@project.version@</version>
-            </plugin>
-            <plugin>
                 <groupId>org.codehaus.mojo</groupId>
                 <artifactId>build-helper-maven-plugin</artifactId>
                 <version>3.6.0</version>
