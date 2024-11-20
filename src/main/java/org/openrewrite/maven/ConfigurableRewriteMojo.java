@@ -139,6 +139,7 @@ public abstract class ConfigurableRewriteMojo extends AbstractMojo {
                 "**/*.htm*",
                 "**/gradlew",
                 "**/.java-version",
+                "**/*.jelly",
                 "**/*.jsp",
                 "**/*.ksh",
                 "**/lombok.config",
