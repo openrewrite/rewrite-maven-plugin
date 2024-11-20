@@ -156,7 +156,8 @@ public abstract class ConfigurableRewriteMojo extends AbstractMojo {
                 "**/*.svg",
                 "**/*.tsx",
                 "**/*.txt",
-                "**/*.py"
+                "**/*.py",
+                "**/*.jelly"
         ));
         masks.addAll(getCleanedSet(additionalPlainTextMasks));
         return unmodifiableSet(masks);
