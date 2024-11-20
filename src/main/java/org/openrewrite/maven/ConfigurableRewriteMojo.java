@@ -139,6 +139,7 @@ public abstract class ConfigurableRewriteMojo extends AbstractMojo {
                 "**/*.htm*",
                 "**/gradlew",
                 "**/.java-version",
+                "**/*.jelly",
                 "**/*.jsp",
                 "**/*.ksh",
                 "**/lombok.config",
@@ -156,8 +157,7 @@ public abstract class ConfigurableRewriteMojo extends AbstractMojo {
                 "**/*.svg",
                 "**/*.tsx",
                 "**/*.txt",
-                "**/*.py",
-                "**/*.jelly"
+                "**/*.py"
         ));
         masks.addAll(getCleanedSet(additionalPlainTextMasks));
         return unmodifiableSet(masks);
