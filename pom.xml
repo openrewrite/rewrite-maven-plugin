@@ -235,7 +235,7 @@
         <dependency>
             <groupId>io.micrometer</groupId>
             <artifactId>micrometer-core</artifactId>
-            <version>1.13.5</version>
+            <version>1.14.1</version>
         </dependency>
         <dependency>
             <groupId>io.rsocket</groupId>
