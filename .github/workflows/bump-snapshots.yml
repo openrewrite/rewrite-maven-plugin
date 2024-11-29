@@ -23,8 +23,8 @@ jobs:
           settings-path: ${{ github.workspace }}
       - name: configure-git-user
         run: |
-          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
-          git config user.name "github-actions[bot]"
+          git config user.email "team@moderne.io"
+          git config user.name "team-moderne[bot]"
 
       - name: bump-rewrite-properties-to-snapshots
         run: |
