@@ -17,30 +17,33 @@ package org.openrewrite.maven;
 
 import org.apache.maven.plugin.logging.Log;
 import org.openrewrite.ExecutionContext;
-import org.openrewrite.InMemoryExecutionContext;
 import org.openrewrite.SourceFile;
+import org.openrewrite.groovy.GroovyParser;
 import org.openrewrite.hcl.HclParser;
 import org.openrewrite.java.JavaParser;
 import org.openrewrite.json.JsonParser;
+import org.openrewrite.kotlin.KotlinParser;
 import org.openrewrite.properties.PropertiesParser;
 import org.openrewrite.protobuf.ProtoParser;
-import org.openrewrite.python.PythonParser;
 import org.openrewrite.quark.QuarkParser;
 import org.openrewrite.text.PlainTextParser;
 import org.openrewrite.xml.XmlParser;
 import org.openrewrite.yaml.YamlParser;
 
+import java.io.File;
 import java.io.IOException;
 import java.io.UncheckedIOException;
 import java.nio.file.*;
 import java.nio.file.attribute.BasicFileAttributes;
 import java.util.*;
-import java.util.function.Consumer;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
 
 public class ResourceParser {
-    private static final Set<String> DEFAULT_IGNORED_DIRECTORIES = new HashSet<>(Arrays.asList("build", "target", "out", ".sonar", ".gradle", ".idea", ".project", "node_modules", ".git", ".metadata", ".DS_Store"));
+    private static final Set<String> DEFAULT_ACCEPTED_DIRECTORIES = new HashSet<>(Collections.singleton("src"));
+    private static final Set<String> DEFAULT_IGNORED_DIRECTORIES = new HashSet<>(Arrays.asList(
+            "build", "target", "out",
+            ".sonar", ".gradle", ".idea", ".project", "node_modules", ".git", ".metadata", ".DS_Store"));
 
     private final Path baseDir;
     private final Log logger;
@@ -54,15 +57,21 @@ public class ResourceParser {
      */
     private final JavaParser.Builder<? extends JavaParser, ?> javaParserBuilder;
 
+    private final KotlinParser.Builder kotlinParserBuilder;
+
+    private final ExecutionContext ctx;
+
     public ResourceParser(Path baseDir, Log logger, Collection<String> exclusions, Collection<String> plainTextMasks, int sizeThresholdMb, Collection<Path> excludedDirectories,
-                          JavaParser.Builder<? extends JavaParser, ?> javaParserBuilder) {
+                          JavaParser.Builder<? extends JavaParser, ?> javaParserBuilder, KotlinParser.Builder kotlinParserBuilder, ExecutionContext ctx) {
         this.baseDir = baseDir;
         this.logger = logger;
         this.javaParserBuilder = javaParserBuilder;
+        this.kotlinParserBuilder = kotlinParserBuilder;
         this.exclusions = pathMatchers(baseDir, exclusions);
         this.sizeThresholdMb = sizeThresholdMb;
         this.excludedDirectories = excludedDirectories;
         this.plainTextMasks = pathMatchers(baseDir, plainTextMasks);
+        this.ctx = ctx;
     }
 
     private Collection<PathMatcher> pathMatchers(Path basePath, Collection<String> pathExpressions) {
@@ -76,8 +85,6 @@ public class ResourceParser {
         if (!searchDir.toFile().exists()) {
             return sourceFiles;
         }
-        Consumer<Throwable> errorConsumer = t -> logger.debug("Error parsing", t);
-        InMemoryExecutionContext ctx = new InMemoryExecutionContext(errorConsumer);
 
         try {
             sourceFiles = Stream.concat(sourceFiles, parseSourceFiles(searchDir, alreadyParsed, ctx));
@@ -112,8 +119,8 @@ public class ResourceParser {
                 if (!attrs.isOther() && !attrs.isSymbolicLink() &&
                     !alreadyParsed.contains(file) && !isExcluded(file)) {
                     if (isOverSizeThreshold(attrs.size())) {
-                        logger.info("Parsing as quark " + file + " as its size " + attrs.size() / (1024L * 1024L) +
-                                    "Mb exceeds size threshold " + sizeThresholdMb + "Mb");
+                        logger.info("Not parsing quark " + file + " as its size " + attrs.size() / (1024L * 1024L) +
+                                    " MB exceeds size threshold " + sizeThresholdMb + " MB");
                         quarkPaths.add(file);
                     } else if (isParsedAsPlainText(file)) {
                         plainTextPaths.add(file);
@@ -145,8 +152,11 @@ public class ResourceParser {
         ProtoParser protoParser = new ProtoParser();
         List<Path> protoPaths = new ArrayList<>();
 
-        PythonParser pythonParser = PythonParser.builder().build();
-        List<Path> pythonPaths = new ArrayList<>();
+        KotlinParser kotlinParser = kotlinParserBuilder.build();
+        List<Path> kotlinPaths = new ArrayList<>();
+
+        GroovyParser groovyParser = GroovyParser.builder().build();
+        List<Path> groovyPaths = new ArrayList<>();
 
         HclParser hclParser = HclParser.builder().build();
         List<Path> hclPaths = new ArrayList<>();
@@ -170,8 +180,10 @@ public class ResourceParser {
                 propertiesPaths.add(path);
             } else if (protoParser.accept(path)) {
                 protoPaths.add(path);
-            } else if(pythonParser.accept(path)) {
-                pythonPaths.add(path);
+            } else if (kotlinParser.accept(path)) {
+                kotlinPaths.add(path);
+            } else if (groovyParser.accept(path)) {
+                groovyPaths.add(path);
             } else if (hclParser.accept(path)) {
                 hclPaths.add(path);
             } else if (quarkParser.accept(path)) {
@@ -209,9 +221,14 @@ public class ResourceParser {
             alreadyParsed.addAll(protoPaths);
         }
 
-        if (!pythonPaths.isEmpty()) {
-            sourceFiles = Stream.concat(sourceFiles, (Stream<S>) pythonParser.parse(pythonPaths, baseDir, ctx));
-            alreadyParsed.addAll(pythonPaths);
+        if (!kotlinPaths.isEmpty()) {
+            sourceFiles = Stream.concat(sourceFiles, (Stream<S>) kotlinParser.parse(kotlinPaths, baseDir, ctx));
+            alreadyParsed.addAll(kotlinPaths);
+        }
+
+        if (!groovyPaths.isEmpty()) {
+            sourceFiles = Stream.concat(sourceFiles, (Stream<S>) groovyParser.parse(groovyPaths, baseDir, ctx));
+            alreadyParsed.addAll(groovyPaths);
         }
 
         if (!hclPaths.isEmpty()) {
@@ -237,12 +254,15 @@ public class ResourceParser {
     }
 
     private boolean isExcluded(Path path) {
-        if (!exclusions.isEmpty()) {
-            for (PathMatcher excluded : exclusions) {
-                if (excluded.matches(baseDir.relativize(path))) {
-                    return true;
-                }
+        for (PathMatcher excluded : exclusions) {
+            if (excluded.matches(path)) {
+                return true;
             }
+        }
+        // PathMather will not evaluate the path "pom.xml" to be matched by the pattern "**/pom.xml"
+        // This is counter-intuitive for most users and would otherwise require separate exclusions for files at the root and files in subdirectories
+        if(!path.isAbsolute() && !path.startsWith(File.separator)) {
+            return isExcluded(Paths.get("/" + path));
         }
         return false;
     }
@@ -264,6 +284,9 @@ public class ResourceParser {
 
     private boolean isIgnoredDirectory(Path searchDir, Path path) {
         for (Path pathSegment : searchDir.relativize(path)) {
+            if (DEFAULT_ACCEPTED_DIRECTORIES.contains(pathSegment.toString())){
+                return false;
+            }
             if (DEFAULT_IGNORED_DIRECTORIES.contains(pathSegment.toString())) {
                 return true;
             }

@@ -16,9 +16,13 @@
 package org.openrewrite.maven;
 
 import org.apache.maven.plugin.MojoExecutionException;
-import org.openrewrite.*;
+import org.apache.maven.plugin.MojoFailureException;
+import org.jspecify.annotations.Nullable;
+import org.openrewrite.ExecutionContext;
+import org.openrewrite.FileAttributes;
+import org.openrewrite.PrintOutputCapture;
+import org.openrewrite.Result;
 import org.openrewrite.binary.Binary;
-import org.openrewrite.internal.lang.Nullable;
 import org.openrewrite.quark.Quark;
 import org.openrewrite.remote.Remote;
 
@@ -27,6 +31,7 @@ import java.nio.charset.Charset;
 import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
 import java.nio.file.Path;
+import java.time.Duration;
 import java.util.List;
 
 /**
@@ -34,18 +39,24 @@ import java.util.List;
  * <p>
  * Base mojo for rewrite:run and rewrite:runNoFork.
  */
-public class AbstractRewriteRunMojo extends AbstractRewriteMojo {
+public class AbstractRewriteRunMojo extends AbstractRewriteBaseRunMojo {
 
     @Override
-    public void execute() throws MojoExecutionException {
+    public void execute() throws MojoExecutionException, MojoFailureException {
         if (rewriteSkip) {
             getLog().info("Skipping execution");
+            putState(State.SKIPPED);
             return;
         }
+        putState(State.TO_BE_PROCESSED);
 
         // If the plugin is configured to run over all projects (at the end of the build) only proceed if the plugin
         // is being run on the last project.
-        if (!runPerSubmodule && !project.getId().equals(mavenSession.getProjects().get(mavenSession.getProjects().size() - 1).getId())) {
+        if (!runPerSubmodule && !allProjectsMarked()) {
+            getLog().info("REWRITE: Delaying execution to the end of multi-module project for " +
+                project.getGroupId() + ":" +
+                project.getArtifactId()+ ":" +
+                project.getVersion());
             return;
         }
 
@@ -58,37 +69,43 @@ public class AbstractRewriteRunMojo extends AbstractRewriteMojo {
         }
 
         if (results.isNotEmpty()) {
+            Duration estimateTimeSaved = Duration.ZERO;
             for (Result result : results.generated) {
                 assert result.getAfter() != null;
-                getLog().warn("Generated new file " +
-                              result.getAfter().getSourcePath().normalize() +
-                              " by:");
+                log(recipeChangeLogLevel, "Generated new file " +
+                                          result.getAfter().getSourcePath().normalize() +
+                                          " by:");
                 logRecipesThatMadeChanges(result);
+                estimateTimeSaved = estimateTimeSavedSum(result, estimateTimeSaved);
             }
             for (Result result : results.deleted) {
                 assert result.getBefore() != null;
-                getLog().warn("Deleted file " +
-                              result.getBefore().getSourcePath().normalize() +
-                              " by:");
+                log(recipeChangeLogLevel, "Deleted file " +
+                                          result.getBefore().getSourcePath().normalize() +
+                                          " by:");
                 logRecipesThatMadeChanges(result);
+                estimateTimeSaved = estimateTimeSavedSum(result, estimateTimeSaved);
             }
             for (Result result : results.moved) {
                 assert result.getAfter() != null;
                 assert result.getBefore() != null;
-                getLog().warn("File has been moved from " +
-                              result.getBefore().getSourcePath().normalize() + " to " +
-                              result.getAfter().getSourcePath().normalize() + " by:");
+                log(recipeChangeLogLevel, "File has been moved from " +
+                                          result.getBefore().getSourcePath().normalize() + " to " +
+                                          result.getAfter().getSourcePath().normalize() + " by:");
                 logRecipesThatMadeChanges(result);
+                estimateTimeSaved = estimateTimeSavedSum(result, estimateTimeSaved);
             }
             for (Result result : results.refactoredInPlace) {
                 assert result.getBefore() != null;
-                getLog().warn("Changes have been made to " +
-                              result.getBefore().getSourcePath().normalize() +
-                              " by:");
+                log(recipeChangeLogLevel, "Changes have been made to " +
+                                          result.getBefore().getSourcePath().normalize() +
+                                          " by:");
                 logRecipesThatMadeChanges(result);
+                estimateTimeSaved = estimateTimeSavedSum(result, estimateTimeSaved);
             }
 
-            getLog().warn("Please review and commit the results.");
+            log(recipeChangeLogLevel, "Please review and commit the results.");
+            log(recipeChangeLogLevel, "Estimate time saved: " + formatDuration(estimateTimeSaved));
 
             try {
                 for (Result result : results.generated) {
@@ -114,9 +131,9 @@ public class AbstractRewriteRunMojo extends AbstractRewriteMojo {
                     Path afterLocation = results.getProjectRoot().resolve(result.getAfter().getSourcePath());
                     File afterParentDir = afterLocation.toFile().getParentFile();
                     // Rename the directory if its name case has been changed, e.g. camel case to lower case.
-                    if (afterParentDir.exists()
-                        && afterParentDir.getAbsolutePath().equalsIgnoreCase((originalParentDir.getAbsolutePath()))
-                        && !afterParentDir.getAbsolutePath().equals(originalParentDir.getAbsolutePath())) {
+                    if (afterParentDir.exists() &&
+                        afterParentDir.getAbsolutePath().equalsIgnoreCase((originalParentDir.getAbsolutePath())) &&
+                        !afterParentDir.getAbsolutePath().equals(originalParentDir.getAbsolutePath())) {
                         if (!originalParentDir.renameTo(afterParentDir)) {
                             throw new RuntimeException("Unable to rename directory from " + originalParentDir.getAbsolutePath() + " To: " + afterParentDir.getAbsolutePath());
                         }
@@ -150,6 +167,7 @@ public class AbstractRewriteRunMojo extends AbstractRewriteMojo {
                 throw new RuntimeException("Unable to rewrite source files", e);
             }
         }
+        putState(State.PROCESSED);
     }
 
     private static void writeAfter(Path root, Result result, ExecutionContext ctx) {

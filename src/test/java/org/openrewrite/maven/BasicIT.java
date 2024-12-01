@@ -80,4 +80,15 @@ class BasicIT {
                 .allSatisfy(line -> assertThat(line).doesNotContain("Illegal character in path at index 1"));
     }
 
+    @MavenTest
+    @MavenGoal("${project.groupId}:${project.artifactId}:${project.version}:dryRun")
+    void snapshot_ok(MavenExecutionResult result) {
+        assertThat(result)
+                .isSuccessful()
+                .out()
+                .warn()
+                .isEmpty();
+        assertThat(result).out().info().contains("Running recipe(s)...");
+    }
+
 }

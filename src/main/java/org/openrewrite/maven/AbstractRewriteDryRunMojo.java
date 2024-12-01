@@ -16,16 +16,18 @@
 package org.openrewrite.maven;
 
 import org.apache.maven.plugin.MojoExecutionException;
+import org.apache.maven.plugin.MojoFailureException;
 import org.apache.maven.plugins.annotations.Parameter;
+import org.jspecify.annotations.Nullable;
 import org.openrewrite.ExecutionContext;
 import org.openrewrite.Result;
-import org.openrewrite.internal.lang.Nullable;
 
 import java.io.BufferedWriter;
 import java.io.IOException;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
+import java.time.Duration;
 import java.util.stream.Stream;
 
 /**
@@ -33,7 +35,7 @@ import java.util.stream.Stream;
  * <p>
  * Generate warnings to the console for any recipe that would make changes, but do not make changes.
  */
-public class AbstractRewriteDryRunMojo extends AbstractRewriteMojo {
+public class AbstractRewriteDryRunMojo extends AbstractRewriteBaseRunMojo {
 
     @Parameter(property = "reportOutputDirectory")
     @Nullable
@@ -46,15 +48,21 @@ public class AbstractRewriteDryRunMojo extends AbstractRewriteMojo {
     private boolean failOnDryRunResults;
 
     @Override
-    public void execute() throws MojoExecutionException {
+    public void execute() throws MojoExecutionException, MojoFailureException {
         if (rewriteSkip) {
             getLog().info("Skipping execution");
+            putState(State.SKIPPED);
             return;
         }
+        putState(State.TO_BE_PROCESSED);
 
         // If the plugin is configured to run over all projects (at the end of the build) only proceed if the plugin
         // is being run on the last project.
-        if (!runPerSubmodule && !project.getId().equals(mavenSession.getProjects().get(mavenSession.getProjects().size() - 1).getId())) {
+        if (!runPerSubmodule && !allProjectsMarked()) {
+            getLog().info("REWRITE: Delaying execution to the end of multi-module project for " +
+                project.getGroupId() + ":" +
+                project.getArtifactId()+ ":" +
+                project.getVersion());
             return;
         }
 
@@ -68,12 +76,14 @@ public class AbstractRewriteDryRunMojo extends AbstractRewriteMojo {
         }
 
         if (results.isNotEmpty()) {
+            Duration estimateTimeSaved = Duration.ZERO;
             for (Result result : results.generated) {
                 assert result.getAfter() != null;
                 getLog().warn("These recipes would generate a new file " +
                               result.getAfter().getSourcePath() +
                               ":");
                 logRecipesThatMadeChanges(result);
+                estimateTimeSaved = estimateTimeSavedSum(result, estimateTimeSaved);
             }
             for (Result result : results.deleted) {
                 assert result.getBefore() != null;
@@ -81,6 +91,7 @@ public class AbstractRewriteDryRunMojo extends AbstractRewriteMojo {
                               result.getBefore().getSourcePath() +
                               ":");
                 logRecipesThatMadeChanges(result);
+                estimateTimeSaved = estimateTimeSavedSum(result, estimateTimeSaved);
             }
             for (Result result : results.moved) {
                 assert result.getBefore() != null;
@@ -89,6 +100,7 @@ public class AbstractRewriteDryRunMojo extends AbstractRewriteMojo {
                               result.getBefore().getSourcePath() + " to " +
                               result.getAfter().getSourcePath() + ":");
                 logRecipesThatMadeChanges(result);
+                estimateTimeSaved = estimateTimeSavedSum(result, estimateTimeSaved);
             }
             for (Result result : results.refactoredInPlace) {
                 assert result.getBefore() != null;
@@ -96,6 +108,7 @@ public class AbstractRewriteDryRunMojo extends AbstractRewriteMojo {
                               result.getBefore().getSourcePath() +
                               ":");
                 logRecipesThatMadeChanges(result);
+                estimateTimeSaved = estimateTimeSavedSum(result, estimateTimeSaved);
             }
 
             Path outPath;
@@ -132,6 +145,7 @@ public class AbstractRewriteDryRunMojo extends AbstractRewriteMojo {
             }
             getLog().warn("Patch file available:");
             getLog().warn("    " + patchFile.normalize());
+            getLog().warn("Estimate time saved: " + formatDuration(estimateTimeSaved));
             getLog().warn("Run 'mvn rewrite:run' to apply the recipes.");
 
             if (failOnDryRunResults) {
@@ -140,5 +154,6 @@ public class AbstractRewriteDryRunMojo extends AbstractRewriteMojo {
         } else {
             getLog().info("Applying recipes would make no changes. No patch file generated.");
         }
+        putState(State.PROCESSED);
     }
 }

@@ -15,26 +15,19 @@
  */
 package org.openrewrite.maven;
 
-import io.micrometer.core.instrument.Metrics;
-import org.apache.maven.artifact.DependencyResolutionRequiredException;
-import org.apache.maven.execution.MavenSession;
 import org.apache.maven.plugin.MojoExecutionException;
-import org.apache.maven.plugins.annotations.Component;
 import org.apache.maven.plugins.annotations.Parameter;
 import org.apache.maven.project.MavenProject;
 import org.apache.maven.rtinfo.RuntimeInformation;
 import org.apache.maven.settings.crypto.SettingsDecrypter;
-import org.codehaus.plexus.classworlds.realm.ClassRealm;
 import org.eclipse.aether.RepositorySystem;
 import org.eclipse.aether.artifact.Artifact;
-import org.openrewrite.*;
+import org.jspecify.annotations.Nullable;
+import org.openrewrite.ExecutionContext;
+import org.openrewrite.InMemoryExecutionContext;
 import org.openrewrite.config.ClasspathScanningLoader;
 import org.openrewrite.config.Environment;
-import org.openrewrite.config.RecipeDescriptor;
 import org.openrewrite.config.YamlResourceLoader;
-import org.openrewrite.internal.InMemoryLargeSourceSet;
-import org.openrewrite.internal.ListUtils;
-import org.openrewrite.internal.lang.Nullable;
 import org.openrewrite.ipc.http.HttpSender;
 import org.openrewrite.ipc.http.HttpUrlConnectionSender;
 import org.openrewrite.java.tree.J;
@@ -44,40 +37,33 @@ import org.openrewrite.marker.*;
 import org.openrewrite.style.NamedStyles;
 import org.openrewrite.xml.tree.Xml;
 
+import javax.inject.Inject;
 import java.io.File;
 import java.io.IOException;
 import java.io.InputStream;
-import java.io.UncheckedIOException;
 import java.net.*;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.util.*;
-import java.util.function.UnaryOperator;
-import java.util.stream.Stream;
 
-import static java.util.Collections.emptyList;
-import static java.util.stream.Collectors.joining;
-import static java.util.stream.Collectors.toList;
-
+@SuppressWarnings("NotNullFieldNotInitialized")
 public abstract class AbstractRewriteMojo extends ConfigurableRewriteMojo {
 
     @Parameter(defaultValue = "${project}", readonly = true, required = true)
     protected MavenProject project;
 
-    @Component
+    @Parameter(property = "rewrite.resolvePropertiesInYaml", defaultValue = "true")
+    protected boolean resolvePropertiesInYaml;
+
+    @Inject
     protected RuntimeInformation runtime;
 
-    @Component
+    @Inject
     protected SettingsDecrypter settingsDecrypter;
 
-    @Component
+    @Inject
     protected RepositorySystem repositorySystem;
-
-    @Parameter(defaultValue = "${session}", readonly = true)
-    protected MavenSession mavenSession;
-
-    private static final String RECIPE_NOT_FOUND_EXCEPTION_MSG = "Could not find recipe '%s' among available recipes";
 
     protected Environment environment() throws MojoExecutionException {
         return environment(getRecipeArtifactCoordinatesClassloader());
@@ -114,25 +100,28 @@ public abstract class AbstractRewriteMojo extends ConfigurableRewriteMojo {
 
         if (rewriteConfig.exists()) {
             return new Config(Files.newInputStream(rewriteConfig.toPath()), rewriteConfig.toURI());
+        } else {
+            getLog().debug("No rewrite configuration found at " + absoluteConfigLocation);
         }
 
         return null;
     }
 
     protected Environment environment(@Nullable ClassLoader recipeClassLoader) throws MojoExecutionException {
-        Environment.Builder env = Environment.builder(project.getProperties());
+        Properties propertiesToResolve = resolvePropertiesInYaml ? project.getProperties() : new Properties();
+        Environment.Builder env = Environment.builder(propertiesToResolve);
         if (recipeClassLoader == null) {
             env.scanRuntimeClasspath()
                     .scanUserHome();
         } else {
-            env.load(new ClasspathScanningLoader(project.getProperties(), recipeClassLoader));
+            env.load(new ClasspathScanningLoader(propertiesToResolve, recipeClassLoader));
         }
 
         try {
             Config rewriteConfig = getConfig();
             if (rewriteConfig != null) {
                 try (InputStream is = rewriteConfig.inputStream) {
-                    env.load(new YamlResourceLoader(is, rewriteConfig.uri, project.getProperties()));
+                    env.load(new YamlResourceLoader(is, rewriteConfig.uri, propertiesToResolve));
                 }
             }
         } catch (IOException e) {
@@ -161,24 +150,6 @@ public abstract class AbstractRewriteMojo extends ConfigurableRewriteMojo {
         } else {
             return Paths.get(mavenSession.getExecutionRootDirectory());
         }
-    }
-
-
-    /**
-     * Attempt to determine the root of the git repository for the given project.
-     * Many Gradle builds co-locate the build root with the git repository root, but that is not required.
-     * If no git repository can be located in any folder containing the build, the build root will be returned.
-     */
-    protected Path repositoryRoot() {
-        Path buildRoot = getBuildRoot();
-        Path maybeBaseDir = buildRoot;
-        while (maybeBaseDir != null && !Files.exists(maybeBaseDir.resolve(".git"))) {
-            maybeBaseDir = maybeBaseDir.getParent();
-        }
-        if (maybeBaseDir == null) {
-            return buildRoot;
-        }
-        return maybeBaseDir;
     }
 
     private void collectBasePaths(MavenProject project, Set<Path> paths, Path localRepository) {
@@ -307,8 +278,7 @@ public abstract class AbstractRewriteMojo extends ConfigurableRewriteMojo {
         });
     }
 
-    @Nullable
-    protected URLClassLoader getRecipeArtifactCoordinatesClassloader() throws MojoExecutionException {
+    protected @Nullable URLClassLoader getRecipeArtifactCoordinatesClassloader() throws MojoExecutionException {
         if (getRecipeArtifactCoordinates().isEmpty()) {
             return null;
         }
@@ -336,188 +306,5 @@ public abstract class AbstractRewriteMojo extends ConfigurableRewriteMojo {
                 urls,
                 AbstractRewriteMojo.class.getClassLoader()
         );
-    }
-
-    private void merge(ClassLoader targetClassLoader, URLClassLoader sourceClassLoader) {
-        ClassRealm targetClassRealm;
-        try {
-            targetClassRealm = (ClassRealm) targetClassLoader;
-        } catch (ClassCastException e) {
-            getLog().warn("Could not merge ClassLoaders due to unexpected targetClassLoader type", e);
-            return;
-        }
-        Set<String> existingVersionlessJars = new HashSet<>();
-        for (URL existingUrl : targetClassRealm.getURLs()) {
-            existingVersionlessJars.add(stripVersion(existingUrl));
-        }
-        for (URL newUrl : sourceClassLoader.getURLs()) {
-            if (!existingVersionlessJars.contains(stripVersion(newUrl))) {
-                targetClassRealm.addURL(newUrl);
-            }
-        }
-    }
-
-    private String stripVersion(URL jarUrl) {
-        return jarUrl.toString().replaceAll("/[^/]+/[^/]+\\.jar", "");
-    }
-
-    public static class ResultsContainer {
-        final Path projectRoot;
-        final List<Result> generated = new ArrayList<>();
-        final List<Result> deleted = new ArrayList<>();
-        final List<Result> moved = new ArrayList<>();
-        final List<Result> refactoredInPlace = new ArrayList<>();
-
-        public ResultsContainer(Path projectRoot, Collection<Result> results) {
-            this.projectRoot = projectRoot;
-            for (Result result : results) {
-                if (result.getBefore() == null && result.getAfter() == null) {
-                    // This situation shouldn't happen / makes no sense, log and skip
-                    continue;
-                }
-                if (result.getBefore() == null && result.getAfter() != null) {
-                    generated.add(result);
-                } else if (result.getBefore() != null && result.getAfter() == null) {
-                    deleted.add(result);
-                } else if (result.getBefore() != null && result.getAfter() != null && !result.getBefore().getSourcePath().equals(result.getAfter().getSourcePath())) {
-                    moved.add(result);
-                } else {
-                    if (!result.diff(Paths.get(""), new FencedMarkerPrinter(), true).isEmpty()) {
-                        refactoredInPlace.add(result);
-                    }
-                }
-            }
-        }
-
-        @Nullable
-        public RuntimeException getFirstException() {
-            for (Result result : generated) {
-                for (RuntimeException error : getRecipeErrors(result)) {
-                    return error;
-                }
-            }
-            for (Result result : deleted) {
-                for (RuntimeException error : getRecipeErrors(result)) {
-                    return error;
-                }
-            }
-            for (Result result : moved) {
-                for (RuntimeException error : getRecipeErrors(result)) {
-                    return error;
-                }
-            }
-            for (Result result : refactoredInPlace) {
-                for (RuntimeException error : getRecipeErrors(result)) {
-                    return error;
-                }
-            }
-            return null;
-        }
-
-        private List<RuntimeException> getRecipeErrors(Result result) {
-            List<RuntimeException> exceptions = new ArrayList<>();
-            new TreeVisitor<Tree, Integer>() {
-                @Override
-                public Tree preVisit(Tree tree, Integer integer) {
-                    Markers markers = tree.getMarkers();
-                    markers.findFirst(Markup.Error.class).ifPresent(e -> {
-                        Optional<SourceFile> sourceFile = Optional.ofNullable(getCursor().firstEnclosing(SourceFile.class));
-                        String sourcePath = sourceFile.map(SourceFile::getSourcePath).map(Path::toString).orElse("<unknown>");
-                        exceptions.add(new RuntimeException("Error while visiting " + sourcePath + ": " + e.getDetail()));
-                    });
-                    return tree;
-                }
-            }.visit(result.getAfter(), 0);
-            return exceptions;
-        }
-
-        public Path getProjectRoot() {
-            return projectRoot;
-        }
-
-        public boolean isNotEmpty() {
-            return !generated.isEmpty() || !deleted.isEmpty() || !moved.isEmpty() || !refactoredInPlace.isEmpty();
-        }
-
-        /**
-         * List directories that are empty as a result of applying recipe changes
-         */
-        public List<Path> newlyEmptyDirectories() {
-            Set<Path> maybeEmptyDirectories = new LinkedHashSet<>();
-            for (Result result : moved) {
-                assert result.getBefore() != null;
-                maybeEmptyDirectories.add(projectRoot.resolve(result.getBefore().getSourcePath()).getParent());
-            }
-            for (Result result : deleted) {
-                assert result.getBefore() != null;
-                maybeEmptyDirectories.add(projectRoot.resolve(result.getBefore().getSourcePath()).getParent());
-            }
-            if (maybeEmptyDirectories.isEmpty()) {
-                return Collections.emptyList();
-            }
-            List<Path> emptyDirectories = new ArrayList<>(maybeEmptyDirectories.size());
-            for (Path maybeEmptyDirectory : maybeEmptyDirectories) {
-                try (Stream<Path> contents = Files.list(maybeEmptyDirectory)) {
-                    if (contents.findAny().isPresent()) {
-                        continue;
-                    }
-                    Files.delete(maybeEmptyDirectory);
-                } catch (IOException e) {
-                    throw new UncheckedIOException(e);
-                }
-            }
-            return emptyDirectories;
-        }
-
-        /**
-         * Only retains output for markers of type {@code SearchResult} and {@code Markup}.
-         */
-        private static class FencedMarkerPrinter implements PrintOutputCapture.MarkerPrinter {
-            @Override
-            public String beforeSyntax(Marker marker, Cursor cursor, UnaryOperator<String> commentWrapper) {
-                return marker instanceof SearchResult || marker instanceof Markup ? "{{" + marker.getId() + "}}" : "";
-            }
-
-            @Override
-            public String afterSyntax(Marker marker, Cursor cursor, UnaryOperator<String> commentWrapper) {
-                return marker instanceof SearchResult || marker instanceof Markup ? "{{" + marker.getId() + "}}" : "";
-            }
-        }
-    }
-
-    protected void logRecipesThatMadeChanges(Result result) {
-        String indent = "    ";
-        String prefix = "    ";
-        for (RecipeDescriptor recipeDescriptor : result.getRecipeDescriptorsThatMadeChanges()) {
-            logRecipe(recipeDescriptor, prefix);
-            prefix = prefix + indent;
-        }
-    }
-
-    private void logRecipe(RecipeDescriptor rd, String prefix) {
-        StringBuilder recipeString = new StringBuilder(prefix + rd.getName());
-        if (!rd.getOptions().isEmpty()) {
-            String opts = rd.getOptions().stream().map(option -> {
-                        if (option.getValue() != null) {
-                            return option.getName() + "=" + option.getValue();
-                        }
-                        return null;
-                    }
-            ).filter(Objects::nonNull).collect(joining(", "));
-            if (!opts.isEmpty()) {
-                recipeString.append(": {").append(opts).append("}");
-            }
-        }
-        getLog().warn(recipeString.toString());
-        for (RecipeDescriptor rchild : rd.getRecipeList()) {
-            logRecipe(rchild, prefix + "    ");
-        }
-    }
-
-    public static RecipeDescriptor getRecipeDescriptor(String recipe, Collection<RecipeDescriptor> recipeDescriptors) throws MojoExecutionException {
-        return recipeDescriptors.stream()
-                .filter(r -> r.getName().equalsIgnoreCase(recipe))
-                .findAny()
-                .orElseThrow(() -> new MojoExecutionException(String.format(RECIPE_NOT_FOUND_EXCEPTION_MSG, recipe)));
     }
 }

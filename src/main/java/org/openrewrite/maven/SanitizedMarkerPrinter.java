@@ -29,7 +29,7 @@ import java.util.function.UnaryOperator;
 public class SanitizedMarkerPrinter implements PrintOutputCapture.MarkerPrinter {
     @Override
     public String beforeSyntax(Marker marker, Cursor cursor, UnaryOperator<String> commentWrapper) {
-        if(marker instanceof SearchResult) {
+        if (marker instanceof SearchResult) {
             return DEFAULT.beforeSyntax(marker, cursor, commentWrapper);
         }
         return "";
@@ -37,7 +37,7 @@ public class SanitizedMarkerPrinter implements PrintOutputCapture.MarkerPrinter 
 
     @Override
     public String afterSyntax(Marker marker, Cursor cursor, UnaryOperator<String> commentWrapper) {
-        if(marker instanceof SearchResult) {
+        if (marker instanceof SearchResult) {
             return DEFAULT.afterSyntax(marker, cursor, commentWrapper);
         }
         return "";

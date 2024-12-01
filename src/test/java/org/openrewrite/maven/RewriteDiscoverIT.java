@@ -25,7 +25,6 @@ import static com.soebes.itf.extension.assertj.MavenITAssertions.assertThat;
 @MavenOption(MavenCLIOptions.NO_TRANSFER_PROGRESS)
 @MavenOption(MavenCLIExtra.MUTE_PLUGIN_VALIDATION_WARNING)
 @MavenGoal("${project.groupId}:${project.artifactId}:${project.version}:discover")
-@SuppressWarnings("NewClassNamingConvention")
 class RewriteDiscoverIT {
 
     @Nested

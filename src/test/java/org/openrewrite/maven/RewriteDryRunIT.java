@@ -23,7 +23,7 @@ import static com.soebes.itf.extension.assertj.MavenITAssertions.assertThat;
 @MavenJupiterExtension
 @MavenOption(MavenCLIOptions.NO_TRANSFER_PROGRESS)
 @MavenOption(MavenCLIExtra.MUTE_PLUGIN_VALIDATION_WARNING)
-@MavenOption(MavenCLIOptions.DEBUG)
+@MavenOption(MavenCLIOptions.VERBOSE)
 @MavenGoal("${project.groupId}:${project.artifactId}:${project.version}:dryRun")
 class RewriteDryRunIT {
 
@@ -66,7 +66,7 @@ class RewriteDryRunIT {
     @MavenTest
     @SystemProperties({
             @SystemProperty(value = "rewrite.recipeArtifactCoordinates", content = "org.openrewrite.recipe:rewrite-testing-frameworks:2.0.3"),
-            @SystemProperty(value = "activeRecipes", content = "org.openrewrite.java.testing.cleanup.AssertTrueNullToAssertNull")
+            @SystemProperty(value = "rewrite.activeRecipes", content = "org.openrewrite.java.testing.cleanup.AssertTrueNullToAssertNull")
     })
     void no_plugin_in_pom(MavenExecutionResult result) {
         assertThat(result)

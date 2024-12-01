@@ -28,7 +28,6 @@ import static com.soebes.itf.extension.assertj.MavenITAssertions.assertThat;
 @MavenOption(MavenCLIExtra.MUTE_PLUGIN_VALIDATION_WARNING)
 @DisabledOnOs(OS.WINDOWS)
 @MavenGoal("${project.groupId}:${project.artifactId}:${project.version}:run")
-@SuppressWarnings("NewClassNamingConvention")
 class RewriteRunIT {
 
     @MavenTest
@@ -41,12 +40,38 @@ class RewriteRunIT {
     }
 
     @MavenTest
+    @SystemProperties({
+            @SystemProperty(value = "rewrite.activeRecipes", content = "org.openrewrite.java.search.FindTypes"),
+            @SystemProperty(value = "rewrite.options", content = "fullyQualifiedTypeName=org.junit.jupiter.api.Test")
+    })
+    @MavenGoal("generate-test-sources")
+    void multi_source_sets_project(MavenExecutionResult result) {
+        assertThat(result)
+                .isSuccessful()
+                .out()
+                .warn()
+                .contains(
+                        "Changes have been made to target/maven-it/org/openrewrite/maven/RewriteRunIT/multi_source_sets_project/project/src/integration-test/java/sample/IntegrationTest.java by:",
+                        "Changes have been made to target/maven-it/org/openrewrite/maven/RewriteRunIT/multi_source_sets_project/project/src/test/java/sample/RegularTest.java by:"
+                );
+    }
+
+    @MavenTest
     void single_project(MavenExecutionResult result) {
         assertThat(result)
                 .isSuccessful()
                 .out()
                 .warn()
                 .anySatisfy(line -> assertThat(line).contains("org.openrewrite.java.format.AutoFormat"));
+    }
+
+    @MavenTest
+    void checkstyle_inline_rules(MavenExecutionResult result) {
+        assertThat(result)
+                .isSuccessful()
+                .out()
+                .warn()
+                .noneSatisfy(line -> assertThat(line).contains("Unable to parse checkstyle configuration"));
     }
 
     @MavenTest
@@ -68,6 +93,19 @@ class RewriteRunIT {
     }
 
     @MavenTest
+    @SystemProperties({
+            @SystemProperty(value = "rewrite.activeRecipes", content = "org.openrewrite.maven.RemovePlugin"),
+            @SystemProperty(value = "rewrite.options", content = "groupId=org.openrewrite.maven,artifactId=rewrite-maven-plugin")
+    })
+    void command_line_options(MavenExecutionResult result) {
+        assertThat(result).isSuccessful().out().error().isEmpty();
+        assertThat(result).isSuccessful().out().warn()
+                .contains("Changes have been made to target/maven-it/org/openrewrite/maven/RewriteRunIT/command_line_options/project/pom.xml by:")
+                .contains("    org.openrewrite.maven.RemovePlugin");
+        assertThat(result.getMavenProjectResult().getModel().getBuild()).isNull();
+    }
+
+    @MavenTest
     @Disabled("We should implement a simpler test to make sure that regular markers don't get added to source files")
     void java_upgrade_project(MavenExecutionResult result) {
         assertThat(result)
@@ -86,6 +124,22 @@ class RewriteRunIT {
                 .warn()
                 .filteredOn(line -> line.contains("Changes have been made"))
                 .hasSize(1);
+    }
+
+    @MavenTest
+    @SystemProperty(value = "rewrite.additionalPlainTextMasks", content = "**/*.ext,**/.in-root")
+    void plaintext_masks(MavenExecutionResult result) {
+        assertThat(result)
+                .isSuccessful()
+                .out()
+                .warn()
+                .contains(
+                        "Changes have been made to target/maven-it/org/openrewrite/maven/RewriteRunIT/plaintext_masks/project/src/main/java/sample/in-src.ext by:",
+                        "Changes have been made to target/maven-it/org/openrewrite/maven/RewriteRunIT/plaintext_masks/project/.in-root by:",
+                        "Changes have been made to target/maven-it/org/openrewrite/maven/RewriteRunIT/plaintext_masks/project/from-default-list.py by:",
+                        "Changes have been made to target/maven-it/org/openrewrite/maven/RewriteRunIT/plaintext_masks/project/src/main/java/sample/Dummy.java by:"
+                )
+                .doesNotContain("in-root.ignored");
     }
 
 }

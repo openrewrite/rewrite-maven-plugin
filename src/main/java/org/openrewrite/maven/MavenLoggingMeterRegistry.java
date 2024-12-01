@@ -25,10 +25,9 @@ import io.micrometer.core.instrument.internal.DefaultGauge;
 import io.micrometer.core.instrument.internal.DefaultLongTaskTimer;
 import io.micrometer.core.instrument.internal.DefaultMeter;
 import io.micrometer.core.instrument.util.TimeUtils;
-
 import org.apache.maven.plugin.logging.Log;
-import org.openrewrite.internal.lang.NonNullApi;
-import org.openrewrite.internal.lang.Nullable;
+import org.jspecify.annotations.NullMarked;
+import org.jspecify.annotations.Nullable;
 
 import java.time.Duration;
 import java.util.concurrent.TimeUnit;
@@ -39,7 +38,7 @@ import java.util.stream.StreamSupport;
 import static io.micrometer.core.instrument.util.DoubleFormat.decimalOrNan;
 import static java.util.stream.Collectors.joining;
 
-@NonNullApi
+@NullMarked
 public class MavenLoggingMeterRegistry extends MeterRegistry {
     private final Log log;
 

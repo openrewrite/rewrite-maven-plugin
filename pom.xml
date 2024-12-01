@@ -4,18 +4,19 @@
 
     <groupId>org.openrewrite.maven</groupId>
     <artifactId>rewrite-maven-plugin</artifactId>
-    <version>5.6.0-SNAPSHOT</version>
-    <name>rewrite-maven-plugin</name>
-
+    <version>5.47.0-SNAPSHOT</version>
     <packaging>maven-plugin</packaging>
+
+    <name>rewrite-maven-plugin</name>
     <description>Eliminate technical debt. At build time.</description>
+    <url>https://openrewrite.github.io/rewrite-maven-plugin/</url>
+
     <inceptionYear>2020</inceptionYear>
 
-    <prerequisites>
-        <maven>3.3.1</maven>
-    </prerequisites>
-
-    <url>https://openrewrite.github.io/rewrite-maven-plugin/</url>
+    <organization>
+        <name>Moderne, Inc.</name>
+        <url>https://moderne.io/</url>
+    </organization>
 
     <licenses>
         <license>
@@ -23,35 +24,6 @@
             <url>https://www.apache.org/licenses/LICENSE-2.0.txt</url>
         </license>
     </licenses>
-
-    <reporting>
-        <plugins>
-            <plugin>
-                <groupId>org.owasp</groupId>
-                <artifactId>dependency-check-maven</artifactId>
-                <version>8.3.1</version>
-                <configuration>
-                    <failBuildOnCVSS>9</failBuildOnCVSS>
-                    <suppressionFiles>
-                        <suppressionFile>suppressions.xml</suppressionFile>
-                    </suppressionFiles>
-                    <retireJsAnalyzerEnabled>false</retireJsAnalyzerEnabled>
-                </configuration>
-                <reportSets>
-                    <reportSet>
-                        <reports>
-                            <report>aggregate</report>
-                        </reports>
-                    </reportSet>
-                </reportSets>
-            </plugin>
-            <plugin>
-                <groupId>org.apache.maven.plugins</groupId>
-                <artifactId>maven-plugin-report-plugin</artifactId>
-                <version>3.9.0</version>
-            </plugin>
-        </plugins>
-    </reporting>
 
     <developers>
         <developer>
@@ -61,10 +33,9 @@
         </developer>
     </developers>
 
-    <organization>
-        <name>Moderne, Inc.</name>
-        <url>https://moderne.io/</url>
-    </organization>
+    <prerequisites>
+        <maven>3.3.1</maven>
+    </prerequisites>
 
     <scm>
         <connection>scm:git:https://github.com/openrewrite/rewrite-maven-plugin.git</connection>
@@ -78,31 +49,42 @@
         <url>https://github.com/openrewrite/rewrite-maven-plugin/issues</url>
     </issueManagement>
 
+    <distributionManagement>
+        <snapshotRepository>
+            <id>ossrh</id>
+            <url>https://oss.sonatype.org/content/repositories/snapshots</url>
+        </snapshotRepository>
+        <repository>
+            <id>ossrh</id>
+            <url>https://oss.sonatype.org/service/local/staging/deploy/maven2</url>
+        </repository>
+    </distributionManagement>
+
     <properties>
         <!-- Pinned versions, as RELEASE would make it into the published pom.xml -->
-        <rewrite.version>8.11.0-SNAPSHOT</rewrite.version>
-        <rewrite.python.version>1.3.0-SNAPSHOT</rewrite.python.version>
-        <rewrite.kotlin.version>1.8.0-SNAPSHOT</rewrite.kotlin.version>
+        <rewrite.version>8.42.0-SNAPSHOT</rewrite.version>
+        <rewrite.kotlin.version>1.24.0-SNAPSHOT</rewrite.kotlin.version>
 
         <!-- using 'ssh' url scheme by default, which assumes a human is performing git operations leveraging an ssh key -->
         <developerConnectionUrl>scm:git:ssh://git@github.com/openrewrite/rewrite-maven-plugin.git
         </developerConnectionUrl>
         <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
-        <java.version>1.8</java.version>
 
-        <maven.compiler.testSource>17</maven.compiler.testSource>
-        <maven.compiler.testTarget>17</maven.compiler.testTarget>
+        <maven.compiler.source>8</maven.compiler.source>
+        <maven.compiler.target>${maven.compiler.source}</maven.compiler.target>
+        <!-- a profile in the profiles section sets the maven.compiler.release property on supported JREs -->
+        <maven.compiler.testRelease>17</maven.compiler.testRelease>
 
         <!-- dependencies and plugins -->
-        <jackson-bom.version>2.15.2</jackson-bom.version>
-        <netty.version>4.1.94.Final</netty.version>
-        <rocksdbjni.version>8.5.3</rocksdbjni.version>
+        <jackson-bom.version>2.17.2</jackson-bom.version>
+        <netty.version>4.1.115.Final</netty.version>
+        <rocksdbjni.version>8.8.1</rocksdbjni.version>
         <rsocket.version>1.1.4</rsocket.version>
-        <itf-maven.version>0.12.0</itf-maven.version>
-        <maven-dependencies.version>3.9.4</maven-dependencies.version>
-        <maven-release-plugin.version>3.0.1</maven-release-plugin.version>
-        <maven-plugin-tools.version>3.9.0</maven-plugin-tools.version>
-        <kotlin.version>1.8.10</kotlin.version>
+        <itf-maven.version>0.13.1</itf-maven.version>
+        <maven-dependencies.version>3.9.9</maven-dependencies.version>
+        <maven-release-plugin.version>3.1.1</maven-release-plugin.version>
+        <maven-plugin-tools.version>3.15.1</maven-plugin-tools.version>
+        <kotlin.version>1.9.24</kotlin.version>
     </properties>
 
     <dependencyManagement>
@@ -124,14 +106,14 @@
             <dependency>
                 <groupId>org.junit</groupId>
                 <artifactId>junit-bom</artifactId>
-                <version>5.9.3</version>
+                <version>5.11.3</version>
                 <scope>import</scope>
                 <type>pom</type>
             </dependency>
             <dependency>
                 <groupId>org.assertj</groupId>
                 <artifactId>assertj-bom</artifactId>
-                <version>3.24.2</version>
+                <version>3.26.3</version>
                 <scope>import</scope>
                 <type>pom</type>
             </dependency>
@@ -156,6 +138,25 @@
                 <scope>import</scope>
                 <type>pom</type>
             </dependency>
+            <!-- Transitive through Plexus, but with provided scope -->
+            <dependency>
+                <groupId>org.apache.maven</groupId>
+                <artifactId>maven-api-meta</artifactId>
+                <version>4.0.0-beta-5</version>
+                <scope>provided</scope>
+            </dependency>
+            <dependency>
+                <groupId>org.apache.maven</groupId>
+                <artifactId>maven-api-xml</artifactId>
+                <version>4.0.0-beta-5</version>
+                <scope>provided</scope>
+            </dependency>
+            <dependency>
+                <groupId>org.apache.maven</groupId>
+                <artifactId>maven-xml-impl</artifactId>
+                <version>4.0.0-beta-5</version>
+                <scope>provided</scope>
+            </dependency>
         </dependencies>
     </dependencyManagement>
 
@@ -175,6 +176,10 @@
         <dependency>
             <groupId>org.openrewrite</groupId>
             <artifactId>rewrite-java-17</artifactId>
+        </dependency>
+        <dependency>
+            <groupId>org.openrewrite</groupId>
+            <artifactId>rewrite-java-21</artifactId>
         </dependency>
         <dependency>
             <groupId>org.openrewrite</groupId>
@@ -206,8 +211,7 @@
         </dependency>
         <dependency>
             <groupId>org.openrewrite</groupId>
-            <artifactId>rewrite-python</artifactId>
-            <version>${rewrite.python.version}</version>
+            <artifactId>rewrite-groovy</artifactId>
         </dependency>
         <dependency>
             <groupId>org.openrewrite</groupId>
@@ -215,16 +219,9 @@
             <version>${rewrite.kotlin.version}</version>
         </dependency>
         <dependency>
-            <groupId>com.puppycrawl.tools</groupId>
-            <artifactId>checkstyle</artifactId>
-            <!--suppress MavenPackageUpdate Pinned to 9.3, because 10.x does not support Java 8. -->
-            <version>9.3</version>
-            <exclusions>
-                <exclusion>
-                    <groupId>org.antlr</groupId>
-                    <artifactId>antlr4-runtime</artifactId>
-                </exclusion>
-            </exclusions>
+            <groupId>org.codehaus.plexus</groupId>
+            <artifactId>plexus-xml</artifactId>
+            <version>4.0.4</version>
         </dependency>
         <dependency>
             <groupId>com.fasterxml.jackson.module</groupId>
@@ -233,12 +230,12 @@
         <dependency>
             <groupId>io.micrometer.prometheus</groupId>
             <artifactId>prometheus-rsocket-client</artifactId>
-            <version>1.5.2</version>
+            <version>1.5.3</version>
         </dependency>
         <dependency>
             <groupId>io.micrometer</groupId>
             <artifactId>micrometer-core</artifactId>
-            <version>1.11.4</version>
+            <version>1.14.1</version>
         </dependency>
         <dependency>
             <groupId>io.rsocket</groupId>
@@ -249,41 +246,9 @@
             <artifactId>rsocket-core</artifactId>
         </dependency>
         <dependency>
-            <!-- See https://github.com/advisories/GHSA-599f-7c49-w659 -->
-            <groupId>org.apache.commons</groupId>
-            <artifactId>commons-text</artifactId>
-            <version>1.10.0</version>
-        </dependency>
-        <dependency>
             <groupId>org.rocksdb</groupId>
             <artifactId>rocksdbjni</artifactId>
             <version>${rocksdbjni.version}</version>
-        </dependency>
-        <dependency>
-            <groupId>org.codehaus.plexus</groupId>
-            <artifactId>plexus-interactivity-api</artifactId>
-            <version>1.1</version>
-            <exclusions>
-                <!-- https://github.com/apache/maven-archetype/blob/5351651b33fde2cb046e2f103bbc6be3c38acbab/pom.xml -->
-                <exclusion>
-                    <groupId>org.codehaus.plexus</groupId>
-                    <artifactId>plexus-component-api</artifactId>
-                </exclusion>
-                <exclusion>
-                    <groupId>org.codehaus.plexus</groupId>
-                    <artifactId>plexus-container-default</artifactId>
-                </exclusion>
-                <exclusion>
-                    <groupId>junit</groupId>
-                    <artifactId>junit</artifactId>
-                </exclusion>
-            </exclusions>
-        </dependency>
-
-        <dependency>
-            <groupId>org.apache.maven.shared</groupId>
-            <artifactId>maven-filtering</artifactId>
-            <version>3.3.1</version>
         </dependency>
 
         <dependency>
@@ -360,26 +325,21 @@
             <version>${itf-maven.version}</version>
             <scope>test</scope>
         </dependency>
-
-        <dependency>
-            <groupId>org.apache.maven.plugin-testing</groupId>
-            <artifactId>maven-plugin-testing-harness</artifactId>
-            <version>3.3.0</version>
-            <scope>test</scope>
-            <exclusions>
-                <exclusion>
-                    <groupId>org.codehaus.plexus</groupId>
-                    <artifactId>plexus-container-default</artifactId>
-                </exclusion>
-            </exclusions>
-        </dependency>
-        <dependency>
-            <groupId>org.apache.maven.plugins</groupId>
-            <artifactId>maven-resources-plugin</artifactId>
-            <version>3.3.1</version>
-            <scope>test</scope>
-        </dependency>
     </dependencies>
+
+    <repositories>
+        <repository>
+            <!-- for consuming upstream openrewrite snapshot artifacts from ossrh during development -->
+            <id>ossrh-snapshots</id>
+            <url>https://oss.sonatype.org/content/repositories/snapshots</url>
+            <snapshots>
+                <enabled>true</enabled>
+            </snapshots>
+            <releases>
+                <enabled>false</enabled>
+            </releases>
+        </repository>
+    </repositories>
 
     <build>
         <testResources>
@@ -396,8 +356,31 @@
         <plugins>
             <plugin>
                 <groupId>org.apache.maven.plugins</groupId>
+                <artifactId>maven-enforcer-plugin</artifactId>
+                <version>3.5.0</version>
+                <configuration>
+                    <rules>
+                        <requireJavaVersion>
+                            <version>17</version>
+                        </requireJavaVersion>
+                        <requireMavenVersion>
+                            <version>3.9.6</version>
+                        </requireMavenVersion>
+                    </rules>
+                </configuration>
+                <executions>
+                    <execution>
+                        <id>enforce</id>
+                        <goals>
+                            <goal>enforce</goal>
+                        </goals>
+                    </execution>
+                </executions>
+            </plugin>
+            <plugin>
+                <groupId>org.apache.maven.plugins</groupId>
                 <artifactId>maven-site-plugin</artifactId>
-                <version>3.12.1</version>
+                <version>4.0.0-M16</version>
             </plugin>
             <!-- testing-related plugins -->
             <plugin>
@@ -422,7 +405,7 @@
             <plugin>
                 <groupId>org.apache.maven.plugins</groupId>
                 <artifactId>maven-failsafe-plugin</artifactId>
-                <version>3.1.2</version>
+                <version>3.5.2</version>
                 <executions>
                     <execution>
                         <goals>
@@ -438,6 +421,10 @@
                 <groupId>org.apache.maven.plugins</groupId>
                 <artifactId>maven-plugin-plugin</artifactId>
                 <version>${maven-plugin-tools.version}</version>
+                <configuration>
+                    <goalPrefix>rewrite</goalPrefix>
+                    <requiredJavaVersion>8</requiredJavaVersion>
+                </configuration>
                 <executions>
                     <execution>
                         <id>generate-helpmojo</id>
@@ -450,23 +437,19 @@
             <plugin>
                 <groupId>org.apache.maven.plugins</groupId>
                 <artifactId>maven-compiler-plugin</artifactId>
-                <version>3.11.0</version>
+                <version>3.13.0</version>
                 <configuration>
                     <compilerArgs>
                         <arg>-Xlint:deprecation</arg>
                         <arg>-Xlint:unchecked</arg>
+                        <!--<arg>-proc:full</arg>-->
                     </compilerArgs>
-                    <source>${java.version}</source>
-                    <target>${java.version}</target>
                 </configuration>
             </plugin>
             <plugin>
                 <groupId>org.apache.maven.plugins</groupId>
                 <artifactId>maven-javadoc-plugin</artifactId>
-                <version>3.6.0</version>
-                <configuration>
-                    <source>${java.version}</source>
-                </configuration>
+                <version>3.11.1</version>
                 <executions>
                     <execution>
                         <phase>prepare-package</phase>
@@ -480,7 +463,7 @@
             <plugin>
                 <groupId>org.apache.maven.plugins</groupId>
                 <artifactId>maven-source-plugin</artifactId>
-                <version>3.3.0</version>
+                <version>3.3.1</version>
                 <executions>
                     <execution>
                         <phase>prepare-package</phase>
@@ -518,7 +501,8 @@
             <plugin>
                 <groupId>com.mycila</groupId>
                 <artifactId>license-maven-plugin</artifactId>
-                <version>4.2</version>
+                <!-- 4.6 is the last version supporting Java 8 -->
+                <version>4.6</version>
                 <configuration>
                     <defaultProperties>
                         <project.inceptionYear>2020</project.inceptionYear>
@@ -542,12 +526,42 @@
                         <groupId>com.mycila</groupId>
                         <artifactId>license-maven-plugin-git</artifactId>
                         <!-- make sure you use the same version as license-maven-plugin -->
-                        <version>4.2</version>
+                        <version>4.6</version>
                     </dependency>
                 </dependencies>
             </plugin>
         </plugins>
     </build>
+
+    <reporting>
+        <plugins>
+            <plugin>
+                <groupId>org.owasp</groupId>
+                <artifactId>dependency-check-maven</artifactId>
+                <version>11.1.0</version>
+                <configuration>
+                    <nvdApiKey>${env.NVD_API_KEY}</nvdApiKey>
+                    <failBuildOnCVSS>9</failBuildOnCVSS>
+                    <suppressionFiles>
+                        <suppressionFile>suppressions.xml</suppressionFile>
+                    </suppressionFiles>
+                    <retireJsAnalyzerEnabled>false</retireJsAnalyzerEnabled>
+                </configuration>
+                <reportSets>
+                    <reportSet>
+                        <reports>
+                            <report>aggregate</report>
+                        </reports>
+                    </reportSet>
+                </reportSets>
+            </plugin>
+            <plugin>
+                <groupId>org.apache.maven.plugins</groupId>
+                <artifactId>maven-plugin-report-plugin</artifactId>
+                <version>${maven-plugin-tools.version}</version>
+            </plugin>
+        </plugins>
+    </reporting>
 
     <profiles>
         <profile>
@@ -557,7 +571,7 @@
                     <plugin>
                         <groupId>org.apache.maven.plugins</groupId>
                         <artifactId>maven-gpg-plugin</artifactId>
-                        <version>3.1.0</version>
+                        <version>3.2.7</version>
                         <executions>
                             <execution>
                                 <id>sign-artifacts</id>
@@ -585,7 +599,7 @@
                     <plugin>
                         <groupId>org.sonatype.plugins</groupId>
                         <artifactId>nexus-staging-maven-plugin</artifactId>
-                        <version>1.6.13</version>
+                        <version>1.7.0</version>
                         <extensions>true</extensions>
                         <configuration>
                             <!-- https://help.sonatype.com/repomanager2/staging-releases/configuring-your-project-for-deployment -->
@@ -612,30 +626,15 @@
                 </developerConnectionUrl>
             </properties>
         </profile>
+        <profile>
+            <!-- set maven.compiler.release on JRE 9+ -->
+            <id>avoid-maven-compiler-warnings</id>
+            <activation>
+                <jdk>[9,)</jdk>
+            </activation>
+            <properties>
+                <maven.compiler.release>8</maven.compiler.release>
+            </properties>
+        </profile>
     </profiles>
-
-    <repositories>
-        <repository>
-            <!-- for consuming upstream openrewrite snapshot artifacts from ossrh during development -->
-            <id>ossrh-snapshots</id>
-            <url>https://oss.sonatype.org/content/repositories/snapshots</url>
-            <snapshots>
-                <enabled>true</enabled>
-            </snapshots>
-            <releases>
-                <enabled>false</enabled>
-            </releases>
-        </repository>
-    </repositories>
-
-    <distributionManagement>
-        <snapshotRepository>
-            <id>ossrh</id>
-            <url>https://oss.sonatype.org/content/repositories/snapshots</url>
-        </snapshotRepository>
-        <repository>
-            <id>ossrh</id>
-            <url>https://oss.sonatype.org/service/local/staging/deploy/maven2</url>
-        </repository>
-    </distributionManagement>
 </project>

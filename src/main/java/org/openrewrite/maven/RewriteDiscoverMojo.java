@@ -16,20 +16,16 @@
 package org.openrewrite.maven;
 
 import org.apache.maven.plugin.MojoExecutionException;
-import org.apache.maven.plugins.annotations.Component;
 import org.apache.maven.plugins.annotations.Mojo;
 import org.apache.maven.plugins.annotations.Parameter;
-import org.codehaus.plexus.components.interactivity.Prompter;
+import org.jspecify.annotations.Nullable;
 import org.openrewrite.config.Environment;
 import org.openrewrite.config.OptionDescriptor;
 import org.openrewrite.config.RecipeDescriptor;
 import org.openrewrite.internal.StringUtils;
-import org.openrewrite.internal.lang.Nullable;
-import org.openrewrite.maven.ui.RecipeDescriptorTreePrompter;
 import org.openrewrite.style.NamedStyles;
 
-import java.util.Collection;
-import java.util.HashSet;
+import java.util.*;
 
 /**
  * Generate a report of the available recipes and styles found on the classpath.<br>
@@ -61,16 +57,6 @@ public class RewriteDiscoverMojo extends AbstractRewriteMojo {
     @Parameter(property = "recursion", defaultValue = "0")
     int recursion;
 
-    /**
-     * Whether to enter an interactive shell to explore available recipes. For example:<br>
-     * {@code ./mvnw rewrite:discover -Dinteractive}
-     */
-    @Parameter(property = "interactive", defaultValue = "false")
-    boolean interactive;
-
-    @SuppressWarnings("NotNullFieldNotInitialized")
-    @Component
-    private Prompter prompter;
 
     @Override
     public void execute() throws MojoExecutionException {
@@ -79,11 +65,6 @@ public class RewriteDiscoverMojo extends AbstractRewriteMojo {
         if (recipe != null) {
             RecipeDescriptor rd = getRecipeDescriptor(recipe, availableRecipeDescriptors);
             writeRecipeDescriptor(rd, detail, 0, 0);
-        } else if (interactive) {
-            getLog().info("Entering interactive mode, Ctrl-C to exit...");
-            RecipeDescriptorTreePrompter treePrompter = new RecipeDescriptorTreePrompter(prompter);
-            RecipeDescriptor rd = treePrompter.execute(availableRecipeDescriptors);
-            writeRecipeDescriptor(rd, true, 0, 0);
         } else {
             Collection<RecipeDescriptor> activeRecipeDescriptors = new HashSet<>();
             for (String activeRecipe : getActiveRecipes()) {
@@ -94,27 +75,44 @@ public class RewriteDiscoverMojo extends AbstractRewriteMojo {
         }
     }
 
+    private static final String RECIPE_NOT_FOUND_EXCEPTION_MSG = "Could not find recipe '%s' among available recipes";
+
+    private static RecipeDescriptor getRecipeDescriptor(String recipe, Collection<RecipeDescriptor> recipeDescriptors) throws MojoExecutionException {
+        return recipeDescriptors.stream()
+                .filter(r -> r.getName().equalsIgnoreCase(recipe))
+                .findAny()
+                .orElseThrow(() -> new MojoExecutionException(String.format(RECIPE_NOT_FOUND_EXCEPTION_MSG, recipe)));
+    }
+
     private void writeDiscovery(Collection<RecipeDescriptor> availableRecipeDescriptors, Collection<RecipeDescriptor> activeRecipeDescriptors, Collection<NamedStyles> availableStyles) {
+        List<RecipeDescriptor> availableRecipesSorted = new ArrayList<>(availableRecipeDescriptors);
+        availableRecipesSorted.sort(Comparator.comparing(RecipeDescriptor::getName, String.CASE_INSENSITIVE_ORDER));
         getLog().info("Available Recipes:");
-        for (RecipeDescriptor recipeDescriptor : availableRecipeDescriptors) {
+        for (RecipeDescriptor recipeDescriptor : availableRecipesSorted) {
             writeRecipeDescriptor(recipeDescriptor, detail, 0, 1);
         }
 
+        List<NamedStyles> availableStylesSorted = new ArrayList<>(availableStyles);
+        availableStylesSorted.sort(Comparator.comparing(NamedStyles::getName, String.CASE_INSENSITIVE_ORDER));
         getLog().info("");
         getLog().info("Available Styles:");
-        for (NamedStyles style : availableStyles) {
+        for (NamedStyles style : availableStylesSorted) {
             getLog().info("    " + style.getName());
         }
 
+        List<String> activeStylesSorted = new ArrayList<>(getActiveStyles());
+        activeStylesSorted.sort(String.CASE_INSENSITIVE_ORDER);
         getLog().info("");
         getLog().info("Active Styles:");
-        for (String activeStyle : getActiveStyles()) {
+        for (String activeStyle : activeStylesSorted) {
             getLog().info("    " + activeStyle);
         }
 
+        List<RecipeDescriptor> activeRecipesSorted = new ArrayList<>(activeRecipeDescriptors);
+        activeRecipesSorted.sort(Comparator.comparing(RecipeDescriptor::getName, String.CASE_INSENSITIVE_ORDER));
         getLog().info("");
         getLog().info("Active Recipes:");
-        for (RecipeDescriptor recipeDescriptor : activeRecipeDescriptors) {
+        for (RecipeDescriptor recipeDescriptor : activeRecipesSorted) {
             writeRecipeDescriptor(recipeDescriptor, detail, 0, 1);
         }
 
@@ -124,7 +122,7 @@ public class RewriteDiscoverMojo extends AbstractRewriteMojo {
     }
 
     private void writeRecipeDescriptor(RecipeDescriptor rd, boolean verbose, int currentRecursionLevel, int indentLevel) {
-        String indent = StringUtils.repeat("    ", indentLevel * 4);
+        String indent = StringUtils.repeat("    ", indentLevel);
         if (currentRecursionLevel <= recursion) {
             if (verbose) {
 
