@@ -650,6 +650,14 @@ public class MavenMojoProjectParser {
         if (pomPath.endsWith(".flattened-pom.xml")) {
             return mavenProject.getBasedir().toPath().resolve("pom.xml");
         }
+        // org.apache.maven.plugins:maven-shade-plugin produces a simplified POM for the shaded artifact, use the regular pom instead
+        if (pomPath.endsWith("dependency-reduced-pom.xml")) {
+            return mavenProject.getBasedir().toPath().resolve("pom.xml");
+        }
+        // com.outbrain.swinfra:ci-friendly-flatten-maven-plugin produces a pom unsuitable for our purposes, use the regular pom instead
+        if (pomPath.endsWith(".ci-friendly-pom.xml")) {
+            return mavenProject.getBasedir().toPath().resolve("pom.xml");
+        }
         // org.eclipse.tycho:tycho-packaging-plugin:update-consumer-pom produces a synthetic pom
         if (pomPath.endsWith(".tycho-consumer-pom.xml")) {
             Path normalPom = mavenProject.getBasedir().toPath().resolve("pom.xml");
