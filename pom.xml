@@ -118,13 +118,6 @@
                 <type>pom</type>
             </dependency>
             <dependency>
-                <groupId>org.jetbrains.kotlin</groupId>
-                <artifactId>kotlin-bom</artifactId>
-                <version>${kotlin.version}</version>
-                <scope>import</scope>
-                <type>pom</type>
-            </dependency>
-            <dependency>
                 <groupId>io.rsocket</groupId>
                 <artifactId>rsocket-bom</artifactId>
                 <version>${rsocket.version}</version>
@@ -142,13 +135,13 @@
             <dependency>
                 <groupId>org.apache.maven</groupId>
                 <artifactId>maven-api-meta</artifactId>
-                <version>4.0.0-beta-5</version>
+                <version>4.0.0-rc-1</version>
                 <scope>provided</scope>
             </dependency>
             <dependency>
                 <groupId>org.apache.maven</groupId>
                 <artifactId>maven-api-xml</artifactId>
-                <version>4.0.0-beta-5</version>
+                <version>4.0.0-rc-1</version>
                 <scope>provided</scope>
             </dependency>
             <dependency>
@@ -222,10 +215,6 @@
             <groupId>org.codehaus.plexus</groupId>
             <artifactId>plexus-xml</artifactId>
             <version>4.0.4</version>
-        </dependency>
-        <dependency>
-            <groupId>com.fasterxml.jackson.module</groupId>
-            <artifactId>jackson-module-kotlin</artifactId>
         </dependency>
         <dependency>
             <groupId>io.micrometer.prometheus</groupId>
@@ -449,7 +438,7 @@
             <plugin>
                 <groupId>org.apache.maven.plugins</groupId>
                 <artifactId>maven-javadoc-plugin</artifactId>
-                <version>3.11.1</version>
+                <version>3.11.2</version>
                 <executions>
                     <execution>
                         <phase>prepare-package</phase>
@@ -538,7 +527,7 @@
             <plugin>
                 <groupId>org.owasp</groupId>
                 <artifactId>dependency-check-maven</artifactId>
-                <version>11.1.0</version>
+                <version>11.1.1</version>
                 <configuration>
                     <nvdApiKey>${env.NVD_API_KEY}</nvdApiKey>
                     <failBuildOnCVSS>9</failBuildOnCVSS>

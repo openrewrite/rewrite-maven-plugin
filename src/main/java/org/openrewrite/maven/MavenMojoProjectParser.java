@@ -646,12 +646,10 @@ public class MavenMojoProjectParser {
 
     private static Path pomPath(MavenProject mavenProject) {
         Path pomPath = mavenProject.getFile().toPath();
-        // org.codehaus.mojo:flatten-maven-plugin produces a synthetic pom unsuitable for our purposes, use the regular pom instead
-        if (pomPath.endsWith(".flattened-pom.xml")) {
-            return mavenProject.getBasedir().toPath().resolve("pom.xml");
-        }
-        // org.eclipse.tycho:tycho-packaging-plugin:update-consumer-pom produces a synthetic pom
-        if (pomPath.endsWith(".tycho-consumer-pom.xml")) {
+        if (pomPath.endsWith(".flattened-pom.xml") ||// org.codehaus.mojo:flatten-maven-plugin
+                pomPath.endsWith("dependency-reduced-pom.xml") || // org.apache.maven.plugins:maven-shade-plugin
+                pomPath.endsWith(".ci-friendly-pom.xml") || // com.outbrain.swinfra:ci-friendly-flatten-maven-plugin
+                pomPath.endsWith(".tycho-consumer-pom.xml")) { // org.eclipse.tycho:tycho-packaging-plugin:update-consumer-pom
             Path normalPom = mavenProject.getBasedir().toPath().resolve("pom.xml");
             // check for the existence of the POM, since Tycho can work pom-less
             if (Files.isReadable(normalPom) && Files.isRegularFile(normalPom)) {
