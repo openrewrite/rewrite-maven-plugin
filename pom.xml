@@ -492,6 +492,7 @@
                 <!-- 4.6 is the last version supporting Java 8 -->
                 <version>4.6</version>
                 <configuration>
+                    <verbose>true</verbose>
                     <defaultProperties>
                         <project.inceptionYear>2020</project.inceptionYear>
                     </defaultProperties>
@@ -509,6 +510,19 @@
                         </licenseSet>
                     </licenseSets>
                 </configuration>
+                <executions>
+                  <execution>
+                    <id>first</id>
+                    <goals>
+                      <goal>update-file-header</goal>
+                    </goals>
+                    <phase>process-sources</phase>
+                    <configuration>
+                      <canUpdateDesciption>true</canUpdateDesciption>
+                      <canUpdateCopyright>true</canUpdateCopyright>
+                    </configuration>
+                  </execution>
+                </executions>
                 <dependencies>
                     <dependency>
                         <groupId>com.mycila</groupId>
