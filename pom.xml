@@ -20,8 +20,8 @@
 
     <licenses>
         <license>
-            <name>The Apache Software License, Version 2.0</name>
-            <url>https://www.apache.org/licenses/LICENSE-2.0.txt</url>
+            <name>Moderne Source Available License</name>
+            <url>https://docs.moderne.io/licensing/moderne-source-available-license</url>
         </license>
     </licenses>
 
@@ -492,7 +492,6 @@
                 <!-- 4.6 is the last version supporting Java 8 -->
                 <version>4.6</version>
                 <configuration>
-                    <verbose>true</verbose>
                     <defaultProperties>
                         <project.inceptionYear>2020</project.inceptionYear>
                     </defaultProperties>
