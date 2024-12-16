@@ -87,6 +87,7 @@ class BasicIT {
                 .isSuccessful()
                 .out()
                 .warn()
+                .filteredOn(line -> !line.contains("Gauge registration will be ignored"))
                 .isEmpty();
         assertThat(result).out().info().contains("Running recipe(s)...");
     }
