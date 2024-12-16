@@ -1,5 +1,6 @@
 <?xml version="1.0" encoding="UTF-8"?>
-<project xmlns="http://maven.apache.org/POM/4.0.0" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/xsd/maven-4.0.0.xsd">
+<project xmlns="http://maven.apache.org/POM/4.0.0" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+         xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/xsd/maven-4.0.0.xsd">
     <modelVersion>4.0.0</modelVersion>
 
     <groupId>org.openrewrite.maven</groupId>
@@ -492,16 +493,14 @@
                 <!-- 4.6 is the last version supporting Java 8 -->
                 <version>4.6</version>
                 <configuration>
-                    <defaultProperties>
-                        <project.inceptionYear>2020</project.inceptionYear>
-                    </defaultProperties>
                     <licenseSets>
                         <licenseSet>
                             <header>.mvn/licenseHeader.txt</header>
                             <excludes>
                                 <exclude>pom.xml</exclude>
                                 <exclude>suppressions.xml</exclude>
-                                <exclude>**/README</exclude>
+                                <exclude>**/README.md</exclude>
+                                <exclude>**/.sdkmanrc</exclude>
                                 <exclude>src/test/resources-its/**</exclude>
                                 <exclude>src/test/resources/**</exclude>
                                 <exclude>src/main/resources/**</exclude>
@@ -509,19 +508,6 @@
                         </licenseSet>
                     </licenseSets>
                 </configuration>
-                <executions>
-                  <execution>
-                    <id>first</id>
-                    <goals>
-                      <goal>update-file-header</goal>
-                    </goals>
-                    <phase>process-sources</phase>
-                    <configuration>
-                      <canUpdateDesciption>true</canUpdateDesciption>
-                      <canUpdateCopyright>true</canUpdateCopyright>
-                    </configuration>
-                  </execution>
-                </executions>
                 <dependencies>
                     <dependency>
                         <groupId>com.mycila</groupId>
@@ -530,6 +516,22 @@
                         <version>4.6</version>
                     </dependency>
                 </dependencies>
+                <executions>
+                    <execution>
+                        <id>first</id>
+                        <goals>
+                            <goal>format</goal>
+                        </goals>
+                        <phase>process-sources</phase>
+                    </execution>
+                    <execution>
+                        <id>second</id>
+                        <goals>
+                            <goal>check</goal>
+                        </goals>
+                        <phase>verify</phase>
+                    </execution>
+                </executions>
             </plugin>
         </plugins>
     </build>
