@@ -184,6 +184,8 @@ public class ResourceParser {
                 propertiesPaths.add(path);
             } else if (protoParser.accept(path)) {
                 protoPaths.add(path);
+            } else if (tomlParser.accept(path)) {
+                tomlPaths.add(path);
             } else if (kotlinParser.accept(path)) {
                 kotlinPaths.add(path);
             } else if (groovyParser.accept(path)) {
@@ -223,6 +225,11 @@ public class ResourceParser {
         if (!protoPaths.isEmpty()) {
             sourceFiles = Stream.concat(sourceFiles, (Stream<S>) protoParser.parse(protoPaths, baseDir, ctx));
             alreadyParsed.addAll(protoPaths);
+        }
+
+        if (!tomlPaths.isEmpty()) {
+            sourceFiles = Stream.concat(sourceFiles, (Stream<S>) tomlParser.parse(tomlPaths, baseDir, ctx));
+            alreadyParsed.addAll(tomlPaths);
         }
 
         if (!kotlinPaths.isEmpty()) {
