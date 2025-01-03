@@ -27,6 +27,7 @@ import org.openrewrite.properties.PropertiesParser;
 import org.openrewrite.protobuf.ProtoParser;
 import org.openrewrite.quark.QuarkParser;
 import org.openrewrite.text.PlainTextParser;
+import org.openrewrite.toml.TomlParser;
 import org.openrewrite.xml.XmlParser;
 import org.openrewrite.yaml.YamlParser;
 
@@ -151,6 +152,9 @@ public class ResourceParser {
 
         ProtoParser protoParser = new ProtoParser();
         List<Path> protoPaths = new ArrayList<>();
+
+        TomlParser tomlParser = new TomlParser();
+        List<Path> tomlPaths = new ArrayList<>();
 
         KotlinParser kotlinParser = kotlinParserBuilder.build();
         List<Path> kotlinPaths = new ArrayList<>();
