@@ -10,3 +10,4 @@ pom.xml.versionsBackup
 .project
 .settings
 .vscode/
+.mvn/.develocity/

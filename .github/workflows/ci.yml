@@ -14,6 +14,11 @@ on:
   schedule:
     - cron: 0 17 * * *
 
+env:
+  GRADLE_ENTERPRISE_CACHE_USERNAME: ${{ secrets.gradle_enterprise_cache_username }}
+  GRADLE_ENTERPRISE_CACHE_PASSWORD: ${{ secrets.gradle_enterprise_cache_password }}
+  DEVELOCITY_ACCESS_KEY: ${{ secrets.gradle_enterprise_access_key }}
+
 jobs:
   build:
     runs-on: ubuntu-latest
