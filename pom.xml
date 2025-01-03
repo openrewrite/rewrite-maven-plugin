@@ -496,13 +496,15 @@
                         <licenseSet>
                             <header>.mvn/licenseHeader.txt</header>
                             <excludes>
-                                <exclude>pom.xml</exclude>
+                                <exclude>*.xml</exclude>
                                 <exclude>suppressions.xml</exclude>
                                 <exclude>**/README.md</exclude>
                                 <exclude>**/.sdkmanrc</exclude>
                                 <exclude>src/test/resources-its/**</exclude>
                                 <exclude>src/test/resources/**</exclude>
                                 <exclude>src/main/resources/**</exclude>
+                                <exclude>.moderne/</exclude>
+                                <exclude>.mvn/</exclude>
                             </excludes>
                         </licenseSet>
                     </licenseSets>
