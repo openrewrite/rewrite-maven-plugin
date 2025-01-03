@@ -1,0 +1,27 @@
+<develocity>
+  <server>
+    <url>https://ge.openrewrite.org/</url>
+  </server>
+  <buildScan>
+    <publishing>
+      <onlyIf><![CDATA[!buildResult.failures.empty]]></onlyIf>
+    </publishing>
+    <capture>
+      <fileFingerprints>true</fileFingerprints>
+    </capture>
+  </buildScan>
+  <buildCache>
+    <local>
+      <storeEnabled>true</storeEnabled>
+    </local>
+    <remote>
+      <storeEnabled>#{isTrue(env['CI'])}</storeEnabled>
+      <server>
+        <credentials>
+          <username>#{env['GRADLE_ENTERPRISE_CACHE_USERNAME']}</username>
+          <password>#{env['GRADLE_ENTERPRISE_CACHE_PASSWORD']}</password>
+        </credentials>
+      </server>
+    </remote>
+  </buildCache>
+</develocity>

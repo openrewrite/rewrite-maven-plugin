@@ -27,6 +27,8 @@ import static com.soebes.itf.extension.assertj.MavenITAssertions.assertThat;
 class BasicIT {
 
     @MavenTest
+    @MavenGoal("clean")
+    @MavenGoal("package")
     void groupid_artifactid_should_be_ok(MavenExecutionResult result) {
         assertThat(result)
                 .isSuccessful()
@@ -81,6 +83,7 @@ class BasicIT {
     }
 
     @MavenTest
+    @MavenGoal("clean")
     @MavenGoal("${project.groupId}:${project.artifactId}:${project.version}:dryRun")
     void snapshot_ok(MavenExecutionResult result) {
         assertThat(result)
