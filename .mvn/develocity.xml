@@ -18,7 +18,6 @@
 <develocity>
   <server>
     <url>https://ge.openrewrite.org/</url>
-    <url>#{env['GRADLE_ENTERPRISE_ACCESS_KEY']}</url>
   </server>
   <buildScan>
     <publishing>
