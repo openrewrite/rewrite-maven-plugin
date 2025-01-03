@@ -24,11 +24,11 @@ import static com.soebes.itf.extension.assertj.MavenITAssertions.assertThat;
 @MavenJupiterExtension
 @MavenOption(MavenCLIOptions.NO_TRANSFER_PROGRESS)
 @MavenOption(MavenCLIExtra.MUTE_PLUGIN_VALIDATION_WARNING)
+@MavenGoal("clean")
 @MavenGoal("${project.groupId}:${project.artifactId}:${project.version}:discover")
 class RewriteDiscoverIT {
 
     @Nested
-    @MavenGoal("${project.groupId}:${project.artifactId}:${project.version}:discover")
     class RecipeLookup {
 
         @MavenTest
