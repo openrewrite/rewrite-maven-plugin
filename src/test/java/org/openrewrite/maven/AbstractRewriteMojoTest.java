@@ -15,7 +15,6 @@
  */
 package org.openrewrite.maven;
 
-import org.apache.commons.io.IOUtils;
 import org.apache.maven.project.MavenProject;
 import org.junit.jupiter.api.io.TempDir;
 import org.junit.jupiter.params.ParameterizedTest;
@@ -24,7 +23,6 @@ import org.junit.jupiter.params.provider.ValueSource;
 import java.io.File;
 import java.io.IOException;
 import java.io.InputStream;
-import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
 import java.nio.file.Path;
 
@@ -48,13 +46,13 @@ class AbstractRewriteMojoTest {
         };
 
         if (!loc.startsWith("http")) {
-            Files.write(temp.resolve(loc), "rewrite".getBytes(StandardCharsets.UTF_8));
+            Files.writeString(temp.resolve(loc), "rewrite");
         }
 
         AbstractRewriteMojo.Config config = mojo.getConfig();
         assertThat(config).isNotNull();
         try (InputStream is = config.inputStream) {
-            assertThat(IOUtils.readLines(is, StandardCharsets.UTF_8)).isNotEmpty();
+            assertThat(is.readAllBytes()).isNotEmpty();
         }
     }
 }
