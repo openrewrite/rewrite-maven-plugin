@@ -1,9 +1,24 @@
-![Logo](https://github.com/openrewrite/rewrite/raw/main/doc/logo-oss.png)
-### Eliminate Tech-Debt. At build time.
+<p align="center">
+  <a href="https://docs.openrewrite.org">
+    <picture>
+      <source media="(prefers-color-scheme: dark)" srcset="https://github.com/openrewrite/rewrite/raw/main/doc/logo-oss-dark.svg">
+      <source media="(prefers-color-scheme: light)" srcset="https://github.com/openrewrite/rewrite/raw/main/doc/logo-oss-light.svg">
+      <img alt="OpenRewrite Logo" src="https://github.com/openrewrite/rewrite/raw/main/doc/logo-oss-light.svg" width='600px'>
+    </picture>
+  </a>
+</p>
 
+<div align="center">
+  <h1>rewrite-maven-plugin</h1>
+</div>
+
+<div align="center">
+
+<!-- Keep the gap above this line, otherwise they won't render correctly! -->
 [![ci](https://github.com/openrewrite/rewrite-maven-plugin/actions/workflows/ci.yml/badge.svg)](https://github.com/openrewrite/rewrite-maven-plugin/actions/workflows/ci.yml)
 [![Maven Central](https://img.shields.io/maven-central/v/org.openrewrite.maven/rewrite-maven-plugin.svg)](https://mvnrepository.com/artifact/org.openrewrite.maven/rewrite-maven-plugin)
 [![Contributing Guide](https://img.shields.io/badge/Contributing-Guide-informational)](https://github.com/openrewrite/.github/blob/main/CONTRIBUTING.md)
+</div>
 
 ## What is this?
 
