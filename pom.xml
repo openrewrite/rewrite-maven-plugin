@@ -62,7 +62,7 @@
 
     <properties>
         <!-- Pinned versions, as RELEASE would make it into the published pom.xml -->
-        <rewrite.version>8.43.0</rewrite.version>
+        <rewrite.version>8.44.0-SNAPSHOT</rewrite.version>
         <rewrite.kotlin.version>1.25.0</rewrite.kotlin.version>
 
         <!-- using 'ssh' url scheme by default, which assumes a human is performing git operations leveraging an ssh key -->
