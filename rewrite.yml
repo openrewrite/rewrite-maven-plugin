@@ -1,5 +1,5 @@
 #
-# Copyright 2025 the original author or authors.
+# Copyright 2020 the original author or authors.
 # <p>
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -14,6 +14,7 @@
 # limitations under the License.
 #
 
+#./mvnw org.openrewrite.maven:rewrite-maven-plugin:LATEST:run -Drewrite.recipeArtifactCoordinates=org.openrewrite.recipe:rewrite-static-analysis:RELEASE -Drewrite.activeRecipes=org.openrewrite.recipes.OpenRewriteBestPracticesSubset
 ---
 type: specs.openrewrite.org/v1beta/recipe
 name: org.openrewrite.recipes.OpenRewriteBestPracticesSubset
@@ -23,7 +24,14 @@ recipeList:
   - org.openrewrite.java.OrderImports:
       removeUnused: true
   - org.openrewrite.java.format.EmptyNewlineAtEndOfFile
+  - org.openrewrite.java.format.RemoveTrailingWhitespace
+  - org.openrewrite.maven.BestPractices
+#  - org.openrewrite.staticanalysis.OperatorWrap:
+#      wrapOption: EOL
+#  - org.openrewrite.staticanalysis.CommonStaticAnalysis
 #  - org.openrewrite.staticanalysis.CompareEnumsWithEqualityOperator
-#  - org.openrewrite.staticanalysis.InlineVariable
 #  - org.openrewrite.staticanalysis.MissingOverrideAnnotation
-#  - org.openrewrite.staticanalysis.UseDiamondOperator
+#  - org.openrewrite.staticanalysis.RemoveSystemOutPrintln
+#  - org.openrewrite.staticanalysis.RemoveUnusedLocalVariables
+#  - org.openrewrite.staticanalysis.RemoveUnusedPrivateFields
+#  - org.openrewrite.staticanalysis.RemoveUnusedPrivateMethods
