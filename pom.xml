@@ -500,11 +500,11 @@
                         <licenseSet>
                             <header>.mvn/licenseHeader.txt</header>
                             <excludes>
-                                <exclude>*.txt</exclude>
                                 <exclude>*.xml</exclude>
                                 <exclude>suppressions.xml</exclude>
                                 <exclude>**/README.md</exclude>
                                 <exclude>**/.sdkmanrc</exclude>
+                                <exclude>LICENSE/apache-license-v2.txt</exclude>
                                 <exclude>src/test/resources-its/**</exclude>
                                 <exclude>src/test/resources/**</exclude>
                                 <exclude>src/main/resources/**</exclude>
