@@ -1,0 +1,5 @@
+package sample
+
+class MyClass {
+
+}
