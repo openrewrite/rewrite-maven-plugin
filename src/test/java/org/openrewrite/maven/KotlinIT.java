@@ -38,6 +38,5 @@ class KotlinIT {
             .debug()
             .anySatisfy(line -> assertThat(line).contains("Scanned 1 kotlin source files in main scope."))
             .anySatisfy(line -> assertThat(line).contains("org.openrewrite.kotlin.format.AutoFormat"));
-        ;
     }
 }
