@@ -1,5 +1,5 @@
-package sample
+  package sample
 
-class MyClass {
+    class MyClass {
 
-}
+       }
