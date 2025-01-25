@@ -242,7 +242,7 @@ public class MavenMojoProjectParser {
         source.getMarkers().findFirst(ParseExceptionResult.class).ifPresent(e -> {
             if (firstWarningLogged.compareAndSet(false, true)) {
                 logger.warn("There were problems parsing some source files" +
-                            (mavenSession.getRequest().isShowErrors() ? "" : ", run with --errors to see full stack traces"));
+                        (mavenSession.getRequest().isShowErrors() ? "" : ", run with --errors to see full stack traces"));
             }
             logger.warn("There were problems parsing " + source.getSourcePath());
             if (mavenSession.getRequest().isShowErrors()) {
@@ -397,7 +397,7 @@ public class MavenMojoProjectParser {
 
         // scan Kotlin files
         String kotlinSourceDir = getKotlinDirectory(mavenProject.getBuild().getSourceDirectory());
-        List<Path> mainKotlinSources = (kotlinSourceDir != null) ? listKotlinSources(mavenProject.getBasedir().toPath().resolve(kotlinSourceDir)) : Collections.emptyList();
+        List<Path> mainKotlinSources = listKotlinSources(mavenProject.getBasedir().toPath().resolve(kotlinSourceDir != null ? kotlinSourceDir : mavenProject.getBuild().getSourceDirectory()));
         alreadyParsed.addAll(mainKotlinSources);
 
         logInfo(mavenProject, "Parsing source files");
@@ -466,7 +466,7 @@ public class MavenMojoProjectParser {
 
         // scan Kotlin files
         String kotlinSourceDir = getKotlinDirectory(mavenProject.getBuild().getTestSourceDirectory());
-        List<Path> testKotlinSources = (kotlinSourceDir != null) ? listKotlinSources(mavenProject.getBasedir().toPath().resolve(kotlinSourceDir)) : Collections.emptyList();
+        List<Path> testKotlinSources = listKotlinSources(mavenProject.getBasedir().toPath().resolve(kotlinSourceDir != null ? kotlinSourceDir : mavenProject.getBuild().getTestSourceDirectory()));
         alreadyParsed.addAll(testKotlinSources);
 
         Stream<SourceFile> parsedJava = Stream.empty();
@@ -489,7 +489,7 @@ public class MavenMojoProjectParser {
         int sourcesParsedBefore = alreadyParsed.size();
         Stream<SourceFile> parsedResourceFiles = resourceParser.parse(mavenProject.getBasedir().toPath().resolve("src/test/resources"), alreadyParsed);
         logDebug(mavenProject, "Scanned " + (alreadyParsed.size() - sourcesParsedBefore) + " resource files in test scope.");
-        return Stream.concat(Stream.concat(parsedJava, parsedKotlin), parsedResourceFiles)
+        return Stream.concat(Stream.concat(parsedJava, kotlinParserBuilder.build().parse(testKotlinSources, baseDir, ctx)), parsedResourceFiles)
                 .map(addProvenance(baseDir, markers, null));
     }
 
@@ -582,7 +582,7 @@ public class MavenMojoProjectParser {
                     throw new MojoFailureException(
                             mavenProject,
                             "Failed to parse or resolve the Maven POM file or one of its dependencies; " +
-                            "We can not reliably continue without this information.",
+                                    "We can not reliably continue without this information.",
                             parseExceptionResult.get().getMessage());
                 }
                 projectMap.put(mavenProject, (Xml.Document) document);
