@@ -62,8 +62,8 @@
 
     <properties>
         <!-- Pinned versions, as RELEASE would make it into the published pom.xml -->
-        <rewrite.version>8.44.0-SNAPSHOT</rewrite.version>
-        <rewrite.kotlin.version>1.26.0-SNAPSHOT</rewrite.kotlin.version>
+        <rewrite.version>8.45.0-SNAPSHOT</rewrite.version>
+        <rewrite.kotlin.version>1.26.0</rewrite.kotlin.version>
 
         <!-- using 'ssh' url scheme by default, which assumes a human is performing git operations leveraging an ssh key -->
         <developerConnectionUrl>scm:git:ssh://git@github.com/openrewrite/rewrite-maven-plugin.git
@@ -76,8 +76,8 @@
         <maven.compiler.testRelease>17</maven.compiler.testRelease>
 
         <!-- dependencies and plugins -->
-        <jackson-bom.version>2.17.2</jackson-bom.version>
-        <netty.version>4.1.116.Final</netty.version>
+        <jackson-bom.version>2.17.3</jackson-bom.version>
+        <netty.version>4.1.117.Final</netty.version>
         <rocksdbjni.version>8.8.1</rocksdbjni.version>
         <rsocket.version>1.1.4</rsocket.version>
         <itf-maven.version>0.13.1</itf-maven.version>
@@ -112,7 +112,7 @@
             <dependency>
                 <groupId>org.assertj</groupId>
                 <artifactId>assertj-bom</artifactId>
-                <version>3.27.2</version>
+                <version>3.27.3</version>
                 <scope>import</scope>
                 <type>pom</type>
             </dependency>
@@ -227,7 +227,7 @@
         <dependency>
             <groupId>io.micrometer</groupId>
             <artifactId>micrometer-core</artifactId>
-            <version>1.14.2</version>
+            <version>1.14.3</version>
         </dependency>
         <dependency>
             <groupId>io.rsocket</groupId>
@@ -504,6 +504,7 @@
                                 <exclude>suppressions.xml</exclude>
                                 <exclude>**/README.md</exclude>
                                 <exclude>**/.sdkmanrc</exclude>
+                                <exclude>LICENSE/apache-license-v2.txt</exclude>
                                 <exclude>src/test/resources-its/**</exclude>
                                 <exclude>src/test/resources/**</exclude>
                                 <exclude>src/main/resources/**</exclude>
