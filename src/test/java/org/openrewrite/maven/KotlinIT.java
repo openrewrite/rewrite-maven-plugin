@@ -31,13 +31,23 @@ import static com.soebes.itf.extension.assertj.MavenITAssertions.assertThat;
 @MavenGoal("${project.groupId}:${project.artifactId}:${project.version}:run")
 class KotlinIT {
     @MavenTest
-    void basic_kotlin_project(MavenExecutionResult result) {
+    void kotlin_in_src_main_java(MavenExecutionResult result) {
         assertThat(result)
           .isSuccessful()
           .out()
           .debug()
           .anySatisfy(line -> assertThat(line).contains("Scanned 1 kotlin source files in main scope."))
+          .anySatisfy(line -> assertThat(line).contains("org.openrewrite.kotlin.format.AutoFormat"));
+    }
+
+    @MavenTest
+    void kotlin_in_src_main_test(MavenExecutionResult result) {
+        assertThat(result)
+          .isSuccessful()
+          .out()
+          .debug()
           .anySatisfy(line -> assertThat(line).contains("Scanned 1 kotlin source files in test scope."))
           .anySatisfy(line -> assertThat(line).contains("org.openrewrite.kotlin.format.AutoFormat"));
     }
+
 }
