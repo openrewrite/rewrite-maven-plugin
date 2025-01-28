@@ -31,6 +31,7 @@ import org.apache.maven.settings.crypto.SettingsDecrypter;
 import org.apache.maven.settings.crypto.SettingsDecryptionRequest;
 import org.apache.maven.settings.crypto.SettingsDecryptionResult;
 import org.codehaus.plexus.util.xml.Xpp3Dom;
+import org.jetbrains.annotations.NotNull;
 import org.jspecify.annotations.Nullable;
 import org.openrewrite.ExecutionContext;
 import org.openrewrite.ParseExceptionResult;
@@ -388,16 +389,16 @@ public class MavenMojoProjectParser {
         // Some annotation processors output generated sources to the /target directory. These are added for parsing but
         // should be filtered out of the final SourceFile list.
         List<Path> generatedSourcePaths = listJavaSources(mavenProject.getBasedir().toPath().resolve(mavenProject.getBuild().getDirectory()));
+        String mavenSourceDirectory = mavenProject.getBuild().getSourceDirectory();
         List<Path> mainJavaSources = Stream.concat(
                 generatedSourcePaths.stream(),
-                listJavaSources(mavenProject.getBasedir().toPath().resolve(mavenProject.getBuild().getSourceDirectory())).stream()
+                listJavaSources(mavenProject.getBasedir().toPath().resolve(mavenSourceDirectory)).stream()
         ).collect(toList());
 
         alreadyParsed.addAll(mainJavaSources);
 
         // scan Kotlin files
-        String kotlinSourceDir = getKotlinDirectory(mavenProject.getBuild().getSourceDirectory());
-        List<Path> mainKotlinSources = listKotlinSources(mavenProject.getBasedir().toPath().resolve(kotlinSourceDir != null ? kotlinSourceDir : mavenProject.getBuild().getSourceDirectory()));
+        List<Path> mainKotlinSources = listKotlinSources(mavenProject, mavenSourceDirectory);
         alreadyParsed.addAll(mainKotlinSources);
 
         logInfo(mavenProject, "Parsing source files");
@@ -465,8 +466,8 @@ public class MavenMojoProjectParser {
         alreadyParsed.addAll(testJavaSources);
 
         // scan Kotlin files
-        String kotlinTestSourceDir = getKotlinDirectory(mavenProject.getBuild().getTestSourceDirectory());
-        List<Path> testKotlinSources = listKotlinSources(mavenProject.getBasedir().toPath().resolve(kotlinTestSourceDir != null ? kotlinTestSourceDir : mavenProject.getBuild().getTestSourceDirectory()));
+        String mavenTestSourceDirectory = mavenProject.getBuild().getTestSourceDirectory();
+        List<Path> testKotlinSources = listKotlinSources(mavenProject, mavenTestSourceDirectory);
         alreadyParsed.addAll(testKotlinSources);
 
         Stream<SourceFile> parsedJava = Stream.empty();
@@ -489,8 +490,13 @@ public class MavenMojoProjectParser {
         int sourcesParsedBefore = alreadyParsed.size();
         Stream<SourceFile> parsedResourceFiles = resourceParser.parse(mavenProject.getBasedir().toPath().resolve("src/test/resources"), alreadyParsed);
         logDebug(mavenProject, "Scanned " + (alreadyParsed.size() - sourcesParsedBefore) + " resource files in test scope.");
-        return Stream.concat(Stream.concat(parsedJava, kotlinParserBuilder.build().parse(testKotlinSources, baseDir, ctx)), parsedResourceFiles)
+        return Stream.concat(Stream.concat(parsedJava, parsedKotlin), parsedResourceFiles)
                 .map(addProvenance(baseDir, markers, null));
+    }
+
+    private @NotNull List<Path> listKotlinSources(MavenProject mavenProject, String fallbackSourceDirectory) throws MojoExecutionException {
+        String kotlinSourceDir = getKotlinDirectory(fallbackSourceDirectory);
+        return listSources(mavenProject.getBasedir().toPath().resolve(kotlinSourceDir != null ? kotlinSourceDir : fallbackSourceDirectory), ".kt");
     }
 
     private @Nullable String getKotlinDirectory(@Nullable String sourceDirectory) {
@@ -758,10 +764,6 @@ public class MavenMojoProjectParser {
 
     private static List<Path> listJavaSources(Path sourceDirectory) throws MojoExecutionException {
         return listSources(sourceDirectory, ".java");
-    }
-
-    private static List<Path> listKotlinSources(Path sourceDirectory) throws MojoExecutionException {
-        return listSources(sourceDirectory, ".kt");
     }
 
     private static List<Path> listSources(Path sourceDirectory, String extension) throws MojoExecutionException {
