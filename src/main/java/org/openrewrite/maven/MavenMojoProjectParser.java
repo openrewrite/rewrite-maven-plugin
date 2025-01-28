@@ -479,7 +479,7 @@ public class MavenMojoProjectParser {
         Stream<SourceFile> parsedKotlin = Stream.empty();
         if (!testKotlinSources.isEmpty()) {
             parsedKotlin = kotlinParserBuilder.build().parse(testKotlinSources, baseDir, ctx);
-            logDebug(mavenProject, "Scanned " + testKotlinSources.size() + " kotlin source files in main scope.");
+            logDebug(mavenProject, "Scanned " + testKotlinSources.size() + " kotlin source files in test scope.");
         }
 
         List<Marker> markers = new ArrayList<>(projectProvenance);
