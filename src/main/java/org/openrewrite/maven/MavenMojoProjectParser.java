@@ -465,8 +465,8 @@ public class MavenMojoProjectParser {
         alreadyParsed.addAll(testJavaSources);
 
         // scan Kotlin files
-        String kotlinSourceDir = getKotlinDirectory(mavenProject.getBuild().getTestSourceDirectory());
-        List<Path> testKotlinSources = listKotlinSources(mavenProject.getBasedir().toPath().resolve(kotlinSourceDir != null ? kotlinSourceDir : mavenProject.getBuild().getTestSourceDirectory()));
+        String kotlinTestSourceDir = getKotlinDirectory(mavenProject.getBuild().getTestSourceDirectory());
+        List<Path> testKotlinSources = listKotlinSources(mavenProject.getBasedir().toPath().resolve(kotlinTestSourceDir != null ? kotlinTestSourceDir : mavenProject.getBuild().getTestSourceDirectory()));
         alreadyParsed.addAll(testKotlinSources);
 
         Stream<SourceFile> parsedJava = Stream.empty();
