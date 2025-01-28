@@ -33,10 +33,11 @@ class KotlinIT {
     @MavenTest
     void basic_kotlin_project(MavenExecutionResult result) {
         assertThat(result)
-            .isSuccessful()
-            .out()
-            .debug()
-            .anySatisfy(line -> assertThat(line).contains("Scanned 1 kotlin source files in main scope."))
-            .anySatisfy(line -> assertThat(line).contains("org.openrewrite.kotlin.format.AutoFormat"));
+          .isSuccessful()
+          .out()
+          .debug()
+          .anySatisfy(line -> assertThat(line).contains("Scanned 1 kotlin source files in main scope."))
+          .anySatisfy(line -> assertThat(line).contains("Scanned 1 kotlin source files in test scope."))
+          .anySatisfy(line -> assertThat(line).contains("org.openrewrite.kotlin.format.AutoFormat"));
     }
 }
