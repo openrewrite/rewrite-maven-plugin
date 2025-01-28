@@ -31,7 +31,6 @@ import org.apache.maven.settings.crypto.SettingsDecrypter;
 import org.apache.maven.settings.crypto.SettingsDecryptionRequest;
 import org.apache.maven.settings.crypto.SettingsDecryptionResult;
 import org.codehaus.plexus.util.xml.Xpp3Dom;
-import org.jetbrains.annotations.NotNull;
 import org.jspecify.annotations.Nullable;
 import org.openrewrite.ExecutionContext;
 import org.openrewrite.ParseExceptionResult;
@@ -494,7 +493,7 @@ public class MavenMojoProjectParser {
                 .map(addProvenance(baseDir, markers, null));
     }
 
-    private @NotNull List<Path> listKotlinSources(MavenProject mavenProject, String fallbackSourceDirectory) throws MojoExecutionException {
+    private List<Path> listKotlinSources(MavenProject mavenProject, String fallbackSourceDirectory) throws MojoExecutionException {
         String kotlinSourceDir = getKotlinDirectory(fallbackSourceDirectory);
         return listSources(mavenProject.getBasedir().toPath().resolve(kotlinSourceDir != null ? kotlinSourceDir : fallbackSourceDirectory), ".kt");
     }
