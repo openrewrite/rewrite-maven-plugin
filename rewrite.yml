@@ -14,10 +14,10 @@
 # limitations under the License.
 #
 
-#./mvnw org.openrewrite.maven:rewrite-maven-plugin:LATEST:run -Drewrite.recipeArtifactCoordinates=org.openrewrite.recipe:rewrite-static-analysis:RELEASE -Drewrite.activeRecipes=org.openrewrite.recipes.OpenRewriteBestPracticesSubset
+#./mvnw org.openrewrite.maven:rewrite-maven-plugin:LATEST:run -Drewrite.recipeArtifactCoordinates=org.openrewrite.recipe:rewrite-static-analysis:RELEASE -Drewrite.activeRecipes=org.openrewrite.recipes.rewrite.OpenRewriteRecipeBestPracticesSubset
 ---
 type: specs.openrewrite.org/v1beta/recipe
-name: org.openrewrite.recipes.OpenRewriteBestPracticesSubset
+name: org.openrewrite.recipes.rewrite.OpenRewriteRecipeBestPracticesSubset
 displayName: OpenRewrite best practices
 description: Best practices for OpenRewrite recipe development.
 recipeList:
