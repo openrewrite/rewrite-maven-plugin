@@ -33,6 +33,7 @@ import java.nio.file.Files;
 import java.nio.file.Path;
 import java.time.Duration;
 import java.util.List;
+import java.util.concurrent.atomic.AtomicReference;
 
 /**
  * Run the configured recipes and apply the changes locally.
@@ -60,9 +61,10 @@ public class AbstractRewriteRunMojo extends AbstractRewriteBaseRunMojo {
             return;
         }
 
-        ExecutionContext ctx = executionContext();
+        AtomicReference<@Nullable Throwable> throwable = new AtomicReference<>();
+        ExecutionContext ctx = executionContext(throwable);
         ResultsContainer results = listResults(ctx);
-        @Nullable RuntimeException firstException = results.getFirstException();
+        RuntimeException firstException = results.getFirstException(throwable);
         if (firstException != null) {
             getLog().error("The recipe produced an error. Please report this to the recipe author.");
             throw firstException;

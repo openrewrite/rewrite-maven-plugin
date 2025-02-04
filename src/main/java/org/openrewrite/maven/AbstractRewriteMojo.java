@@ -40,6 +40,7 @@ import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.util.*;
+import java.util.concurrent.atomic.AtomicReference;
 
 @SuppressWarnings("NotNullFieldNotInitialized")
 public abstract class AbstractRewriteMojo extends ConfigurableRewriteMojo {
@@ -125,8 +126,12 @@ public abstract class AbstractRewriteMojo extends ConfigurableRewriteMojo {
         return env.build();
     }
 
-    protected ExecutionContext executionContext() {
-        return new InMemoryExecutionContext(t -> getLog().debug(t));
+    protected ExecutionContext executionContext(AtomicReference<@Nullable Throwable> throwable) {
+        return new InMemoryExecutionContext(t -> {
+            if (throwable.get() == null) {
+                throwable.set(t);
+            }
+        });
     }
 
     protected Path getBuildRoot() {

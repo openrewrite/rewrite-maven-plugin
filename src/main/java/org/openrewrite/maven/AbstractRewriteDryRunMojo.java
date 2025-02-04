@@ -28,6 +28,7 @@ import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.time.Duration;
+import java.util.concurrent.atomic.AtomicReference;
 import java.util.stream.Stream;
 
 /**
@@ -66,10 +67,10 @@ public class AbstractRewriteDryRunMojo extends AbstractRewriteBaseRunMojo {
             return;
         }
 
-        ExecutionContext ctx = executionContext();
+        AtomicReference<@Nullable Throwable> throwable = new AtomicReference<>();
+        ExecutionContext ctx = executionContext(throwable);
         ResultsContainer results = listResults(ctx);
-
-        RuntimeException firstException = results.getFirstException();
+        RuntimeException firstException = results.getFirstException(throwable);
         if (firstException != null) {
             getLog().error("The recipe produced an error. Please report this to the recipe author.");
             throw firstException;
