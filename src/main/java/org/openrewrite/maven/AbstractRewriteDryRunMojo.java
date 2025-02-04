@@ -28,6 +28,8 @@ import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.time.Duration;
+import java.util.ArrayList;
+import java.util.List;
 import java.util.concurrent.atomic.AtomicReference;
 import java.util.stream.Stream;
 
@@ -67,8 +69,8 @@ public class AbstractRewriteDryRunMojo extends AbstractRewriteBaseRunMojo {
             return;
         }
 
-        AtomicReference<@Nullable Throwable> throwable = new AtomicReference<>();
-        ExecutionContext ctx = executionContext(throwable);
+        List<Throwable> throwables = new ArrayList<>();
+        ExecutionContext ctx = executionContext(throwables);
 
         ResultsContainer results = listResults(ctx);
 
@@ -77,8 +79,8 @@ public class AbstractRewriteDryRunMojo extends AbstractRewriteBaseRunMojo {
             getLog().error("The recipe produced an error. Please report this to the recipe author.");
             throw firstException;
         }
-        if (throwable.get() != null) {
-            getLog().warn("The recipe produced a warning. Please report this to the recipe author.", throwable.get());
+        if (!throwables.isEmpty()) {
+            getLog().warn("The recipe produced " + throwables.size() + " warning(s). Please report this to the recipe author.", throwables.get(0));
         }
 
         if (results.isNotEmpty()) {
