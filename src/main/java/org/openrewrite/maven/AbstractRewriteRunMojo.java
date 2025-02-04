@@ -63,11 +63,16 @@ public class AbstractRewriteRunMojo extends AbstractRewriteBaseRunMojo {
 
         AtomicReference<@Nullable Throwable> throwable = new AtomicReference<>();
         ExecutionContext ctx = executionContext(throwable);
+
         ResultsContainer results = listResults(ctx);
-        RuntimeException firstException = results.getFirstException(throwable);
+
+        RuntimeException firstException = results.getFirstException();
         if (firstException != null) {
             getLog().error("The recipe produced an error. Please report this to the recipe author.");
             throw firstException;
+        }
+        if (throwable.get() != null) {
+            getLog().warn("The recipe produced a warning. Please report this to the recipe author.", throwable.get());
         }
 
         if (results.isNotEmpty()) {

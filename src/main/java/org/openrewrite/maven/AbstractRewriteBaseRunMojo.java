@@ -47,7 +47,6 @@ import java.time.Duration;
 import java.time.LocalDateTime;
 import java.time.format.DateTimeFormatter;
 import java.util.*;
-import java.util.concurrent.atomic.AtomicReference;
 import java.util.function.UnaryOperator;
 import java.util.stream.Stream;
 
@@ -345,7 +344,7 @@ public abstract class AbstractRewriteBaseRunMojo extends AbstractRewriteMojo {
             }
         }
 
-        public @Nullable RuntimeException getFirstException(AtomicReference<@Nullable Throwable> reference) {
+        public @Nullable RuntimeException getFirstException() {
             for (Result result : generated) {
                 for (RuntimeException error : getRecipeErrors(result)) {
                     return error;
@@ -366,14 +365,7 @@ public abstract class AbstractRewriteBaseRunMojo extends AbstractRewriteMojo {
                     return error;
                 }
             }
-            Throwable throwable = reference.get();
-            if (throwable == null) {
-                return null;
-            }
-            if (throwable instanceof RuntimeException) {
-                return (RuntimeException) throwable;
-            }
-            return new RuntimeException(throwable);
+            return null;
         }
 
         private List<RuntimeException> getRecipeErrors(Result result) {
