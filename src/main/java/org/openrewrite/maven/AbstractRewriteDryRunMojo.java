@@ -79,7 +79,10 @@ public class AbstractRewriteDryRunMojo extends AbstractRewriteBaseRunMojo {
             throw firstException;
         }
         if (!throwables.isEmpty()) {
-            getLog().warn("The recipe produced " + throwables.size() + " warning(s). Please report this to the recipe author.", throwables.get(0));
+            getLog().warn("The recipe produced " + throwables.size() + " warning(s). Please report this to the recipe author.");
+            if (!getLog().isDebugEnabled() && !exportDatatables) {
+                getLog().warn("Run with `--debug` or `-Drewrite.exportDatatables=true` to see all warnings.", throwables.get(0));
+            }
         }
 
         if (results.isNotEmpty()) {

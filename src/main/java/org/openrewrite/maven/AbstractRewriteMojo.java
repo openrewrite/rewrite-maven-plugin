@@ -126,7 +126,10 @@ public abstract class AbstractRewriteMojo extends ConfigurableRewriteMojo {
     }
 
     protected ExecutionContext executionContext(List<Throwable> throwables) {
-        return new InMemoryExecutionContext(throwables::add);
+        return new InMemoryExecutionContext(t -> {
+            getLog().debug(t);
+            throwables.add(t);
+        });
     }
 
     protected Path getBuildRoot() {
