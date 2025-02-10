@@ -28,6 +28,8 @@ import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.time.Duration;
+import java.util.ArrayList;
+import java.util.List;
 import java.util.stream.Stream;
 
 /**
@@ -66,13 +68,21 @@ public class AbstractRewriteDryRunMojo extends AbstractRewriteBaseRunMojo {
             return;
         }
 
-        ExecutionContext ctx = executionContext();
+        List<Throwable> throwables = new ArrayList<>();
+        ExecutionContext ctx = executionContext(throwables);
+
         ResultsContainer results = listResults(ctx);
 
         RuntimeException firstException = results.getFirstException();
         if (firstException != null) {
             getLog().error("The recipe produced an error. Please report this to the recipe author.");
             throw firstException;
+        }
+        if (!throwables.isEmpty()) {
+            getLog().warn("The recipe produced " + throwables.size() + " warning(s). Please report this to the recipe author.");
+            if (!getLog().isDebugEnabled() && !exportDatatables) {
+                getLog().warn("Run with `--debug` or `-Drewrite.exportDatatables=true` to see all warnings.", throwables.get(0));
+            }
         }
 
         if (results.isNotEmpty()) {

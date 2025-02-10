@@ -44,7 +44,7 @@ jobs:
       - name: Apply OpenRewrite recipes
         run: |
           ./mvnw org.openrewrite.maven:rewrite-maven-plugin:LATEST:run \
-            -Drewrite.activeRecipes=org.openrewrite.recipes.OpenRewriteBestPracticesSubset \
+            -Drewrite.activeRecipes=org.openrewrite.recipes.rewrite.OpenRewriteRecipeBestPracticesSubset \
             -Drewrite.recipeArtifactCoordinates=org.openrewrite.recipe:rewrite-static-analysis:RELEASE
 
       # Capture the diff
