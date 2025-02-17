@@ -240,6 +240,12 @@ public abstract class AbstractRewriteBaseRunMojo extends AbstractRewriteMojo {
 
     protected List<Result> runRecipe(Recipe recipe, LargeSourceSet sourceSet, ExecutionContext ctx) {
         getLog().info("Running recipe(s)...");
+
+        // set the TCCL to the classloader of the recipe to enable class loading via SPI targeting into recipe artifacts
+        // Some Recipe Artifacts define implementations that are resolved by SPI on runtime. These implementations are only
+        // loadable if the TCCL is set to the CL of the Recipes, because that's the only CL that knows them.
+        Thread.currentThread().setContextClassLoader(recipe.getClass().getClassLoader());
+
         RecipeRun recipeRun = recipe.run(sourceSet, ctx);
 
         if (exportDatatables) {
