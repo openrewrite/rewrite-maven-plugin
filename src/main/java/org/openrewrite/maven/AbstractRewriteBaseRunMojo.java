@@ -48,6 +48,7 @@ import java.time.LocalDateTime;
 import java.time.format.DateTimeFormatter;
 import java.util.*;
 import java.util.function.UnaryOperator;
+import java.util.stream.Collectors;
 import java.util.stream.Stream;
 
 import static java.util.Collections.emptyList;
@@ -235,17 +236,46 @@ public abstract class AbstractRewriteBaseRunMojo extends AbstractRewriteMojo {
 
         Stream<SourceFile> sourceFiles = projectParser.listSourceFiles(project, styles, ctx);
         List<SourceFile> sourceFileList = sourcesWithAutoDetectedStyles(sourceFiles);
-        return new InMemoryLargeSourceSet(sourceFileList);
+
+        ClassLoader compositClassLoader = selectClassLoader(env);
+
+        return new InMemoryLargeSourceSet(sourceFileList, compositClassLoader);
+    }
+
+    @Nullable
+    private ClassLoader selectClassLoader(Environment env) {
+        List<Recipe> recipes = env.listRecipes();
+
+        if (recipes.isEmpty()){
+            return null;
+        } else if (recipes.size() == 1) {
+            return recipes.get(0).getClass().getClassLoader();
+        } else {
+            List<ClassLoader> recipeCLs = recipes.stream()
+                    .map(Recipe::getClass)
+                    .map(Class::getClassLoader)
+                    .collect(Collectors.toList());
+
+            return new ClassLoader() {
+                private final List<ClassLoader> cls = recipeCLs;
+                @Override
+                protected Class<?> findClass(String name) throws ClassNotFoundException {
+                    for (ClassLoader cl : cls) {
+                        try {
+                            return cl.loadClass(name);
+                        } catch (ClassNotFoundException ignored) {
+                            // no class found so try the next one
+                        }
+                    }
+                    // try the parent classloader, if non found ClassNotFoundException will be thrown
+                    return super.findClass(name);
+                }
+            };
+        }
     }
 
     protected List<Result> runRecipe(Recipe recipe, LargeSourceSet sourceSet, ExecutionContext ctx) {
         getLog().info("Running recipe(s)...");
-
-        // set the TCCL to the classloader of the recipe to enable class loading via SPI targeting into recipe artifacts
-        // Some Recipe Artifacts define implementations that are resolved by SPI on runtime. These implementations are only
-        // loadable if the TCCL is set to the CL of the Recipes, because that's the only CL that knows them.
-        Thread.currentThread().setContextClassLoader(recipe.getClass().getClassLoader());
-
         RecipeRun recipeRun = recipe.run(sourceSet, ctx);
 
         if (exportDatatables) {
