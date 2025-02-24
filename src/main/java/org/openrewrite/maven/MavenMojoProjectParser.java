@@ -548,7 +548,16 @@ public class MavenMojoProjectParser {
             mavenSession.getProjectDependencyGraph().getUpstreamProjects(mavenProject, true).forEach(p -> collectPoms(p, allPoms, mavenExecutionContext));
         }
 
-        MavenParser.Builder mavenParserBuilder = MavenParser.builder().mavenConfig(baseDir.resolve(MVN_MAVEN_CONFIG));
+        MavenParser.Builder mavenParserBuilder = MavenParser.builder();
+        Path mavenConfig = baseDir.resolve(MVN_MAVEN_CONFIG);
+        if (mavenConfig.toFile().exists()) {
+            try {
+                String mavenConfigText = new String(Files.readAllBytes(mavenConfig));
+                mavenParserBuilder.mavenConfig(mavenConfigText);
+            } catch (IOException e) {
+                logDebug(topLevelProject, "Failed to read `maven.config` file");
+            }
+        }
         List<String> activeProfiles = topLevelProject.getActiveProfiles().stream().map(Profile::getId).collect(toList());
         if (!activeProfiles.isEmpty()) {
             mavenParserBuilder.activeProfiles(activeProfiles.toArray(new String[0]));
