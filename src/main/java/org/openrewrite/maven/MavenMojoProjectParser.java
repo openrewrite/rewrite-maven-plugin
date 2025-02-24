@@ -242,7 +242,7 @@ public class MavenMojoProjectParser {
         source.getMarkers().findFirst(ParseExceptionResult.class).ifPresent(e -> {
             if (firstWarningLogged.compareAndSet(false, true)) {
                 logger.warn("There were problems parsing some source files" +
-                        (mavenSession.getRequest().isShowErrors() ? "" : ", run with --errors to see full stack traces"));
+                            (mavenSession.getRequest().isShowErrors() ? "" : ", run with --errors to see full stack traces"));
             }
             logger.warn("There were problems parsing " + source.getSourcePath());
             if (mavenSession.getRequest().isShowErrors()) {
@@ -596,7 +596,7 @@ public class MavenMojoProjectParser {
                     throw new MojoFailureException(
                             mavenProject,
                             "Failed to parse or resolve the Maven POM file or one of its dependencies; " +
-                                    "We can not reliably continue without this information.",
+                            "We can not reliably continue without this information.",
                             parseExceptionResult.get().getMessage());
                 }
                 projectMap.put(mavenProject, (Xml.Document) document);
@@ -661,9 +661,9 @@ public class MavenMojoProjectParser {
     private static Path pomPath(MavenProject mavenProject) {
         Path pomPath = mavenProject.getFile().toPath();
         if (pomPath.endsWith(".flattened-pom.xml") ||// org.codehaus.mojo:flatten-maven-plugin
-                pomPath.endsWith("dependency-reduced-pom.xml") || // org.apache.maven.plugins:maven-shade-plugin
-                pomPath.endsWith(".ci-friendly-pom.xml") || // com.outbrain.swinfra:ci-friendly-flatten-maven-plugin
-                pomPath.endsWith(".tycho-consumer-pom.xml")) { // org.eclipse.tycho:tycho-packaging-plugin:update-consumer-pom
+            pomPath.endsWith("dependency-reduced-pom.xml") || // org.apache.maven.plugins:maven-shade-plugin
+            pomPath.endsWith(".ci-friendly-pom.xml") || // com.outbrain.swinfra:ci-friendly-flatten-maven-plugin
+            pomPath.endsWith(".tycho-consumer-pom.xml")) { // org.eclipse.tycho:tycho-packaging-plugin:update-consumer-pom
             Path normalPom = mavenProject.getBasedir().toPath().resolve("pom.xml");
             // check for the existence of the POM, since Tycho can work pom-less
             if (Files.isReadable(normalPom) && Files.isRegularFile(normalPom)) {
