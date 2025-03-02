@@ -548,11 +548,10 @@ public class MavenMojoProjectParser {
             mavenSession.getProjectDependencyGraph().getUpstreamProjects(mavenProject, true).forEach(p -> collectPoms(p, allPoms, mavenExecutionContext));
         }
 
-        MavenParser.Builder mavenParserBuilder = MavenParser.builder().mavenConfig(baseDir.resolve(MVN_MAVEN_CONFIG));
-        List<String> activeProfiles = topLevelProject.getActiveProfiles().stream().map(Profile::getId).collect(toList());
-        if (!activeProfiles.isEmpty()) {
-            mavenParserBuilder.activeProfiles(activeProfiles.toArray(new String[0]));
-        }
+        MavenParser.Builder mavenParserBuilder = MavenParser.builder();
+        topLevelProject.getActiveProfiles().stream()
+                .map(Profile::getId)
+                .forEach(mavenParserBuilder::activeProfiles);
         mavenSession.getRequest().getActiveProfiles().forEach(mavenParserBuilder::activeProfiles);
         mavenSession.getUserProperties().forEach((key, value) ->
                 mavenParserBuilder.property((String) key, (String) value));
