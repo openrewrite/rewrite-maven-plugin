@@ -553,6 +553,8 @@ public class MavenMojoProjectParser {
         if (!activeProfiles.isEmpty()) {
             mavenParserBuilder.activeProfiles(activeProfiles.toArray(new String[0]));
         }
+        mavenSession.getUserProperties().forEach((key, value) ->
+                mavenParserBuilder.property((String) key, (String) value));
 
         List<SourceFile> mavens = mavenParserBuilder.build()
                 .parse(allPoms, baseDir, ctx)
