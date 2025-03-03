@@ -549,9 +549,7 @@ public class MavenMojoProjectParser {
         }
 
         MavenParser.Builder mavenParserBuilder = MavenParser.builder();
-        topLevelProject.getActiveProfiles().stream()
-                .map(Profile::getId)
-                .forEach(mavenParserBuilder::activeProfiles);
+        topLevelProject.getActiveProfiles().forEach(it -> mavenParserBuilder.activeProfiles(it.getId()));
         mavenSession.getRequest().getActiveProfiles().forEach(mavenParserBuilder::activeProfiles);
         mavenSession.getUserProperties().forEach((key, value) ->
                 mavenParserBuilder.property((String) key, (String) value));
