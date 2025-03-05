@@ -30,6 +30,12 @@ import org.openrewrite.config.Environment;
 import org.openrewrite.config.YamlResourceLoader;
 import org.openrewrite.ipc.http.HttpSender;
 import org.openrewrite.ipc.http.HttpUrlConnectionSender;
+import org.openrewrite.java.tree.J;
+import org.openrewrite.java.tree.JavaSourceFile;
+import org.openrewrite.kotlin.tree.K;
+import org.openrewrite.marker.*;
+import org.openrewrite.style.NamedStyles;
+import org.openrewrite.xml.tree.Xml;
 
 import javax.inject.Inject;
 import java.io.File;
@@ -166,6 +172,117 @@ public abstract class AbstractRewriteMojo extends ConfigurableRewriteMojo {
             collectBasePaths(parent, paths, localRepository);
             parent = parent.getParent();
         }
+    }
+
+    protected ResultsContainer listResults(ExecutionContext ctx) throws MojoExecutionException {
+        try (MeterRegistryProvider meterRegistryProvider = new MeterRegistryProvider(getLog(),
+                metricsUri, metricsUsername, metricsPassword)) {
+            Metrics.addRegistry(meterRegistryProvider.registry());
+
+            Path repositoryRoot = repositoryRoot();
+            getLog().info(String.format("Using active recipe(s) %s", getActiveRecipes()));
+            getLog().info(String.format("Using active styles(s) %s", getActiveStyles()));
+            if (getActiveRecipes().isEmpty()) {
+                return new ResultsContainer(repositoryRoot, emptyList());
+            }
+
+            URLClassLoader recipeArtifactCoordinatesClassloader = getRecipeArtifactCoordinatesClassloader();
+            if (recipeArtifactCoordinatesClassloader != null) {
+                merge(getClass().getClassLoader(), recipeArtifactCoordinatesClassloader);
+            }
+            Environment env = environment(recipeArtifactCoordinatesClassloader);
+
+            Recipe recipe = env.activateRecipes(getActiveRecipes());
+            if (recipe.getRecipeList().isEmpty()) {
+                getLog().warn("No recipes were activated. " +
+                              "Activate a recipe with <activeRecipes><recipe>com.fully.qualified.RecipeClassName</recipe></activeRecipes> in this plugin's <configuration> in your pom.xml, " +
+                              "or on the command line with -Drewrite.activeRecipes=com.fully.qualified.RecipeClassName");
+                return new ResultsContainer(repositoryRoot, emptyList());
+            }
+
+            getLog().info("Validating active recipes...");
+            List<Validated<Object>> validations = new ArrayList<>();
+            recipe.validateAll(ctx, validations);
+            List<Validated.Invalid<Object>> failedValidations = validations.stream().map(Validated::failures)
+                    .flatMap(Collection::stream).collect(toList());
+            if (!failedValidations.isEmpty()) {
+                failedValidations.forEach(failedValidation -> getLog().error(
+                        "Recipe validation error in " + failedValidation.getProperty() + ": " +
+                        failedValidation.getMessage(), failedValidation.getException()));
+                if (failOnInvalidActiveRecipes) {
+                    throw new MojoExecutionException("Recipe validation errors detected as part of one or more activeRecipe(s). Please check error logs.");
+                } else {
+                    getLog().error("Recipe validation errors detected as part of one or more activeRecipe(s). Execution will continue regardless.");
+                }
+            }
+
+            LargeSourceSet sourceSet = loadSourceSet(repositoryRoot, env, ctx);
+
+            List<Result> results = runRecipe(recipe, sourceSet, ctx);
+
+            Metrics.removeRegistry(meterRegistryProvider.registry());
+
+            return new ResultsContainer(repositoryRoot, results);
+        } catch (DependencyResolutionRequiredException e) {
+            throw new MojoExecutionException("Dependency resolution required", e);
+        }
+    }
+
+    protected LargeSourceSet loadSourceSet(Path repositoryRoot, Environment env, ExecutionContext ctx) throws DependencyResolutionRequiredException, MojoExecutionException {
+        List<NamedStyles> styles = loadStyles(project, env);
+
+        //Parse and collect source files from each project in the maven session.
+        MavenMojoProjectParser projectParser = new MavenMojoProjectParser(getLog(), repositoryRoot, pomCacheEnabled, pomCacheDirectory, runtime, skipMavenParsing, getExclusions(), getPlainTextMasks(), sizeThresholdMb, mavenSession, settingsDecrypter, runPerSubmodule);
+
+        Stream<SourceFile> sourceFiles = projectParser.listSourceFiles(project, styles, ctx);
+        List<SourceFile> sourceFileList = sourcesWithAutoDetectedStyles(sourceFiles);
+        return new InMemoryLargeSourceSet(sourceFileList);
+    }
+
+    protected List<Result> runRecipe(Recipe recipe, LargeSourceSet sourceSet, ExecutionContext ctx) {
+        getLog().info("Running recipe(s)...");
+        return recipe.run(sourceSet, ctx).getChangeset().getAllResults().stream()
+                .filter(source -> {
+                    // Remove ASTs originating from generated files
+                    if (source.getBefore() != null) {
+                        return !source.getBefore().getMarkers().findFirst(Generated.class).isPresent();
+                    }
+                    return true;
+                })
+                .collect(toList());
+    }
+
+    private List<SourceFile> sourcesWithAutoDetectedStyles(Stream<SourceFile> sourceFiles) {
+        org.openrewrite.java.style.Autodetect.Detector javaDetector = org.openrewrite.java.style.Autodetect.detector();
+        org.openrewrite.kotlin.style.Autodetect.Detector kotlinDetector = org.openrewrite.kotlin.style.Autodetect.detector();
+        org.openrewrite.xml.style.Autodetect.Detector xmlDetector = org.openrewrite.xml.style.Autodetect.detector();
+
+        List<SourceFile> sourceFileList = sourceFiles
+                .peek(s -> {
+                    if (s instanceof K.CompilationUnit) {
+                        kotlinDetector.sample(s);
+                    } else if (s instanceof J.CompilationUnit) {
+                        javaDetector.sample(s);
+                    }
+                })
+                .peek(xmlDetector::sample)
+                .collect(toList());
+
+        Marker javaAutoDetect = javaDetector.build();
+        Marker kotlinAutoDetect = kotlinDetector.build();
+        Marker xmlAutoDetect = xmlDetector.build();
+
+        return ListUtils.map(sourceFileList, s -> {
+            Markers markers = s.getMarkers();
+            if (s instanceof K.CompilationUnit) {
+                markers = markers.add(kotlinAutoDetect);
+            } else if (s instanceof J.CompilationUnit) {
+                markers = markers.add(javaAutoDetect);
+            } else if (s instanceof Xml.Document) {
+                markers = markers.add(xmlAutoDetect);
+            }
+            return s.withMarkers(markers);
+        });
     }
 
     protected @Nullable URLClassLoader getRecipeArtifactCoordinatesClassloader() throws MojoExecutionException {
