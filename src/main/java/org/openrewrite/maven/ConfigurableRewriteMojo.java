@@ -58,18 +58,6 @@ public abstract class ConfigurableRewriteMojo extends AbstractMojo {
     @Parameter(property = "rewrite.activeStyles")
     protected LinkedHashSet<String> activeStyles;
 
-    @Nullable
-    @Parameter(property = "rewrite.metricsUri", alias = "metricsUri")
-    protected String metricsUri;
-
-    @Nullable
-    @Parameter(property = "rewrite.metricsUsername", alias = "metricsUsername")
-    protected String metricsUsername;
-
-    @Nullable
-    @Parameter(property = "rewrite.metricsPassword", alias = "metricsPassword")
-    protected String metricsPassword;
-
     @Parameter(property = "rewrite.pomCacheEnabled", alias = "pomCacheEnabled", defaultValue = "true")
     protected boolean pomCacheEnabled;
 
