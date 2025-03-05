@@ -24,14 +24,14 @@ public class MeterRegistryProvider implements AutoCloseable {
     private final Log log;
 
     @Nullable
-    private final String uriString;
+    private final String destination;
 
     @Nullable
     private MeterRegistry registry;
 
-    public MeterRegistryProvider(Log log, @Nullable String uriString) {
+    public MeterRegistryProvider(Log log, @Nullable String destination) {
         this.log = log;
-        this.uriString = uriString;
+        this.destination = destination;
     }
 
     public MeterRegistry registry() {
@@ -42,7 +42,7 @@ public class MeterRegistryProvider implements AutoCloseable {
     }
 
     private MeterRegistry buildRegistry() {
-       if ("LOG".equals(uriString)) {
+       if ("LOG".equals(destination)) {
             return new MavenLoggingMeterRegistry(log);
         }
 
