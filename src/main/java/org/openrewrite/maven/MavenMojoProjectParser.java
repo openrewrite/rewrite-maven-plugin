@@ -548,11 +548,13 @@ public class MavenMojoProjectParser {
             mavenSession.getProjectDependencyGraph().getUpstreamProjects(mavenProject, true).forEach(p -> collectPoms(p, allPoms, mavenExecutionContext));
         }
 
-        MavenParser.Builder mavenParserBuilder = MavenParser.builder().mavenConfig(baseDir.resolve(MVN_MAVEN_CONFIG));
-        List<String> activeProfiles = topLevelProject.getActiveProfiles().stream().map(Profile::getId).collect(toList());
-        if (!activeProfiles.isEmpty()) {
-            mavenParserBuilder.activeProfiles(activeProfiles.toArray(new String[0]));
-        }
+        MavenParser.Builder mavenParserBuilder = MavenParser.builder();
+        mavenParserBuilder.property("basedir", topLevelProject.getBasedir().getAbsoluteFile().getParent());
+        mavenParserBuilder.property("project.basedir", topLevelProject.getBasedir().getAbsoluteFile().getParent());
+        topLevelProject.getActiveProfiles().forEach(it -> mavenParserBuilder.activeProfiles(it.getId()));
+        mavenSession.getRequest().getActiveProfiles().forEach(mavenParserBuilder::activeProfiles);
+        mavenSession.getUserProperties().forEach((key, value) ->
+                mavenParserBuilder.property((String) key, (String) value));
 
         List<SourceFile> mavens = mavenParserBuilder.build()
                 .parse(allPoms, baseDir, ctx)
