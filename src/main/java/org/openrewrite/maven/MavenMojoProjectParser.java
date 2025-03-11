@@ -71,7 +71,7 @@ import java.util.stream.Stream;
 import static java.util.Collections.*;
 import static java.util.stream.Collectors.toList;
 import static org.openrewrite.Tree.randomId;
-import static org.openrewrite.maven.MavenMojoProjectParser.MavenScope.COMPILE;
+import static org.openrewrite.maven.MavenMojoProjectParser.MavenScope.MAIN;
 import static org.openrewrite.maven.MavenMojoProjectParser.MavenScope.TEST;
 
 // -----------------------------------------------------------------------------------------------------------------
@@ -161,7 +161,7 @@ public class MavenMojoProjectParser {
 
     public Stream<SourceFile> listSourceFiles(MavenProject mavenProject, Xml.@Nullable Document maven, List<Marker> projectProvenance, List<NamedStyles> styles,
                                               ExecutionContext ctx) throws DependencyResolutionRequiredException, MojoExecutionException {
-        return listSourceFiles(mavenProject, maven, projectProvenance, Arrays.asList(COMPILE, TEST),  styles, ctx);
+        return listSourceFiles(mavenProject, maven, projectProvenance, Arrays.asList(MAIN, TEST),  styles, ctx);
     }
 
     public Stream<SourceFile> listSourceFiles(MavenProject mavenProject, Xml.@Nullable Document maven, List<Marker> projectProvenance, List<MavenScope> scopes,
@@ -184,7 +184,7 @@ public class MavenMojoProjectParser {
         ResourceParser rp = new ResourceParser(baseDir, logger, exclusions, plainTextMasks, sizeThresholdMb, pathsToOtherMavenProjects(mavenProject),
                 javaParserBuilder.clone(), kotlinParserBuilder.clone(), ctx);
 
-        if (scopes.contains(COMPILE)) {
+        if (scopes.contains(MAIN)) {
             sourceFiles = Stream.concat(sourceFiles, processMainSources(mavenProject, javaParserBuilder.clone(), kotlinParserBuilder.clone(), rp, projectProvenance, alreadyParsed, ctx));
         }
         if (scopes.contains(TEST)) {
@@ -231,7 +231,7 @@ public class MavenMojoProjectParser {
     }
 
     public enum MavenScope {
-        COMPILE,
+        MAIN,
         TEST
     }
 
