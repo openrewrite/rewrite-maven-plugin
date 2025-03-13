@@ -19,7 +19,6 @@ import org.apache.maven.artifact.DependencyResolutionRequiredException;
 import org.apache.maven.execution.MavenExecutionRequest;
 import org.apache.maven.execution.MavenSession;
 import org.apache.maven.model.Plugin;
-import org.apache.maven.model.Profile;
 import org.apache.maven.model.Repository;
 import org.apache.maven.plugin.MojoExecutionException;
 import org.apache.maven.plugin.MojoFailureException;
@@ -72,6 +71,8 @@ import java.util.stream.Stream;
 import static java.util.Collections.*;
 import static java.util.stream.Collectors.toList;
 import static org.openrewrite.Tree.randomId;
+import static org.openrewrite.maven.MavenMojoProjectParser.MavenScope.MAIN;
+import static org.openrewrite.maven.MavenMojoProjectParser.MavenScope.TEST;
 
 // -----------------------------------------------------------------------------------------------------------------
 // Notes About Provenance Information:
@@ -160,6 +161,11 @@ public class MavenMojoProjectParser {
 
     public Stream<SourceFile> listSourceFiles(MavenProject mavenProject, Xml.@Nullable Document maven, List<Marker> projectProvenance, List<NamedStyles> styles,
                                               ExecutionContext ctx) throws DependencyResolutionRequiredException, MojoExecutionException {
+        return listSourceFiles(mavenProject, maven, projectProvenance, Arrays.asList(MAIN, TEST),  styles, ctx);
+    }
+
+    public Stream<SourceFile> listSourceFiles(MavenProject mavenProject, Xml.@Nullable Document maven, List<Marker> projectProvenance, List<MavenScope> scopes,
+                List<NamedStyles> styles, ExecutionContext ctx) throws DependencyResolutionRequiredException, MojoExecutionException {
         Stream<SourceFile> sourceFiles = Stream.empty();
         Set<Path> alreadyParsed = new HashSet<>();
 
@@ -178,8 +184,12 @@ public class MavenMojoProjectParser {
         ResourceParser rp = new ResourceParser(baseDir, logger, exclusions, plainTextMasks, sizeThresholdMb, pathsToOtherMavenProjects(mavenProject),
                 javaParserBuilder.clone(), kotlinParserBuilder.clone(), ctx);
 
-        sourceFiles = Stream.concat(sourceFiles, processMainSources(mavenProject, javaParserBuilder.clone(), kotlinParserBuilder.clone(), rp, projectProvenance, alreadyParsed, ctx));
-        sourceFiles = Stream.concat(sourceFiles, processTestSources(mavenProject, javaParserBuilder.clone(), kotlinParserBuilder.clone(), rp, projectProvenance, alreadyParsed, ctx));
+        if (scopes.contains(MAIN)) {
+            sourceFiles = Stream.concat(sourceFiles, processMainSources(mavenProject, javaParserBuilder.clone(), kotlinParserBuilder.clone(), rp, projectProvenance, alreadyParsed, ctx));
+        }
+        if (scopes.contains(TEST)) {
+            sourceFiles = Stream.concat(sourceFiles, processTestSources(mavenProject, javaParserBuilder.clone(), kotlinParserBuilder.clone(), rp, projectProvenance, alreadyParsed, ctx));
+        }
         Collection<PathMatcher> exclusionMatchers = exclusions.stream()
                 .map(pattern -> baseDir.getFileSystem().getPathMatcher("glob:" + pattern))
                 .collect(toList());
@@ -218,6 +228,11 @@ public class MavenMojoProjectParser {
 
         // log parse errors here at the end, so that we don't log parse errors for files that were excluded
         return sourceFiles.map(this::logParseErrors);
+    }
+
+    public enum MavenScope {
+        MAIN,
+        TEST
     }
 
     private static Optional<Charset> getCharset(MavenProject mavenProject) {
