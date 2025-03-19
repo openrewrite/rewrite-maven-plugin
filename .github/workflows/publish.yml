@@ -30,8 +30,8 @@ jobs:
 
       - name: bump-rewrite-properties-to-releases
         run: |
-          ./mvnw versions:update-properties -DincludeProperties=rewrite.version,rewrite.kotlin.version -DallowDowngrade=true
-          git diff-index --quiet HEAD pom.xml || git commit -m "Bump rewrite.version properties" pom.xml && rm -f pom.xml.versionsBackup
+          ./mvnw versions:update-properties -DincludeProperties=rewrite.version -DallowDowngrade=true
+          git diff-index --quiet HEAD pom.xml || git commit -m "Bump rewrite.version property" pom.xml && rm -f pom.xml.versionsBackup
 
       - name: publish-release
         run: ./mvnw --show-version --settings=${{ github.workspace }}/settings.xml --file=pom.xml --activate-profiles=sign-artifacts,release,release-automation help:active-profiles release:prepare release:perform --batch-mode -Dstyle.color=always
@@ -60,5 +60,5 @@ jobs:
 
       - name: bump-rewrite-properties-to-snapshots
         run: |
-          ./mvnw versions:update-properties -DincludeProperties=rewrite.version,rewrite.kotlin.version -DallowSnapshots=true
-          git diff-index --quiet HEAD pom.xml || (git commit -m "Bump rewrite.version properties" pom.xml && git push origin main && rm -f pom.xml.versionsBackup)
+          ./mvnw versions:update-properties -DincludeProperties=rewrite.version -DallowSnapshots=true
+          git diff-index --quiet HEAD pom.xml || (git commit -m "Bump rewrite.version property" pom.xml && git push origin main && rm -f pom.xml.versionsBackup)

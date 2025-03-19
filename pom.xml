@@ -63,7 +63,6 @@
     <properties>
         <!-- Pinned versions, as RELEASE would make it into the published pom.xml  -->
         <rewrite.version>8.49.0-SNAPSHOT</rewrite.version>
-        <rewrite.kotlin.version>8.49.0-SNAPSHOT</rewrite.kotlin.version>
 
         <!-- using 'ssh' url scheme by default, which assumes a human is performing git operations leveraging an ssh key -->
         <developerConnectionUrl>scm:git:ssh://git@github.com/openrewrite/rewrite-maven-plugin.git
@@ -196,7 +195,6 @@
         <dependency>
             <groupId>org.openrewrite</groupId>
             <artifactId>rewrite-kotlin</artifactId>
-            <version>${rewrite.kotlin.version}</version>
         </dependency>
         <dependency>
             <groupId>org.codehaus.plexus</groupId>
