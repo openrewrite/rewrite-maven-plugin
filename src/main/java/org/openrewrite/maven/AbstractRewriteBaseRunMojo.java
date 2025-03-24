@@ -26,7 +26,6 @@ import org.openrewrite.*;
 import org.openrewrite.config.CompositeRecipe;
 import org.openrewrite.config.DeclarativeRecipe;
 import org.openrewrite.config.Environment;
-import org.openrewrite.config.License;
 import org.openrewrite.config.RecipeDescriptor;
 import org.openrewrite.internal.InMemoryLargeSourceSet;
 import org.openrewrite.internal.ListUtils;
@@ -149,14 +148,6 @@ public abstract class AbstractRewriteBaseRunMojo extends AbstractRewriteMojo {
                 }
             }
 
-            getLog().info("Check recipe licences...");
-            failedValidations = checkLicence(recipe);
-            if (!failedValidations.isEmpty()) {
-                failedValidations.forEach(failedValidation -> getLog().error(
-                        "Recipe is proprietary:" + failedValidation.getMessage()));
-                throw new MojoExecutionException("Proprietary Recipe(s) detected as part of one or more activeRecipe(s). Please check error logs.");
-            }
-
             LargeSourceSet sourceSet = loadSourceSet(repositoryRoot, env, ctx);
 
             List<Result> results = runRecipe(recipe, sourceSet, ctx);
@@ -167,26 +158,6 @@ public abstract class AbstractRewriteBaseRunMojo extends AbstractRewriteMojo {
         } catch (DependencyResolutionRequiredException e) {
             throw new MojoExecutionException("Dependency resolution required", e);
         }
-    }
-
-    private List<Validated.Invalid<Object>> checkLicence(Recipe recipe) {
-        List<Validated.Invalid<Object>> results = new ArrayList<>();
-
-        // check current recipe
-        License license = recipe.getDescriptor().getLicense();
-        if (license == null) {
-            getLog().warn("No license detected for recipe " + recipe.getName());
-        } else if (License.MODERNE_PROPRIETARY.equals(license)) {
-            getLog().error(recipe.getName() + " is proprietary and not allowed to run in unlicensed environments");
-            license.add(Validated.invalid("License", License.MODERNE_PROPRIETARY.getFullName(), "is not allowed in unlicensed environments"));
-        }
-
-        // check children
-        for (Recipe child : recipe.getRecipeList()) {
-            results.addAll(checkLicence(child));
-        }
-
-        return results;
     }
 
     private static void configureRecipeOptions(Recipe recipe, Set<String> options) throws MojoExecutionException {
