@@ -105,7 +105,9 @@ public abstract class AbstractRewriteBaseRunMojo extends AbstractRewriteMojo {
 
     protected ResultsContainer listResults(ExecutionContext ctx) throws MojoExecutionException, MojoFailureException {
         try (MeterRegistryProvider meterRegistryProvider = new MeterRegistryProvider(getLog(), null)) {
-            Metrics.addRegistry(meterRegistryProvider.registry());
+            if (!Metrics.globalRegistry.getRegistries().contains(meterRegistryProvider.registry())) {
+                Metrics.addRegistry(meterRegistryProvider.registry());
+            }
 
             Path repositoryRoot = repositoryRoot();
             getLog().info(String.format("Using active recipe(s) %s", getActiveRecipes()));
