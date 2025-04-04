@@ -101,7 +101,7 @@ class RewriteRunIT {
         assertThat(result).isSuccessful().out().error().isEmpty();
         assertThat(result).isSuccessful().out().warn()
                 .contains("Changes have been made to target/maven-it/org/openrewrite/maven/RewriteRunIT/command_line_options/project/pom.xml by:")
-                .contains("    org.openrewrite.maven.RemovePlugin");
+                .contains("    org.openrewrite.maven.RemovePlugin: {groupId=org.openrewrite.maven, artifactId=rewrite-maven-plugin}");
         assertThat(result.getMavenProjectResult().getModel().getBuild()).isNull();
     }
 
