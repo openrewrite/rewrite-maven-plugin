@@ -44,7 +44,7 @@ public class ResourceParser {
     private static final Set<String> DEFAULT_ACCEPTED_DIRECTORIES = new HashSet<>(Collections.singleton("src"));
     private static final Set<String> DEFAULT_IGNORED_DIRECTORIES = new HashSet<>(Arrays.asList(
             "build", "target", "out",
-            ".sonar", ".gradle", ".idea", ".project", "node_modules", ".git", ".metadata", ".DS_Store"));
+            ".sonar", ".gradle", ".idea", ".project", "node_modules", ".git", ".metadata", ".DS_Store", ".terraform"));
 
     private final Path baseDir;
     private final Log logger;
