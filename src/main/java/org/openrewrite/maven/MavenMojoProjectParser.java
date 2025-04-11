@@ -15,6 +15,7 @@
  */
 package org.openrewrite.maven;
 
+import com.fasterxml.jackson.core.JsonProcessingException;
 import org.apache.maven.artifact.DependencyResolutionRequiredException;
 import org.apache.maven.execution.MavenExecutionRequest;
 import org.apache.maven.execution.MavenSession;
@@ -46,6 +47,7 @@ import org.openrewrite.marker.*;
 import org.openrewrite.marker.ci.BuildEnvironment;
 import org.openrewrite.maven.cache.InMemoryMavenPomCache;
 import org.openrewrite.maven.cache.MavenPomCache;
+import org.openrewrite.maven.internal.MavenXmlMapper;
 import org.openrewrite.maven.internal.RawPom;
 import org.openrewrite.maven.internal.RawRepositories;
 import org.openrewrite.maven.tree.Pom;
@@ -731,11 +733,20 @@ public class MavenMojoProjectParser {
         servers.setServers(mer.getServers().stream().map(s -> {
             SettingsDecryptionRequest decryptionRequest = new DefaultSettingsDecryptionRequest(s);
             SettingsDecryptionResult decryptionResult = settingsDecrypter.decrypt(decryptionRequest);
+            MavenSettings.ServerConfiguration configuration = null;
+            if (s.getConfiguration() != null) {
+                try {
+                    // No need to interpolate in property placeholders like ${env.Foo}, Maven has already done this
+                    configuration = MavenXmlMapper.readMapper().readValue(s.getConfiguration().toString(), MavenSettings.ServerConfiguration.class);
+                } catch (JsonProcessingException e) {
+                    throw new RuntimeException(e);
+                }
+            }
             return new MavenSettings.Server(
                     s.getId(),
                     s.getUsername(),
                     decryptionResult.getServer().getPassword(),
-                    null
+                    configuration
             );
         }).collect(toList()));
 
