@@ -127,6 +127,20 @@ class RewriteRunIT {
     }
 
     @MavenTest
+    void container_masks(MavenExecutionResult result) {
+        assertThat(result)
+                .isSuccessful()
+                .out()
+                .warn()
+                .contains(
+                        "Changes have been made to target/maven-it/org/openrewrite/maven/RewriteRunIT/container_masks/project/containerfile.build by:",
+                        "Changes have been made to target/maven-it/org/openrewrite/maven/RewriteRunIT/container_masks/project/Dockerfile by:",
+                        "Changes have been made to target/maven-it/org/openrewrite/maven/RewriteRunIT/container_masks/project/Containerfile by:",
+                        "Changes have been made to target/maven-it/org/openrewrite/maven/RewriteRunIT/container_masks/project/build.dockerfile by:"
+                );
+    }
+
+    @MavenTest
     @SystemProperty(value = "rewrite.additionalPlainTextMasks", content = "**/*.ext,**/.in-root")
     void plaintext_masks(MavenExecutionResult result) {
         assertThat(result)
