@@ -1,0 +1,9 @@
+---
+type: specs.openrewrite.org/v1beta/recipe
+name: com.example.RewriteRunIT.ContainerMasks
+
+recipeList:
+  - org.openrewrite.text.FindAndReplace:
+      find: 'alpine:latest'
+      replace: 'alpine'
+      regex: false
