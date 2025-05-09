@@ -55,6 +55,7 @@ import org.openrewrite.maven.tree.ProfileActivation;
 import org.openrewrite.maven.tree.ResolvedGroupArtifactVersion;
 import org.openrewrite.maven.utilities.MavenWrapper;
 import org.openrewrite.style.NamedStyles;
+import org.openrewrite.tree.ParsingExecutionContextView;
 import org.openrewrite.xml.tree.Xml;
 
 import java.io.File;
@@ -182,7 +183,10 @@ public class MavenMojoProjectParser {
         JavaParser.Builder<? extends JavaParser, ?> javaParserBuilder = JavaParser.fromJavaVersion()
                 .styles(styles)
                 .logCompilationWarningsAndErrors(false);
-        getCharset(mavenProject).ifPresent(javaParserBuilder::charset);
+        getCharset(mavenProject).ifPresent(charset -> {
+            ParsingExecutionContextView.view(ctx).setCharset(charset);
+            javaParserBuilder.charset(charset);
+        });
 
         // todo, add styles from autoDetect
         KotlinParser.Builder kotlinParserBuilder = KotlinParser.builder();
