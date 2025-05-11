@@ -27,5 +27,5 @@ import org.apache.maven.plugins.annotations.ResolutionScope;
  */
 @Mojo(name = "failOnDryRunDetection", requiresDependencyResolution = ResolutionScope.TEST, threadSafe = true,
         defaultPhase = LifecyclePhase.PROCESS_TEST_CLASSES)
-public class failOnDryRunDetectionMojo extends AbstractRewriteDryRunMojo {
+public class RewriteFailOnDryRunDetectionMojo extends AbstractRewriteDryRunMojo {
 }
