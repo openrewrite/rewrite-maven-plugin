@@ -20,7 +20,7 @@ import org.apache.maven.plugins.annotations.Mojo;
 import org.apache.maven.plugins.annotations.ResolutionScope;
 
 /**
- * Breaks build when changes detected.
+ * Breaks build on change detection.
  */
 @Mojo(name = "failOnDryRunDetection", requiresDependencyResolution = ResolutionScope.TEST, threadSafe = true,
         defaultPhase = LifecyclePhase.PROCESS_TEST_CLASSES)
