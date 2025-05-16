@@ -1,0 +1,40 @@
+<project xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+         xmlns="http://maven.apache.org/POM/4.0.0"
+         xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/xsd/maven-4.0.0.xsd">
+    <modelVersion>4.0.0</modelVersion>
+
+    <groupId>org.openrewrite.maven</groupId>
+    <artifactId>typetable_default</artifactId>
+    <version>1.0</version>
+    <packaging>jar</packaging>
+    <name>RewriteTypeTableIT#typetable_default</name>
+
+    <profiles>
+        <profile>
+            <id>create-typetable</id>
+            <build>
+                <plugins>
+                    <plugin>
+                        <groupId>@project.groupId@</groupId>
+                        <artifactId>@project.artifactId@</artifactId>
+                        <version>@project.version@</version>
+                        <configuration>
+                            <recipeArtifactCoordinates>
+                                com.google.guava:guava:33.3.1-jre,
+                                com.google.guava:guava:32.0.0-jre,
+                            </recipeArtifactCoordinates>
+                        </configuration>
+                        <executions>
+                            <execution>
+                                <goals>
+                                    <goal>typetable</goal>
+                                </goals>
+                                <phase>generate-resources</phase>
+                            </execution>
+                        </executions>
+                    </plugin>
+                </plugins>
+            </build>
+        </profile>
+    </profiles>
+</project>
