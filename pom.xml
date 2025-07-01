@@ -52,7 +52,7 @@
     <distributionManagement>
         <snapshotRepository>
             <id>ossrh</id>
-            <url>https://oss.sonatype.org/content/repositories/snapshots</url>
+            <url>https://central.sonatype.com/repository/maven-snapshots</url>
         </snapshotRepository>
         <repository>
             <id>ossrh</id>
@@ -292,7 +292,7 @@
         <repository>
             <!-- for consuming upstream openrewrite snapshot artifacts from ossrh during development -->
             <id>ossrh-snapshots</id>
-            <url>https://oss.sonatype.org/content/repositories/snapshots</url>
+            <url>https://central.sonatype.com/repository/maven-snapshots</url>
             <snapshots>
                 <enabled>true</enabled>
             </snapshots>

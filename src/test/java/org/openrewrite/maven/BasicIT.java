@@ -58,7 +58,7 @@ class BasicIT {
     }
 
     @MavenTest
-    @SystemProperty(value = "ossrh_snapshots_url", content = "https://oss.sonatype.org/content/repositories/snapshots")
+    @SystemProperty(value = "ossrh_snapshots_url", content = "https://central.sonatype.com/repository/maven-snapshots")
     @MavenGoal("${project.groupId}:${project.artifactId}:${project.version}:dryRun")
     void resolves_maven_properties_from_user_provided_system_properties(MavenExecutionResult result) {
         assertThat(result)
