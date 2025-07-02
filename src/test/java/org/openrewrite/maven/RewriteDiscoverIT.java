@@ -18,8 +18,6 @@ package org.openrewrite.maven;
 import com.soebes.itf.jupiter.extension.*;
 import com.soebes.itf.jupiter.maven.MavenExecutionResult;
 import org.junit.jupiter.api.Nested;
-import org.junit.jupiter.api.condition.DisabledOnOs;
-import org.junit.jupiter.api.condition.OS;
 
 import static com.soebes.itf.extension.assertj.MavenITAssertions.assertThat;
 
@@ -34,7 +32,6 @@ class RewriteDiscoverIT {
     class RecipeLookup {
 
         @MavenTest
-        @DisabledOnOs(OS.WINDOWS)
         @SystemProperty(value = "detail", content = "true")
         void rewrite_discover_detail(MavenExecutionResult result) {
             assertThat(result)
