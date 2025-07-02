@@ -43,6 +43,6 @@ jobs:
         run: ./mvnw --show-version --no-transfer-progress --settings=${{ github.workspace }}/settings.xml --file=pom.xml --batch-mode -Dstyle.color=always --activate-profiles=sign-artifacts clean deploy -DskipTests
         env:
           GITHUB_TOKEN: ${{ github.token }}
-          SONATYPE_USERNAME: ${{ secrets.OSSRH_USERNAME }}
-          SONATYPE_PASSWORD: ${{ secrets.OSSRH_TOKEN }}
+          SONATYPE_USERNAME: ${{ secrets.SONATYPE_USERNAME }}
+          SONATYPE_PASSWORD: ${{ secrets.SONATYPE_TOKEN }}
           SONATYPE_SIGNING_PASSWORD: ${{ secrets.OSSRH_SIGNING_PASSWORD }}
