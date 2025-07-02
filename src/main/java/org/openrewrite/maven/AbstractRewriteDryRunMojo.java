@@ -46,8 +46,8 @@ public class AbstractRewriteDryRunMojo extends AbstractRewriteBaseRunMojo {
     /**
      * Whether to throw an exception if there are any result changes produced.
      */
-    @Parameter(property = "failOnDryRunResults", defaultValue = "false")
-    private boolean failOnDryRunResults;
+    @Parameter(property = "failOnDryRunResults", defaultValue = "true")
+    private boolean failOnDryRunResults = true;
 
     @Override
     public void execute() throws MojoExecutionException, MojoFailureException {
