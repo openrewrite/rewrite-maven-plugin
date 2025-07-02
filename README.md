@@ -130,7 +130,7 @@ To use the latest `-SNAPSHOT` version, add a `<pluginRepositories>` entry for OS
     <pluginRepositories>
         <pluginRepository>
             <id>ossrh-snapshots</id>
-            <url>https://oss.sonatype.org/content/repositories/snapshots</url>
+            <url>https://central.sonatype.com/repository/maven-snapshots</url>
         </pluginRepository>
     </pluginRepositories>
 
