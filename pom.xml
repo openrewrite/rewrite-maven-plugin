@@ -56,7 +56,7 @@
         </snapshotRepository>
         <repository>
             <id>ossrh</id>
-            <url>https://ossrh-staging-api.central.sonatype.com/service/local/</url>
+            <url>https://oss.sonatype.org/service/local/staging/deploy/maven2</url>
         </repository>
     </distributionManagement>
 
