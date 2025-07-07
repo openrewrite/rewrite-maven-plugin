@@ -22,12 +22,12 @@ import org.junit.jupiter.api.condition.OS;
 
 import static com.soebes.itf.extension.assertj.MavenITAssertions.assertThat;
 
+@DisabledOnOs(OS.WINDOWS)
+@MavenGoal("${project.groupId}:${project.artifactId}:${project.version}:run")
 @MavenJupiterExtension
 @MavenOption(value = MavenCLIOptions.THREADS, parameter = "2")
 @MavenOption(MavenCLIOptions.NO_TRANSFER_PROGRESS)
 @MavenOption(MavenCLIExtra.MUTE_PLUGIN_VALIDATION_WARNING)
-@DisabledOnOs(OS.WINDOWS)
-@MavenGoal("${project.groupId}:${project.artifactId}:${project.version}:run")
 class RewriteRunParallelIT {
 
     @MavenTest

@@ -36,8 +36,8 @@ import static java.nio.file.Files.exists;
  * Create a TypeTable in `src/main/resources/META-INF/rewrite/classpath.tsv.zip` for `rewrite.recipeArtifactCoordinates`.
  * {@code ./mvnw rewrite:typetable}
  */
-@Mojo(name = "typetable", requiresDependencyResolution = ResolutionScope.TEST, defaultPhase = LifecyclePhase.GENERATE_RESOURCES)
 @Execute(phase = LifecyclePhase.GENERATE_RESOURCES)
+@Mojo(name = "typetable", requiresDependencyResolution = ResolutionScope.TEST, defaultPhase = LifecyclePhase.GENERATE_RESOURCES)
 public class RewriteTypeTableMojo extends AbstractRewriteMojo {
 
     @Override

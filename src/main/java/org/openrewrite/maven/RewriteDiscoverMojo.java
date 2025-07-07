@@ -41,8 +41,8 @@ public class RewriteDiscoverMojo extends AbstractRewriteMojo {
      * The name of a specific recipe to show details for. For example:<br>
      * {@code ./mvnw rewrite:discover -Ddetail=true -Drecipe=org.openrewrite.java.format.AutoFormat}
      */
-    @Nullable
     @Parameter(property = "recipe")
+    @Nullable
     String recipe;
 
     /**

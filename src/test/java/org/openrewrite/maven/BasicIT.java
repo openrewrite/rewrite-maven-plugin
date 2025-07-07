@@ -26,9 +26,9 @@ import static com.soebes.itf.extension.assertj.MavenITAssertions.assertThat;
 @MavenOption(MavenCLIExtra.MUTE_PLUGIN_VALIDATION_WARNING)
 class BasicIT {
 
-    @MavenTest
     @MavenGoal("clean")
     @MavenGoal("package")
+    @MavenTest
     void groupid_artifactid_should_be_ok(MavenExecutionResult result) {
         assertThat(result)
                 .isSuccessful()
@@ -38,9 +38,9 @@ class BasicIT {
     }
 
     @Disabled
-    @MavenTest
-    @MavenOption(value = MavenCLIOptions.SETTINGS, parameter = "settings.xml")
     @MavenGoal("${project.groupId}:${project.artifactId}:${project.version}:dryRun")
+    @MavenOption(value = MavenCLIOptions.SETTINGS, parameter = "settings.xml")
+    @MavenTest
     void null_check_profile_activation(MavenExecutionResult result) {
         assertThat(result)
                 .isSuccessful()
@@ -57,9 +57,9 @@ class BasicIT {
                 .isEmpty();
     }
 
+    @MavenGoal("${project.groupId}:${project.artifactId}:${project.version}:dryRun")
     @MavenTest
     @SystemProperty(value = "ossrh_snapshots_url", content = "https://central.sonatype.com/repository/maven-snapshots")
-    @MavenGoal("${project.groupId}:${project.artifactId}:${project.version}:dryRun")
     void resolves_maven_properties_from_user_provided_system_properties(MavenExecutionResult result) {
         assertThat(result)
                 .isSuccessful()
@@ -69,11 +69,11 @@ class BasicIT {
                 .allSatisfy(line -> assertThat(line).doesNotContain("Unable to resolve property ${ossrh_snapshots_url}"));
     }
 
-    @MavenTest
+    @MavenGoal("${project.groupId}:${project.artifactId}:${project.version}:dryRun")
     @MavenOption(value = MavenCLIOptions.SETTINGS, parameter = "settings-user.xml")
     @MavenProfile("example_profile_id")
+    @MavenTest
     @SystemProperty(value = "REPOSITORY_URL", content = "https://maven-eu.nuxeo.org/nexus/content/repositories/public/")
-    @MavenGoal("${project.groupId}:${project.artifactId}:${project.version}:dryRun")
     void resolves_settings(MavenExecutionResult result) {
         assertThat(result)
                 .isSuccessful()
@@ -82,9 +82,9 @@ class BasicIT {
                 .allSatisfy(line -> assertThat(line).doesNotContain("Illegal character in path at index 1"));
     }
 
-    @MavenTest
     @MavenGoal("clean")
     @MavenGoal("${project.groupId}:${project.artifactId}:${project.version}:dryRun")
+    @MavenTest
     void snapshot_ok(MavenExecutionResult result) {
         assertThat(result)
                 .isSuccessful()

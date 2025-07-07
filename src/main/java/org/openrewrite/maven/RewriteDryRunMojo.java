@@ -26,8 +26,8 @@ import org.apache.maven.plugins.annotations.ResolutionScope;
  * This variant of rewrite:dryRun will fork the maven life cycle and can be run as a "stand-alone" goal. It will
  * execute the maven build up to the process-test-classes phase.
  */
+@Execute(phase = LifecyclePhase.PROCESS_TEST_CLASSES)
 @Mojo(name = "dryRun", requiresDependencyResolution = ResolutionScope.TEST, threadSafe = true,
         defaultPhase = LifecyclePhase.PROCESS_TEST_CLASSES)
-@Execute(phase = LifecyclePhase.PROCESS_TEST_CLASSES)
 public class RewriteDryRunMojo extends AbstractRewriteDryRunMojo {
 }

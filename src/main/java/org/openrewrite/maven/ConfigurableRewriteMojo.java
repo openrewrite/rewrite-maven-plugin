@@ -50,19 +50,19 @@ public abstract class ConfigurableRewriteMojo extends AbstractMojo {
     @Parameter(property = "rewrite.configLocation", alias = "configLocation", defaultValue = "${maven.multiModuleProjectDirectory}/rewrite.yml")
     protected String configLocation;
 
-    @Nullable
     @Parameter(property = "rewrite.activeRecipes")
+    @Nullable
     protected LinkedHashSet<String> activeRecipes;
 
-    @Nullable
     @Parameter(property = "rewrite.activeStyles")
+    @Nullable
     protected LinkedHashSet<String> activeStyles;
 
     @Parameter(property = "rewrite.pomCacheEnabled", alias = "pomCacheEnabled", defaultValue = "true")
     protected boolean pomCacheEnabled;
 
-    @Nullable
     @Parameter(property = "rewrite.pomCacheDirectory", alias = "pomCacheDirectory")
+    @Nullable
     protected String pomCacheDirectory;
 
     @Parameter(property = "rewrite.skip", defaultValue = "false")
@@ -75,15 +75,15 @@ public abstract class ConfigurableRewriteMojo extends AbstractMojo {
     @Parameter(property = "skipMavenParsing", defaultValue = "false")
     protected boolean skipMavenParsing;
 
-    @Nullable
     @Parameter(property = "rewrite.checkstyleConfigFile", alias = "checkstyleConfigFile")
+    @Nullable
     protected String checkstyleConfigFile;
 
     @Parameter(property = "rewrite.checkstyleDetectionEnabled", alias = "checkstyleDetectionEnabled", defaultValue = "true")
     protected boolean checkstyleDetectionEnabled;
 
-    @Nullable
     @Parameter(property = "rewrite.exclusions")
+    @Nullable
     private LinkedHashSet<String> exclusions;
 
     protected Set<String> getExclusions() {
@@ -94,16 +94,16 @@ public abstract class ConfigurableRewriteMojo extends AbstractMojo {
      * Override default plain text masks. If this is specified,
      * {@code rewrite.additionalPlainTextMasks} will have no effect.
      */
-    @Nullable
     @Parameter(property = "rewrite.plainTextMasks")
+    @Nullable
     private LinkedHashSet<String> plainTextMasks;
 
     /**
      * Allows adding additional plain text masks without overriding
      * the defaults.
      */
-    @Nullable
     @Parameter(property = "rewrite.additionalPlainTextMasks")
+    @Nullable
     private LinkedHashSet<String> additionalPlainTextMasks;
 
     protected Set<String> getPlainTextMasks() {
@@ -199,8 +199,8 @@ public abstract class ConfigurableRewriteMojo extends AbstractMojo {
         return mavenSession.getProjects().stream().allMatch(this::hasState);
     }
 
-    @Nullable
     @Parameter(property = "rewrite.recipeArtifactCoordinates")
+    @Nullable
     private LinkedHashSet<String> recipeArtifactCoordinates;
 
     @Nullable

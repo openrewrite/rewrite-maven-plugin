@@ -26,8 +26,8 @@ import static org.assertj.core.api.Assertions.assertThat;
  * @author Fabian Krüger
  */
 class MavenMojoProjectParserTest {
-    @Test
     @DisplayName("Given No Java version information exists in Maven Then java.specification.version should be used")
+    @Test
     void givenNoJavaVersionInformationExistsInMavenThenJavaSpecificationVersionShouldBeUsed() {
         JavaVersion marker = MavenMojoProjectParser.getSrcTestJavaVersion(new MavenProject());
         assertThat(marker.getSourceCompatibility()).isEqualTo(System.getProperty("java.specification.version"));

@@ -20,11 +20,11 @@ import com.soebes.itf.jupiter.maven.MavenExecutionResult;
 
 import static com.soebes.itf.extension.assertj.MavenITAssertions.assertThat;
 
+@MavenGoal("${project.groupId}:${project.artifactId}:${project.version}:dryRun")
 @MavenJupiterExtension
 @MavenOption(MavenCLIOptions.NO_TRANSFER_PROGRESS)
 @MavenOption(MavenCLIExtra.MUTE_PLUGIN_VALIDATION_WARNING)
 @MavenOption(MavenCLIOptions.VERBOSE)
-@MavenGoal("${project.groupId}:${project.artifactId}:${project.version}:dryRun")
 class RewriteDryRunIT {
 
     @MavenTest

@@ -23,11 +23,11 @@ import org.junit.jupiter.api.condition.OS;
 
 import static com.soebes.itf.extension.assertj.MavenITAssertions.assertThat;
 
+@DisabledOnOs(OS.WINDOWS)
+@MavenGoal("${project.groupId}:${project.artifactId}:${project.version}:run")
 @MavenJupiterExtension
 @MavenOption(MavenCLIOptions.NO_TRANSFER_PROGRESS)
 @MavenOption(MavenCLIExtra.MUTE_PLUGIN_VALIDATION_WARNING)
-@DisabledOnOs(OS.WINDOWS)
-@MavenGoal("${project.groupId}:${project.artifactId}:${project.version}:run")
 class RewriteRunIT {
 
     @MavenTest
@@ -39,12 +39,12 @@ class RewriteRunIT {
                 .anySatisfy(line -> assertThat(line).contains("org.openrewrite.staticanalysis.SimplifyBooleanExpression"));
     }
 
+    @MavenGoal("generate-test-sources")
     @MavenTest
     @SystemProperties({
             @SystemProperty(value = "rewrite.activeRecipes", content = "org.openrewrite.java.search.FindTypes"),
             @SystemProperty(value = "rewrite.options", content = "fullyQualifiedTypeName=org.junit.jupiter.api.Test")
     })
-    @MavenGoal("generate-test-sources")
     void multi_source_sets_project(MavenExecutionResult result) {
         assertThat(result)
                 .isSuccessful()
@@ -105,8 +105,8 @@ class RewriteRunIT {
         assertThat(result.getMavenProjectResult().getModel().getBuild()).isNull();
     }
 
-    @MavenTest
     @Disabled("We should implement a simpler test to make sure that regular markers don't get added to source files")
+    @MavenTest
     void java_upgrade_project(MavenExecutionResult result) {
         assertThat(result)
                 .isSuccessful()
