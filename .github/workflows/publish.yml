@@ -37,8 +37,8 @@ jobs:
         run: ./mvnw --show-version --settings=${{ github.workspace }}/settings.xml --file=pom.xml --activate-profiles=sign-artifacts,release,release-automation help:active-profiles release:prepare release:perform --batch-mode -Dstyle.color=always
         env:
           GITHUB_TOKEN: ${{ github.token }}
-          SONATYPE_USERNAME: ${{ secrets.OSSRH_USERNAME }}
-          SONATYPE_PASSWORD: ${{ secrets.OSSRH_TOKEN }}
+          SONATYPE_USERNAME: ${{ secrets.SONATYPE_USERNAME }}
+          SONATYPE_PASSWORD: ${{ secrets.SONATYPE_TOKEN }}
           SONATYPE_SIGNING_PASSWORD: ${{ secrets.OSSRH_SIGNING_PASSWORD }}
 
       - name: github-release
