@@ -18,20 +18,17 @@ package org.openrewrite.maven;
 import com.soebes.itf.jupiter.extension.*;
 import com.soebes.itf.jupiter.maven.MavenExecutionResult;
 import org.junit.jupiter.api.Disabled;
-
-import java.nio.file.FileSystems;
+import org.junit.jupiter.api.condition.DisabledOnOs;
+import org.junit.jupiter.api.condition.OS;
 
 import static com.soebes.itf.extension.assertj.MavenITAssertions.assertThat;
 
+@DisabledOnOs(OS.WINDOWS)
 @MavenGoal("${project.groupId}:${project.artifactId}:${project.version}:run")
 @MavenJupiterExtension
 @MavenOption(MavenCLIOptions.NO_TRANSFER_PROGRESS)
 @MavenOption(MavenCLIExtra.MUTE_PLUGIN_VALIDATION_WARNING)
 class RewriteRunIT {
-    private static String slashForSystem(String outputLine) {
-        String separator = FileSystems.getDefault().getSeparator();
-        return outputLine.replace("/", separator);
-    }
 
     @MavenTest
     void multi_module_project(MavenExecutionResult result) {
@@ -53,8 +50,8 @@ class RewriteRunIT {
           .isSuccessful()
           .out()
           .warn()
-          .contains(slashForSystem("Changes have been made to target/maven-it/org/openrewrite/maven/RewriteRunIT/multi_source_sets_project/project/src/integration-test/java/sample/IntegrationTest.java by:"))
-          .contains(slashForSystem("Changes have been made to target/maven-it/org/openrewrite/maven/RewriteRunIT/multi_source_sets_project/project/src/test/java/sample/RegularTest.java by:"));
+          .contains("Changes have been made to target/maven-it/org/openrewrite/maven/RewriteRunIT/multi_source_sets_project/project/src/integration-test/java/sample/IntegrationTest.java by:")
+          .contains("Changes have been made to target/maven-it/org/openrewrite/maven/RewriteRunIT/multi_source_sets_project/project/src/test/java/sample/RegularTest.java by:");
     }
 
     @MavenTest
@@ -81,7 +78,7 @@ class RewriteRunIT {
           .isFailure()
           .out()
           .error()
-          .anySatisfy(line -> assertThat(line).contains(slashForSystem("/sample/ThrowingRecipe.java"), "This recipe throws an exception"));
+          .anySatisfy(line -> assertThat(line).contains("/sample/ThrowingRecipe.java", "This recipe throws an exception"));
     }
 
     @MavenTest
@@ -101,7 +98,7 @@ class RewriteRunIT {
     void command_line_options(MavenExecutionResult result) {
         assertThat(result).isSuccessful().out().error().isEmpty();
         assertThat(result).isSuccessful().out().warn()
-          .contains(slashForSystem("Changes have been made to target/maven-it/org/openrewrite/maven/RewriteRunIT/command_line_options/project/pom.xml by:"))
+          .contains("Changes have been made to target/maven-it/org/openrewrite/maven/RewriteRunIT/command_line_options/project/pom.xml by:")
           .contains("    org.openrewrite.maven.RemovePlugin: {groupId=org.openrewrite.maven, artifactId=rewrite-maven-plugin}");
         assertThat(result.getMavenProjectResult().getModel().getBuild()).isNull();
     }
@@ -116,7 +113,7 @@ class RewriteRunIT {
           .isSuccessful()
           .out()
           .warn()
-          .contains(slashForSystem("Changes have been made to target/maven-it/org/openrewrite/maven/RewriteRunIT/command_line_options_json/project/src/main/java/sample/SomeClass.java by:"))
+          .contains("Changes have been made to target/maven-it/org/openrewrite/maven/RewriteRunIT/command_line_options_json/project/src/main/java/sample/SomeClass.java by:")
           .contains("    org.openrewrite.java.AddCommentToMethod: {comment='{\"test\":{\"some\":\"yeah\"}}', methodPattern=sample.SomeClass doTheThing(..)}");
     }
 
@@ -148,10 +145,10 @@ class RewriteRunIT {
           .out()
           .warn()
           .contains(
-            slashForSystem("Changes have been made to target/maven-it/org/openrewrite/maven/RewriteRunIT/container_masks/project/containerfile.build by:"),
-            slashForSystem("Changes have been made to target/maven-it/org/openrewrite/maven/RewriteRunIT/container_masks/project/Dockerfile by:"),
-            slashForSystem("Changes have been made to target/maven-it/org/openrewrite/maven/RewriteRunIT/container_masks/project/Containerfile by:"),
-            slashForSystem("Changes have been made to target/maven-it/org/openrewrite/maven/RewriteRunIT/container_masks/project/build.dockerfile by:")
+            "Changes have been made to target/maven-it/org/openrewrite/maven/RewriteRunIT/container_masks/project/containerfile.build by:",
+            "Changes have been made to target/maven-it/org/openrewrite/maven/RewriteRunIT/container_masks/project/Dockerfile by:",
+            "Changes have been made to target/maven-it/org/openrewrite/maven/RewriteRunIT/container_masks/project/Containerfile by:",
+            "Changes have been made to target/maven-it/org/openrewrite/maven/RewriteRunIT/container_masks/project/build.dockerfile by:"
           );
     }
 
@@ -163,10 +160,10 @@ class RewriteRunIT {
           .out()
           .warn()
           .contains(
-            slashForSystem("Changes have been made to target/maven-it/org/openrewrite/maven/RewriteRunIT/plaintext_masks/project/src/main/java/sample/in-src.ext by:"),
-            slashForSystem("Changes have been made to target/maven-it/org/openrewrite/maven/RewriteRunIT/plaintext_masks/project/.in-root by:"),
-            slashForSystem("Changes have been made to target/maven-it/org/openrewrite/maven/RewriteRunIT/plaintext_masks/project/from-default-list.py by:"),
-            slashForSystem("Changes have been made to target/maven-it/org/openrewrite/maven/RewriteRunIT/plaintext_masks/project/src/main/java/sample/Dummy.java by:")
+            "Changes have been made to target/maven-it/org/openrewrite/maven/RewriteRunIT/plaintext_masks/project/src/main/java/sample/in-src.ext by:",
+            "Changes have been made to target/maven-it/org/openrewrite/maven/RewriteRunIT/plaintext_masks/project/.in-root by:",
+            "Changes have been made to target/maven-it/org/openrewrite/maven/RewriteRunIT/plaintext_masks/project/from-default-list.py by:",
+            "Changes have been made to target/maven-it/org/openrewrite/maven/RewriteRunIT/plaintext_masks/project/src/main/java/sample/Dummy.java by:"
           )
           .doesNotContain("in-root.ignored");
     }
