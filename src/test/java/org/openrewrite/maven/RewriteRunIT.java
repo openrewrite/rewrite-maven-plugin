@@ -108,7 +108,7 @@ class RewriteRunIT {
 
     @SystemProperties({
       @SystemProperty(value = "rewrite.activeRecipes", content = "org.openrewrite.java.AddCommentToMethod"),
-      @SystemProperty(value = "rewrite.options", content = "comment='{\\\"test\\\":{\\\"some\\\":\\\"yeah\\\"}}',methodPattern=sample.SomeClass doTheThing(..)")
+      @SystemProperty(value = "rewrite.options", content = "comment='{\"test\":{\"some\":\"yeah\"}}',methodPattern=sample.SomeClass doTheThing(..)")
     })
     @MavenTest
     void command_line_options_json(MavenExecutionResult result) {
