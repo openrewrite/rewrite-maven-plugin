@@ -117,7 +117,7 @@ class RewriteRunIT {
           .out()
           .warn()
           .contains(slashForSystem("Changes have been made to target/maven-it/org/openrewrite/maven/RewriteRunIT/command_line_options_json/project/src/main/java/sample/SomeClass.java by:"))
-          .contains("    org.openrewrite.java.AddCommentToMethod: {comment='{\"test\":{\"some\":\"yeah\"}}', methodPattern=sample.SomeClass doTheThing(..)}");
+          .contains("    org.openrewrite.java.AddCommentToMethod: {comment='{\\\"test\\\":{\\\"some\\\":\\\"yeah\\\"}}', methodPattern=sample.SomeClass doTheThing(..)}");
     }
 
     @Disabled("We should implement a simpler test to make sure that regular markers don't get added to source files")
