@@ -98,9 +98,8 @@ public abstract class AbstractRewriteMojo extends ConfigurableRewriteMojo {
 
         if (rewriteConfig.exists()) {
             return new Config(Files.newInputStream(rewriteConfig.toPath()), rewriteConfig.toURI());
-        } else {
-            getLog().debug("No rewrite configuration found at " + absoluteConfigLocation);
         }
+        getLog().debug("No rewrite configuration found at " + absoluteConfigLocation);
 
         return null;
     }
@@ -148,9 +147,8 @@ public abstract class AbstractRewriteMojo extends ConfigurableRewriteMojo {
             List<Path> sortedPaths = new ArrayList<>(baseFolders);
             Collections.sort(sortedPaths);
             return sortedPaths.get(0);
-        } else {
-            return Paths.get(mavenSession.getExecutionRootDirectory());
         }
+        return Paths.get(mavenSession.getExecutionRootDirectory());
     }
 
     private void collectBasePaths(MavenProject project, Set<Path> paths, Path localRepository) {

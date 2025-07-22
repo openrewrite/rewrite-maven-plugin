@@ -141,13 +141,12 @@ public abstract class AbstractRewriteBaseRunMojo extends AbstractRewriteMojo {
                     .flatMap(Collection::stream).collect(toList());
             if (!failedValidations.isEmpty()) {
                 failedValidations.forEach(failedValidation -> getLog().error(
-                        "Recipe validation error in " + failedValidation.getProperty() + ": " +
-                        failedValidation.getMessage(), failedValidation.getException()));
+                  "Recipe validation error in " + failedValidation.getProperty() + ": " +
+                    failedValidation.getMessage(), failedValidation.getException()));
                 if (failOnInvalidActiveRecipes) {
                     throw new MojoExecutionException("Recipe validation errors detected as part of one or more activeRecipe(s). Please check error logs.");
-                } else {
-                    getLog().error("Recipe validation errors detected as part of one or more activeRecipe(s). Execution will continue regardless.");
                 }
+                getLog().error("Recipe validation errors detected as part of one or more activeRecipe(s). Execution will continue regardless.");
             }
 
             LargeSourceSet sourceSet = loadSourceSet(repositoryRoot, env, ctx);

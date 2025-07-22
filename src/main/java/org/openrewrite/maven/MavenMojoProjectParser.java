@@ -148,21 +148,20 @@ public class MavenMojoProjectParser {
             List<Marker> projectProvenance = generateProvenance(mavenProject);
             Xml.Document maven = parseMaven(mavenProject, projectProvenance, ctx);
             return listSourceFiles(mavenProject, maven, projectProvenance, styles, ctx);
-        } else {
-            //If running across all projects, iterate and parse source files from each project
-            Map<MavenProject, List<Marker>> projectProvenances = mavenSession.getProjects().stream()
-                    .collect(Collectors.toMap(Function.identity(), this::generateProvenance));
-            Map<MavenProject, Xml.Document> projectMap = parseMaven(mavenSession.getProjects(), projectProvenances, ctx);
-            return mavenSession.getProjects().stream()
-                    .flatMap(project -> {
-                        List<Marker> projectProvenance = projectProvenances.get(project);
-                        try {
-                            return listSourceFiles(project, projectMap.get(project), projectProvenance, styles, ctx);
-                        } catch (DependencyResolutionRequiredException | MojoExecutionException e) {
-                            throw sneakyThrow(e);
-                        }
-                    });
         }
+        //If running across all projects, iterate and parse source files from each project
+        Map<MavenProject, List<Marker>> projectProvenances = mavenSession.getProjects().stream()
+          .collect(Collectors.toMap(Function.identity(), this::generateProvenance));
+        Map<MavenProject, Xml.Document> projectMap = parseMaven(mavenSession.getProjects(), projectProvenances, ctx);
+        return mavenSession.getProjects().stream()
+          .flatMap(project -> {
+              List<Marker> projectProvenance = projectProvenances.get(project);
+              try {
+                  return listSourceFiles(project, projectMap.get(project), projectProvenance, styles, ctx);
+              } catch (DependencyResolutionRequiredException | MojoExecutionException e) {
+                  throw sneakyThrow(e);
+              }
+          });
     }
 
     public Stream<SourceFile> listSourceFiles(MavenProject mavenProject, Xml.@Nullable Document maven, List<Marker> projectProvenance, List<NamedStyles> styles,

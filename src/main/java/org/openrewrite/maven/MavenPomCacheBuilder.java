@@ -37,15 +37,14 @@ public class MavenPomCacheBuilder {
                 if (pomCacheDirectory == null) {
                     //Default directory in the RocksdbMavenPomCache is ".rewrite-cache"
                     return new CompositeMavenPomCache(
-                            new InMemoryMavenPomCache(),
-                            new RocksdbMavenPomCache(Paths.get(System.getProperty("user.home")))
-                    );
-                } else {
-                    return new CompositeMavenPomCache(
-                            new InMemoryMavenPomCache(),
-                            new RocksdbMavenPomCache(Paths.get(pomCacheDirectory))
+                      new InMemoryMavenPomCache(),
+                      new RocksdbMavenPomCache(Paths.get(System.getProperty("user.home")))
                     );
                 }
+                return new CompositeMavenPomCache(
+                  new InMemoryMavenPomCache(),
+                  new RocksdbMavenPomCache(Paths.get(pomCacheDirectory))
+                );
             } catch (Throwable e) {
                 logger.warn("Unable to initialize RocksdbMavenPomCache, falling back to InMemoryMavenPomCache");
                 logger.debug(e);
