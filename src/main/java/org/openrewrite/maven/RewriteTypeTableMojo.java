@@ -27,10 +27,10 @@ import java.io.IOException;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
-import java.util.Collections;
 import java.util.Set;
 
 import static java.nio.file.Files.exists;
+import static java.util.Collections.singleton;
 
 /**
  * Create a TypeTable in `src/main/resources/META-INF/rewrite/classpath.tsv.zip` for `rewrite.recipeArtifactCoordinates`.
@@ -69,7 +69,7 @@ public class RewriteTypeTableMojo extends AbstractRewriteMojo {
     private Set<Artifact> resolveArtifacts(String recipeArtifactCoordinate) throws MojoExecutionException {
         ArtifactResolver resolver = new ArtifactResolver(repositorySystem, mavenSession);
         Artifact artifact = resolver.createArtifact(recipeArtifactCoordinate);
-        return resolver.resolveArtifactsAndDependencies(Collections.singleton(artifact));
+        return resolver.resolveArtifactsAndDependencies(singleton(artifact));
     }
 
 }

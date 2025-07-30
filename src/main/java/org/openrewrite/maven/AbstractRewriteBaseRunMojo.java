@@ -407,7 +407,7 @@ public abstract class AbstractRewriteBaseRunMojo extends AbstractRewriteMojo {
                 maybeEmptyDirectories.add(projectRoot.resolve(result.getBefore().getSourcePath()).getParent());
             }
             if (maybeEmptyDirectories.isEmpty()) {
-                return Collections.emptyList();
+                return emptyList();
             }
             List<Path> emptyDirectories = new ArrayList<>(maybeEmptyDirectories.size());
             for (Path maybeEmptyDirectory : maybeEmptyDirectories) {

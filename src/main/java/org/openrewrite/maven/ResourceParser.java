@@ -37,11 +37,14 @@ import java.io.UncheckedIOException;
 import java.nio.file.*;
 import java.nio.file.attribute.BasicFileAttributes;
 import java.util.*;
-import java.util.stream.Collectors;
 import java.util.stream.Stream;
 
+import static java.util.Collections.emptySet;
+import static java.util.Collections.singleton;
+import static java.util.stream.Collectors.toList;
+
 public class ResourceParser {
-    private static final Set<String> DEFAULT_ACCEPTED_DIRECTORIES = new HashSet<>(Collections.singleton("src"));
+    private static final Set<String> DEFAULT_ACCEPTED_DIRECTORIES = new HashSet<>(singleton("src"));
     private static final Set<String> DEFAULT_IGNORED_DIRECTORIES = new HashSet<>(Arrays.asList(
             "build", "target", "out",
             ".sonar", ".gradle", ".idea", ".project", "node_modules", ".git", ".metadata", ".DS_Store", ".terraform"));
@@ -78,7 +81,7 @@ public class ResourceParser {
     private Collection<PathMatcher> pathMatchers(Path basePath, Collection<String> pathExpressions) {
         return pathExpressions.stream()
                 .map(o -> basePath.getFileSystem().getPathMatcher("glob:" + o))
-                .collect(Collectors.toList());
+                .collect(toList());
     }
 
     public Stream<SourceFile> parse(Path searchDir, Collection<Path> alreadyParsed) {
@@ -106,7 +109,7 @@ public class ResourceParser {
         List<Path> resources = new ArrayList<>();
         List<Path> quarkPaths = new ArrayList<>();
         List<Path> plainTextPaths = new ArrayList<>();
-        Files.walkFileTree(searchDir, Collections.emptySet(), 16, new SimpleFileVisitor<Path>() {
+        Files.walkFileTree(searchDir, emptySet(), 16, new SimpleFileVisitor<Path>() {
             @Override
             public FileVisitResult preVisitDirectory(Path dir, BasicFileAttributes attrs) {
                 if (isExcluded(dir) || isIgnoredDirectory(searchDir, dir) || excludedDirectories.contains(dir)) {

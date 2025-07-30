@@ -68,7 +68,6 @@ import java.util.*;
 import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.function.Function;
 import java.util.function.UnaryOperator;
-import java.util.stream.Collectors;
 import java.util.stream.Stream;
 
 import static java.util.Collections.emptyList;
@@ -76,6 +75,8 @@ import static java.util.Collections.emptyMap;
 import static java.util.Collections.singletonList;
 import static java.util.Collections.singletonMap;
 import static java.util.stream.Collectors.toList;
+import static java.util.stream.Collectors.toMap;
+import static java.util.stream.Collectors.toSet;
 import static org.openrewrite.Tree.randomId;
 import static org.openrewrite.maven.MavenMojoProjectParser.MavenScope.MAIN;
 import static org.openrewrite.maven.MavenMojoProjectParser.MavenScope.TEST;
@@ -151,7 +152,7 @@ public class MavenMojoProjectParser {
         }
         //If running across all projects, iterate and parse source files from each project
         Map<MavenProject, List<Marker>> projectProvenances = mavenSession.getProjects().stream()
-          .collect(Collectors.toMap(Function.identity(), this::generateProvenance));
+          .collect(toMap(Function.identity(), this::generateProvenance));
         Map<MavenProject, Xml.Document> projectMap = parseMaven(mavenSession.getProjects(), projectProvenances, ctx);
         return mavenSession.getProjects().stream()
           .flatMap(project -> {
@@ -601,7 +602,7 @@ public class MavenMojoProjectParser {
             }
         }
 
-        Map<Path, MavenProject> projectsByPath = mavenProjects.stream().collect(Collectors.toMap(MavenMojoProjectParser::pomPath, Function.identity()));
+        Map<Path, MavenProject> projectsByPath = mavenProjects.stream().collect(toMap(MavenMojoProjectParser::pomPath, Function.identity()));
         Map<MavenProject, Xml.Document> projectMap = new HashMap<>();
         for (SourceFile document : mavens) {
             Path path = baseDir.resolve(document.getSourcePath());
@@ -779,7 +780,7 @@ public class MavenMojoProjectParser {
         return mavenSession.getProjects().stream()
                 .filter(o -> o != mavenProject)
                 .map(o -> o.getBasedir().toPath())
-                .collect(Collectors.toSet());
+                .collect(toSet());
     }
 
     private <T extends SourceFile> UnaryOperator<T> addProvenance(Path baseDir, List<Marker> provenance, @Nullable Collection<Path> generatedSources) {

@@ -31,11 +31,13 @@ import org.eclipse.aether.resolution.DependencyResolutionException;
 import org.eclipse.aether.resolution.DependencyResult;
 import org.eclipse.aether.util.artifact.JavaScopes;
 
-import java.util.Collections;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Set;
-import java.util.stream.Collectors;
+
+import static java.util.Collections.emptyList;
+import static java.util.Collections.emptySet;
+import static java.util.stream.Collectors.toList;
 
 public class ArtifactResolver {
     private final RepositorySystem repositorySystem;
@@ -59,14 +61,14 @@ public class ArtifactResolver {
 
     public Set<Artifact> resolveArtifactsAndDependencies(Set<Artifact> artifacts) throws MojoExecutionException {
         if (artifacts.isEmpty()) {
-            return Collections.emptySet();
+            return emptySet();
         }
 
         Set<Artifact> elements = new HashSet<>();
         try {
-            List<Dependency> dependencies = artifacts.stream().map(a -> new Dependency(a, JavaScopes.RUNTIME)).collect(Collectors.toList());
+            List<Dependency> dependencies = artifacts.stream().map(a -> new Dependency(a, JavaScopes.RUNTIME)).collect(toList());
             CollectRequest collectRequest =
-                    new CollectRequest(dependencies, Collections.emptyList(), remoteRepositories);
+                    new CollectRequest(dependencies, emptyList(), remoteRepositories);
             DependencyRequest dependencyRequest = new DependencyRequest();
             dependencyRequest.setCollectRequest(collectRequest);
             DependencyResult dependencyResult =

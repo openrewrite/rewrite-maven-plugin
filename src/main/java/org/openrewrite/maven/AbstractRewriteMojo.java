@@ -41,6 +41,8 @@ import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.util.*;
 
+import static java.util.Collections.sort;
+
 @SuppressWarnings("NotNullFieldNotInitialized")
 public abstract class AbstractRewriteMojo extends ConfigurableRewriteMojo {
 
@@ -145,7 +147,7 @@ public abstract class AbstractRewriteMojo extends ConfigurableRewriteMojo {
 
         if (!baseFolders.isEmpty()) {
             List<Path> sortedPaths = new ArrayList<>(baseFolders);
-            Collections.sort(sortedPaths);
+            sort(sortedPaths);
             return sortedPaths.get(0);
         }
         return Paths.get(mavenSession.getExecutionRootDirectory());
