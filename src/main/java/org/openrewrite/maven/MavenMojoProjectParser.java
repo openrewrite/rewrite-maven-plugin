@@ -532,7 +532,7 @@ public class MavenMojoProjectParser {
             File[] subdirectories = parentDirectory.listFiles(File::isDirectory);
             if (subdirectories != null) {
                 for (File subdirectory : subdirectories) {
-                    if (subdirectory.getName().equals("kotlin")) {
+                    if ("kotlin".equals(subdirectory.getName())) {
                         return subdirectory.getAbsolutePath();
                     }
                 }
