@@ -1,12 +1,12 @@
 /*
- * Copyright 2021 the original author or authors.
- *
+ * Copyright 2020 the original author or authors.
+ * <p>
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
  * You may obtain a copy of the License at
- *
+ * <p>
  * https://www.apache.org/licenses/LICENSE-2.0
- *
+ * <p>
  * Unless required by applicable law or agreed to in writing, software
  * distributed under the License is distributed on an "AS IS" BASIS,
  * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
@@ -15,7 +15,6 @@
  */
 package org.openrewrite.maven;
 
-import com.puppycrawl.tools.checkstyle.Checker;
 import org.apache.maven.execution.MavenSession;
 import org.apache.maven.model.Plugin;
 import org.apache.maven.plugin.AbstractMojo;
@@ -31,51 +30,40 @@ import org.openrewrite.style.NamedStyles;
 
 import java.io.IOException;
 import java.io.InputStream;
-import java.nio.file.Files;
 import java.io.StringWriter;
 import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.util.*;
-import java.util.stream.Collectors;
 
 import static java.util.Collections.emptyMap;
+import static java.util.Collections.emptySet;
+import static java.util.Collections.unmodifiableSet;
+import static java.util.stream.Collectors.toCollection;
 import static org.openrewrite.java.style.CheckstyleConfigLoader.loadCheckstyleConfig;
 
 @SuppressWarnings("FieldMayBeFinal")
 public abstract class ConfigurableRewriteMojo extends AbstractMojo {
 
-    private static final String CHECKSTYLE_DOCTYPE = "module PUBLIC "
-                                                     + "\"-//Checkstyle//DTD Checkstyle Configuration 1.3//EN\" "
-                                                     + "\"https://checkstyle.org/dtds/configuration_1_3.dtd\"";
+    private static final String CHECKSTYLE_DOCTYPE = "module PUBLIC " +
+                                                     "\"-//Checkstyle//DTD Checkstyle Configuration 1.3//EN\" " +
+                                                     "\"https://checkstyle.org/dtds/configuration_1_3.dtd\"";
 
     @Parameter(property = "rewrite.configLocation", alias = "configLocation", defaultValue = "${maven.multiModuleProjectDirectory}/rewrite.yml")
     protected String configLocation;
 
-    @Nullable
     @Parameter(property = "rewrite.activeRecipes")
+    @Nullable
     protected LinkedHashSet<String> activeRecipes;
 
-    @Nullable
     @Parameter(property = "rewrite.activeStyles")
+    @Nullable
     protected LinkedHashSet<String> activeStyles;
-
-    @Nullable
-    @Parameter(property = "rewrite.metricsUri", alias = "metricsUri")
-    protected String metricsUri;
-
-    @Nullable
-    @Parameter(property = "rewrite.metricsUsername", alias = "metricsUsername")
-    protected String metricsUsername;
-
-    @Nullable
-    @Parameter(property = "rewrite.metricsPassword", alias = "metricsPassword")
-    protected String metricsPassword;
 
     @Parameter(property = "rewrite.pomCacheEnabled", alias = "pomCacheEnabled", defaultValue = "true")
     protected boolean pomCacheEnabled;
 
-    @Nullable
     @Parameter(property = "rewrite.pomCacheDirectory", alias = "pomCacheDirectory")
+    @Nullable
     protected String pomCacheDirectory;
 
     @Parameter(property = "rewrite.skip", defaultValue = "false")
@@ -88,40 +76,36 @@ public abstract class ConfigurableRewriteMojo extends AbstractMojo {
     @Parameter(property = "skipMavenParsing", defaultValue = "false")
     protected boolean skipMavenParsing;
 
-    @Nullable
     @Parameter(property = "rewrite.checkstyleConfigFile", alias = "checkstyleConfigFile")
+    @Nullable
     protected String checkstyleConfigFile;
 
-    @Nullable
     @Parameter(property = "rewrite.checkstyleDetectionEnabled", alias = "checkstyleDetectionEnabled", defaultValue = "true")
     protected boolean checkstyleDetectionEnabled;
 
-    @Nullable
-    @Parameter(property = "rewrite.checkstyleProperties", alias = "checkstyleProperties")
-    private LinkedHashSet<String> checkstyleProperties;
-    /**
-     * @deprecated Use {@code rewrite.checkstyleProperties} instead.
-     */
-    @Nullable
-    @Parameter(property = "checkstyleProperties")
-    @Deprecated
-    private LinkedHashSet<String> deprecatedCheckstyleProperties;
-
-    @Nullable
     @Parameter(property = "rewrite.exclusions")
+    @Nullable
     private LinkedHashSet<String> exclusions;
 
     protected Set<String> getExclusions() {
         return getCleanedSet(exclusions);
     }
 
-    protected Set<String> getCheckstyleProperties() {
-        return getMergedAndCleaned(checkstyleProperties, deprecatedCheckstyleProperties);
-    }
-
-    @Nullable
+    /**
+     * Override default plain text masks. If this is specified,
+     * {@code rewrite.additionalPlainTextMasks} will have no effect.
+     */
     @Parameter(property = "rewrite.plainTextMasks")
+    @Nullable
     private LinkedHashSet<String> plainTextMasks;
+
+    /**
+     * Allows adding additional plain text masks without overriding
+     * the defaults.
+     */
+    @Parameter(property = "rewrite.additionalPlainTextMasks")
+    @Nullable
+    private LinkedHashSet<String> additionalPlainTextMasks;
 
     protected Set<String> getPlainTextMasks() {
         Set<String> masks = getCleanedSet(plainTextMasks);
@@ -129,7 +113,7 @@ public abstract class ConfigurableRewriteMojo extends AbstractMojo {
             return masks;
         }
         //If not defined, use a default set of masks
-        return new HashSet<>(Arrays.asList(
+        masks = new HashSet<>(Arrays.asList(
                 "**/*.adoc",
                 "**/*.aj",
                 "**/*.bash",
@@ -137,15 +121,20 @@ public abstract class ConfigurableRewriteMojo extends AbstractMojo {
                 "**/CODEOWNERS",
                 "**/*.css",
                 "**/*.config",
-                "**/Dockerfile*",
+                "**/[dD]ockerfile*",
+                "**/*.[dD]ockerfile",
+                "**/*[cC]ontainerfile*",
+                "**/*.[cC]ontainerfile",
                 "**/*.env",
                 "**/.gitattributes",
                 "**/.gitignore",
                 "**/*.htm*",
                 "**/gradlew",
                 "**/.java-version",
+                "**/*.jelly",
                 "**/*.jsp",
                 "**/*.ksh",
+                "**/*.lock",
                 "**/lombok.config",
                 "**/*.md",
                 "**/*.mf",
@@ -163,9 +152,10 @@ public abstract class ConfigurableRewriteMojo extends AbstractMojo {
                 "**/*.txt",
                 "**/*.py"
         ));
+        masks.addAll(getCleanedSet(additionalPlainTextMasks));
+        return unmodifiableSet(masks);
     }
 
-    @Nullable
     @Parameter(property = "sizeThresholdMb", defaultValue = "10")
     protected int sizeThresholdMb;
 
@@ -173,7 +163,7 @@ public abstract class ConfigurableRewriteMojo extends AbstractMojo {
      * Whether to throw an exception if an activeRecipe fails configuration validation.
      * This may happen if the activeRecipe is improperly configured, or any downstream recipes are improperly configured.
      * <p>
-     * For the time, this default is "false" to prevent one improperly recipe from failing the build.
+     * For the time, this default is "false" to prevent one improper recipe from failing the build.
      * In the future, this default may be changed to "true" to be more restrictive.
      */
     @Parameter(property = "rewrite.failOnInvalidActiveRecipes", alias = "failOnInvalidActiveRecipes", defaultValue = "false")
@@ -197,6 +187,7 @@ public abstract class ConfigurableRewriteMojo extends AbstractMojo {
     private static final String OPENREWRITE_PROCESSED_MARKER = "openrewrite.processed";
 
     protected void putState(State state) {
+        //noinspection unchecked
         getPluginContext().put(OPENREWRITE_PROCESSED_MARKER, state.name());
     }
 
@@ -209,8 +200,8 @@ public abstract class ConfigurableRewriteMojo extends AbstractMojo {
         return mavenSession.getProjects().stream().allMatch(this::hasState);
     }
 
-    @Nullable
     @Parameter(property = "rewrite.recipeArtifactCoordinates")
+    @Nullable
     private LinkedHashSet<String> recipeArtifactCoordinates;
 
     @Nullable
@@ -251,16 +242,7 @@ public abstract class ConfigurableRewriteMojo extends AbstractMojo {
         try {
             Plugin checkstylePlugin = project.getPlugin("org.apache.maven.plugins:maven-checkstyle-plugin");
             if (checkstyleConfigFile != null && !checkstyleConfigFile.isEmpty()) {
-                // Convert the checkstyle config file contents to a String
-                String checkstyleConfig = new String(Files.readAllBytes(Paths.get(checkstyleConfigFile)));
-                Set<String> checkstyleProperties = getCheckstyleProperties();
-                if (!checkstyleProperties.isEmpty()) {
-                    checkstyleConfig = checkstyleProperties.stream()
-                            .map(s -> "-P" + s)
-                            .collect(Collectors.joining("\n", "", "\n")) + checkstyleConfig;
-                }
-                styles.add(loadCheckstyleConfig(checkstyleConfig, emptyMap()));
-//                styles.add(loadCheckstyleConfig(Paths.get(checkstyleConfigFile), emptyMap()));
+                styles.add(loadCheckstyleConfig(Paths.get(checkstyleConfigFile), emptyMap()));
             } else if (checkstyleDetectionEnabled && checkstylePlugin != null) {
                 Object checkstyleConfRaw = checkstylePlugin.getConfiguration();
                 if (checkstyleConfRaw instanceof Xpp3Dom) {
@@ -278,7 +260,7 @@ public abstract class ConfigurableRewriteMojo extends AbstractMojo {
                         styles.add(loadCheckstyleConfig(toCheckStyleDocument(xmlCheckstyleRules.getChild(0)), emptyMap()));
                     } else {
                         // When no config location is specified, the maven-checkstyle-plugin falls back on sun_checks.xml
-                        try (InputStream is = Checker.class.getResourceAsStream("/sun_checks.xml")) {
+                        try (InputStream is = org.openrewrite.tools.checkstyle.Checker.class.getResourceAsStream("/sun_checks.xml")) {
                             if (is != null) {
                                 styles.add(loadCheckstyleConfig(is, emptyMap()));
                             }
@@ -316,15 +298,15 @@ public abstract class ConfigurableRewriteMojo extends AbstractMojo {
         return computedRecipeArtifactCoordinates;
     }
 
-    private static Set<String> getCleanedSet(@Nullable Set<String> set) {
+    private static Set<String> getCleanedSet(@Nullable Set<@Nullable String> set) {
         if (set == null) {
-            return Collections.emptySet();
+            return emptySet();
         }
         Set<String> cleaned = set.stream()
                 .filter(Objects::nonNull)
                 .map(String::trim)
                 .filter(s -> !s.isEmpty())
-                .collect(Collectors.toCollection(LinkedHashSet::new));
-        return Collections.unmodifiableSet(cleaned);
+                .collect(toCollection(LinkedHashSet::new));
+        return unmodifiableSet(cleaned);
     }
 }
