@@ -21,7 +21,6 @@ import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.ValueSource;
 
 import java.io.File;
-import java.io.IOException;
 import java.io.InputStream;
 import java.nio.file.Files;
 import java.nio.file.Path;
@@ -32,7 +31,7 @@ class AbstractRewriteMojoTest {
 
     @ParameterizedTest
     @ValueSource(strings = {"rewrite.yml"})
-    void configLocation(String loc, @TempDir Path temp) throws IOException {
+    void configLocation(String loc, @TempDir Path temp) throws Exception {
         AbstractRewriteMojo mojo = new AbstractRewriteMojo() {
             {
                 configLocation = loc;
