@@ -16,11 +16,18 @@
 package org.openrewrite.maven;
 
 import org.apache.maven.plugin.logging.Log;
+import org.jspecify.annotations.Nullable;
 import org.openrewrite.ExecutionContext;
 import org.openrewrite.SourceFile;
 import org.openrewrite.groovy.GroovyParser;
 import org.openrewrite.hcl.HclParser;
 import org.openrewrite.java.JavaParser;
+import org.openrewrite.jgit.lib.FileMode;
+import org.openrewrite.jgit.lib.Repository;
+import org.openrewrite.jgit.treewalk.FileTreeIterator;
+import org.openrewrite.jgit.treewalk.TreeWalk;
+import org.openrewrite.jgit.treewalk.WorkingTreeIterator;
+import org.openrewrite.jgit.treewalk.filter.PathFilterGroup;
 import org.openrewrite.json.JsonParser;
 import org.openrewrite.kotlin.KotlinParser;
 import org.openrewrite.properties.PropertiesParser;
@@ -50,6 +57,7 @@ public class ResourceParser {
             ".sonar", ".gradle", ".idea", ".project", "node_modules", ".git", ".metadata", ".DS_Store", ".terraform"));
 
     private final Path baseDir;
+    private final @Nullable Repository repository;
     private final Log logger;
     private final Collection<PathMatcher> exclusions;
     private final int sizeThresholdMb;
@@ -65,9 +73,10 @@ public class ResourceParser {
 
     private final ExecutionContext ctx;
 
-    public ResourceParser(Path baseDir, Log logger, Collection<String> exclusions, Collection<String> plainTextMasks, int sizeThresholdMb, Collection<Path> excludedDirectories,
+    public ResourceParser(Path baseDir, @Nullable Repository repository, Log logger, Collection<String> exclusions, Collection<String> plainTextMasks, int sizeThresholdMb, Collection<Path> excludedDirectories,
                           JavaParser.Builder<? extends JavaParser, ?> javaParserBuilder, KotlinParser.Builder kotlinParserBuilder, ExecutionContext ctx) {
         this.baseDir = baseDir;
+        this.repository = repository;
         this.logger = logger;
         this.javaParserBuilder = javaParserBuilder;
         this.kotlinParserBuilder = kotlinParserBuilder;
@@ -268,6 +277,32 @@ public class ResourceParser {
     }
 
     private boolean isExcluded(Path path) {
+        if (repository != null) {
+            String repoRelativePath = path.toString();
+            if (repoRelativePath.isEmpty()) {
+                return false;
+            }
+
+            try (TreeWalk walk = new TreeWalk(repository)) {
+                walk.addTree(new FileTreeIterator(repository));
+                walk.setFilter(PathFilterGroup.createFromStrings(repoRelativePath));
+                while (walk.next()) {
+                    WorkingTreeIterator workingTreeIterator = walk.getTree(0, WorkingTreeIterator.class);
+                    if (walk.getPathString().equals(repoRelativePath)) {
+                        return workingTreeIterator.isEntryIgnored();
+                    }
+                    if (workingTreeIterator.getEntryFileMode().equals(FileMode.TREE)) {
+                        if (workingTreeIterator.isEntryIgnored()) {
+                            return true;
+                        } else {
+                            walk.enterSubtree();
+                        }
+                    }
+                }
+            } catch (IOException e) {
+                throw new UncheckedIOException(e);
+            }
+        }
         for (PathMatcher excluded : exclusions) {
             if (excluded.matches(path)) {
                 return true;
