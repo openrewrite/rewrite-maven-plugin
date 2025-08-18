@@ -19,11 +19,13 @@ import com.soebes.itf.jupiter.extension.*;
 import com.soebes.itf.jupiter.maven.MavenExecutionResult;
 import org.junit.jupiter.api.condition.DisabledOnOs;
 import org.junit.jupiter.api.condition.OS;
+import org.openrewrite.maven.jupiter.extension.GitJupiterExtension;
 
 import static com.soebes.itf.extension.assertj.MavenITAssertions.assertThat;
 
 @DisabledOnOs(OS.WINDOWS)
 @MavenGoal("${project.groupId}:${project.artifactId}:${project.version}:run")
+@GitJupiterExtension
 @MavenJupiterExtension
 @MavenOption(value = MavenCLIOptions.THREADS, parameter = "2")
 @MavenOption(MavenCLIOptions.NO_TRANSFER_PROGRESS)

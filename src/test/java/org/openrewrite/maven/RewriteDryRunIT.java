@@ -17,10 +17,12 @@ package org.openrewrite.maven;
 
 import com.soebes.itf.jupiter.extension.*;
 import com.soebes.itf.jupiter.maven.MavenExecutionResult;
+import org.openrewrite.maven.jupiter.extension.GitJupiterExtension;
 
 import static com.soebes.itf.extension.assertj.MavenITAssertions.assertThat;
 
 @MavenGoal("${project.groupId}:${project.artifactId}:${project.version}:dryRun")
+@GitJupiterExtension
 @MavenJupiterExtension
 @MavenOption(MavenCLIOptions.NO_TRANSFER_PROGRESS)
 @MavenOption(MavenCLIExtra.MUTE_PLUGIN_VALIDATION_WARNING)
