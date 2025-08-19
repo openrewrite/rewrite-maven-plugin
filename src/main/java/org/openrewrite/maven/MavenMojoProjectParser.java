@@ -42,7 +42,6 @@ import org.openrewrite.java.internal.JavaTypeCache;
 import org.openrewrite.java.marker.JavaProject;
 import org.openrewrite.java.marker.JavaSourceSet;
 import org.openrewrite.java.marker.JavaVersion;
-import org.openrewrite.java.tree.J;
 import org.openrewrite.jgit.api.Git;
 import org.openrewrite.jgit.lib.FileMode;
 import org.openrewrite.jgit.treewalk.FileTreeIterator;
@@ -246,9 +245,20 @@ public class MavenMojoProjectParser {
     }
 
     private boolean isExcluded(Collection<PathMatcher> exclusionMatchers, Path path) {
+        for (PathMatcher excluded : exclusionMatchers) {
+            if (excluded.matches(path)) {
+                return true;
+            }
+        }
+        // PathMather will not evaluate the path "pom.xml" to be matched by the pattern "**/pom.xml"
+        // This is counter-intuitive for most users and would otherwise require separate exclusions for files at the root and files in subdirectories
+        if (!path.isAbsolute() && !path.startsWith(File.separator)) {
+            return isExcluded(exclusionMatchers, Paths.get("/" + path));
+        }
+
         if (repository != null) {
             String repoRelativePath = PathUtils.separatorsToUnix(path.toString());
-            if (repoRelativePath.isEmpty()) {
+            if (repoRelativePath.isEmpty() && "/".equals(repoRelativePath)) {
                 return false;
             }
 
@@ -271,16 +281,6 @@ public class MavenMojoProjectParser {
             } catch (IOException e) {
                 throw new UncheckedIOException(e);
             }
-        }
-        for (PathMatcher excluded : exclusionMatchers) {
-            if (excluded.matches(path)) {
-                return true;
-            }
-        }
-        // PathMather will not evaluate the path "pom.xml" to be matched by the pattern "**/pom.xml"
-        // This is counter-intuitive for most users and would otherwise require separate exclusions for files at the root and files in subdirectories
-        if (!path.isAbsolute() && !path.startsWith(File.separator)) {
-            return isExcluded(exclusionMatchers, Paths.get("/" + path));
         }
         return false;
     }
