@@ -282,7 +282,6 @@ public class MavenMojoProjectParser {
                 throw new UncheckedIOException(e);
             }
         }
-
         return false;
     }
 

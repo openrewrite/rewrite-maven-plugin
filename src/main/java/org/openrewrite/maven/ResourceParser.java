@@ -314,7 +314,6 @@ public class ResourceParser {
                 throw new UncheckedIOException(e);
             }
         }
-
         return false;
     }
 
