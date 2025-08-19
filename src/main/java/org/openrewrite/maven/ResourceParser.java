@@ -277,6 +277,17 @@ public class ResourceParser {
     }
 
     private boolean isExcluded(Path path) {
+        for (PathMatcher excluded : exclusions) {
+            if (excluded.matches(path)) {
+                return true;
+            }
+        }
+        // PathMather will not evaluate the path "pom.xml" to be matched by the pattern "**/pom.xml"
+        // This is counter-intuitive for most users and would otherwise require separate exclusions for files at the root and files in subdirectories
+        if(!path.isAbsolute() && !path.startsWith(File.separator)) {
+            return isExcluded(Paths.get("/" + path));
+        }
+
         if (repository != null) {
             String repoRelativePath = path.toString();
             if (repoRelativePath.isEmpty()) {
@@ -303,16 +314,7 @@ public class ResourceParser {
                 throw new UncheckedIOException(e);
             }
         }
-        for (PathMatcher excluded : exclusions) {
-            if (excluded.matches(path)) {
-                return true;
-            }
-        }
-        // PathMather will not evaluate the path "pom.xml" to be matched by the pattern "**/pom.xml"
-        // This is counter-intuitive for most users and would otherwise require separate exclusions for files at the root and files in subdirectories
-        if(!path.isAbsolute() && !path.startsWith(File.separator)) {
-            return isExcluded(Paths.get("/" + path));
-        }
+
         return false;
     }
 
