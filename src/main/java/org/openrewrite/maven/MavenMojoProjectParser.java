@@ -258,7 +258,7 @@ public class MavenMojoProjectParser {
 
         if (repository != null) {
             String repoRelativePath = PathUtils.separatorsToUnix(path.toString());
-            if (repoRelativePath.isEmpty()) {
+            if (repoRelativePath.isEmpty() && "/".equals(repoRelativePath)) {
                 return false;
             }
 

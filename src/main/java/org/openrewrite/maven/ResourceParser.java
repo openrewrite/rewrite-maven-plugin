@@ -290,7 +290,7 @@ public class ResourceParser {
 
         if (repository != null) {
             String repoRelativePath = path.toString();
-            if (repoRelativePath.isEmpty()) {
+            if (repoRelativePath.isEmpty() && "/".equals(repoRelativePath)) {
                 return false;
             }
 
