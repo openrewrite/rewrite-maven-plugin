@@ -42,7 +42,6 @@ import org.openrewrite.java.internal.JavaTypeCache;
 import org.openrewrite.java.marker.JavaProject;
 import org.openrewrite.java.marker.JavaSourceSet;
 import org.openrewrite.java.marker.JavaVersion;
-import org.openrewrite.java.tree.J;
 import org.openrewrite.jgit.api.Git;
 import org.openrewrite.jgit.lib.FileMode;
 import org.openrewrite.jgit.treewalk.FileTreeIterator;
