@@ -305,9 +305,8 @@ public class ResourceParser {
                     if (workingTreeIterator.getEntryFileMode().equals(FileMode.TREE)) {
                         if (workingTreeIterator.isEntryIgnored()) {
                             return true;
-                        } else {
-                            walk.enterSubtree();
                         }
+                        walk.enterSubtree();
                     }
                 }
             } catch (IOException e) {
