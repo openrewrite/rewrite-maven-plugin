@@ -136,6 +136,7 @@ public abstract class ConfigurableRewriteMojo extends AbstractMojo {
                 "**/*.ksh",
                 "**/*.lock",
                 "**/lombok.config",
+                "**/[mM]akefile",
                 "**/*.md",
                 "**/*.mf",
                 "**/META-INF/services/**",

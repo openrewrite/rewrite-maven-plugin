@@ -36,8 +36,8 @@ class RewriteTypeTableIT {
             "contains guava 33.3.1-jre")
           .matches(logLines -> logLines.stream().anyMatch(line -> line.contains("Wrote com.google.guava:guava:jar:32.0.0-jre")),
             "contains guava 32.0.0-jre")
-          .matches(logLines -> logLines.stream().anyMatch(line -> line.contains("Wrote src/main/resources/META-INF/rewrite/classpath.tsv.zip")),
-            "write classpath.tsv.zip");
+          .matches(logLines -> logLines.stream().anyMatch(line -> line.contains("Wrote src/main/resources/META-INF/rewrite/classpath.tsv.gz")),
+            "write classpath.tsv.gz");
         assertThat(result).out().error().isEmpty();
     }
 
