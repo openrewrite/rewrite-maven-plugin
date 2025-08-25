@@ -34,6 +34,7 @@ import org.codehaus.plexus.util.xml.Xpp3Dom;
 import org.jspecify.annotations.Nullable;
 import org.openrewrite.ExecutionContext;
 import org.openrewrite.ParseExceptionResult;
+import org.openrewrite.PathUtils;
 import org.openrewrite.SourceFile;
 import org.openrewrite.internal.StringUtils;
 import org.openrewrite.java.JavaParser;
@@ -41,7 +42,12 @@ import org.openrewrite.java.internal.JavaTypeCache;
 import org.openrewrite.java.marker.JavaProject;
 import org.openrewrite.java.marker.JavaSourceSet;
 import org.openrewrite.java.marker.JavaVersion;
-import org.openrewrite.java.tree.J;
+import org.openrewrite.jgit.api.Git;
+import org.openrewrite.jgit.lib.FileMode;
+import org.openrewrite.jgit.treewalk.FileTreeIterator;
+import org.openrewrite.jgit.treewalk.TreeWalk;
+import org.openrewrite.jgit.treewalk.WorkingTreeIterator;
+import org.openrewrite.jgit.treewalk.filter.PathFilterGroup;
 import org.openrewrite.kotlin.KotlinParser;
 import org.openrewrite.marker.*;
 import org.openrewrite.marker.ci.BuildEnvironment;
@@ -61,6 +67,7 @@ import org.openrewrite.xml.tree.Xml;
 import java.io.File;
 import java.io.IOException;
 import java.io.InputStream;
+import java.io.UncheckedIOException;
 import java.nio.charset.Charset;
 import java.nio.file.*;
 import java.nio.file.attribute.BasicFileAttributes;
@@ -68,7 +75,6 @@ import java.util.*;
 import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.function.Function;
 import java.util.function.UnaryOperator;
-import java.util.stream.Collectors;
 import java.util.stream.Stream;
 
 import static java.util.Collections.emptyList;
@@ -76,6 +82,8 @@ import static java.util.Collections.emptyMap;
 import static java.util.Collections.singletonList;
 import static java.util.Collections.singletonMap;
 import static java.util.stream.Collectors.toList;
+import static java.util.stream.Collectors.toMap;
+import static java.util.stream.Collectors.toSet;
 import static org.openrewrite.Tree.randomId;
 import static org.openrewrite.maven.MavenMojoProjectParser.MavenScope.MAIN;
 import static org.openrewrite.maven.MavenMojoProjectParser.MavenScope.TEST;
@@ -107,6 +115,7 @@ public class MavenMojoProjectParser {
     private final Log logger;
     private final AtomicBoolean firstWarningLogged = new AtomicBoolean(false);
     private final Path baseDir;
+    private final org.openrewrite.jgit.lib.@Nullable Repository repository;
     private final boolean pomCacheEnabled;
 
     @Nullable
@@ -128,6 +137,7 @@ public class MavenMojoProjectParser {
     public MavenMojoProjectParser(Log logger, Path baseDir, boolean pomCacheEnabled, @Nullable String pomCacheDirectory, RuntimeInformation runtime, boolean skipMavenParsing, Collection<String> exclusions, Collection<String> plainTextMasks, int sizeThresholdMb, MavenSession session, SettingsDecrypter settingsDecrypter, boolean runPerSubmodule, boolean parseAdditionalResources) {
         this.logger = logger;
         this.baseDir = baseDir;
+        this.repository = getRepository(baseDir);
         this.pomCacheEnabled = pomCacheEnabled;
         this.pomCacheDirectory = pomCacheDirectory;
         this.skipMavenParsing = skipMavenParsing;
@@ -148,21 +158,20 @@ public class MavenMojoProjectParser {
             List<Marker> projectProvenance = generateProvenance(mavenProject);
             Xml.Document maven = parseMaven(mavenProject, projectProvenance, ctx);
             return listSourceFiles(mavenProject, maven, projectProvenance, styles, ctx);
-        } else {
-            //If running across all projects, iterate and parse source files from each project
-            Map<MavenProject, List<Marker>> projectProvenances = mavenSession.getProjects().stream()
-                    .collect(Collectors.toMap(Function.identity(), this::generateProvenance));
-            Map<MavenProject, Xml.Document> projectMap = parseMaven(mavenSession.getProjects(), projectProvenances, ctx);
-            return mavenSession.getProjects().stream()
-                    .flatMap(project -> {
-                        List<Marker> projectProvenance = projectProvenances.get(project);
-                        try {
-                            return listSourceFiles(project, projectMap.get(project), projectProvenance, styles, ctx);
-                        } catch (DependencyResolutionRequiredException | MojoExecutionException e) {
-                            throw sneakyThrow(e);
-                        }
-                    });
         }
+        //If running across all projects, iterate and parse source files from each project
+        Map<MavenProject, List<Marker>> projectProvenances = mavenSession.getProjects().stream()
+          .collect(toMap(Function.identity(), this::generateProvenance));
+        Map<MavenProject, Xml.Document> projectMap = parseMaven(mavenSession.getProjects(), projectProvenances, ctx);
+        return mavenSession.getProjects().stream()
+          .flatMap(project -> {
+              List<Marker> projectProvenance = projectProvenances.get(project);
+              try {
+                  return listSourceFiles(project, projectMap.get(project), projectProvenance, styles, ctx);
+              } catch (DependencyResolutionRequiredException | MojoExecutionException e) {
+                  throw sneakyThrow(e);
+              }
+          });
     }
 
     public Stream<SourceFile> listSourceFiles(MavenProject mavenProject, Xml.@Nullable Document maven, List<Marker> projectProvenance, List<NamedStyles> styles,
@@ -190,7 +199,7 @@ public class MavenMojoProjectParser {
 
         // todo, add styles from autoDetect
         KotlinParser.Builder kotlinParserBuilder = KotlinParser.builder();
-        ResourceParser rp = new ResourceParser(baseDir, logger, exclusions, plainTextMasks, sizeThresholdMb, pathsToOtherMavenProjects(mavenProject),
+        ResourceParser rp = new ResourceParser(baseDir, repository, logger, exclusions, plainTextMasks, sizeThresholdMb, pathsToOtherMavenProjects(mavenProject),
                 javaParserBuilder.clone(), kotlinParserBuilder.clone(), ctx);
 
         if (scopes.contains(MAIN)) {
@@ -203,12 +212,8 @@ public class MavenMojoProjectParser {
                 .map(pattern -> baseDir.getFileSystem().getPathMatcher("glob:" + pattern))
                 .collect(toList());
         sourceFiles = sourceFiles.map(sourceFile -> {
-            if (sourceFile instanceof J.CompilationUnit) {
-                for (PathMatcher excluded : exclusionMatchers) {
-                    if (excluded.matches(sourceFile.getSourcePath())) {
-                        return null;
-                    }
-                }
+            if (isExcluded(exclusionMatchers, sourceFile.getSourcePath())) {
+                return null;
             }
             return sourceFile;
         }).filter(Objects::nonNull);
@@ -239,6 +244,46 @@ public class MavenMojoProjectParser {
         return sourceFiles.map(this::logParseErrors);
     }
 
+    private boolean isExcluded(Collection<PathMatcher> exclusionMatchers, Path path) {
+        for (PathMatcher excluded : exclusionMatchers) {
+            if (excluded.matches(path)) {
+                return true;
+            }
+        }
+        // PathMather will not evaluate the path "pom.xml" to be matched by the pattern "**/pom.xml"
+        // This is counter-intuitive for most users and would otherwise require separate exclusions for files at the root and files in subdirectories
+        if (!path.isAbsolute() && !path.startsWith(File.separator)) {
+            return isExcluded(exclusionMatchers, Paths.get("/" + path));
+        }
+
+        if (repository != null) {
+            String repoRelativePath = PathUtils.separatorsToUnix(path.toString());
+            if (repoRelativePath.isEmpty() && "/".equals(repoRelativePath)) {
+                return false;
+            }
+
+            try (TreeWalk walk = new TreeWalk(repository)) {
+                walk.addTree(new FileTreeIterator(repository));
+                walk.setFilter(PathFilterGroup.createFromStrings(repoRelativePath));
+                while (walk.next()) {
+                    WorkingTreeIterator workingTreeIterator = walk.getTree(0, WorkingTreeIterator.class);
+                    if (walk.getPathString().equals(repoRelativePath)) {
+                        return workingTreeIterator.isEntryIgnored();
+                    }
+                    if (workingTreeIterator.getEntryFileMode().equals(FileMode.TREE)) {
+                        if (workingTreeIterator.isEntryIgnored()) {
+                            return true;
+                        }
+                        walk.enterSubtree();
+                    }
+                }
+            } catch (IOException e) {
+                throw new UncheckedIOException(e);
+            }
+        }
+        return false;
+    }
+
     public enum MavenScope {
         MAIN,
         TEST
@@ -260,6 +305,15 @@ public class MavenMojoProjectParser {
             return Optional.of(Charset.forName(mavenSourceEncoding.toString()));
         }
         return Optional.empty();
+    }
+
+    static org.openrewrite.jgit.lib.@Nullable Repository getRepository(Path rootDir) {
+        try (Git git = Git.open(rootDir.toFile())) {
+            return git.getRepository();
+        } catch (IOException e) {
+            // no git
+            return null;
+        }
     }
 
     private SourceFile logParseErrors(SourceFile source) {
@@ -533,7 +587,7 @@ public class MavenMojoProjectParser {
             File[] subdirectories = parentDirectory.listFiles(File::isDirectory);
             if (subdirectories != null) {
                 for (File subdirectory : subdirectories) {
-                    if (subdirectory.getName().equals("kotlin")) {
+                    if ("kotlin".equals(subdirectory.getName())) {
                         return subdirectory.getAbsolutePath();
                     }
                 }
@@ -602,7 +656,7 @@ public class MavenMojoProjectParser {
             }
         }
 
-        Map<Path, MavenProject> projectsByPath = mavenProjects.stream().collect(Collectors.toMap(MavenMojoProjectParser::pomPath, Function.identity()));
+        Map<Path, MavenProject> projectsByPath = mavenProjects.stream().collect(toMap(MavenMojoProjectParser::pomPath, Function.identity()));
         Map<MavenProject, Xml.Document> projectMap = new HashMap<>();
         for (SourceFile document : mavens) {
             Path path = baseDir.resolve(document.getSourcePath());
@@ -780,7 +834,7 @@ public class MavenMojoProjectParser {
         return mavenSession.getProjects().stream()
                 .filter(o -> o != mavenProject)
                 .map(o -> o.getBasedir().toPath())
-                .collect(Collectors.toSet());
+                .collect(toSet());
     }
 
     private <T extends SourceFile> UnaryOperator<T> addProvenance(Path baseDir, List<Marker> provenance, @Nullable Collection<Path> generatedSources) {

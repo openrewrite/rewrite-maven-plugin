@@ -18,9 +18,11 @@ package org.openrewrite.maven;
 import com.soebes.itf.jupiter.extension.*;
 import com.soebes.itf.jupiter.maven.MavenExecutionResult;
 import org.junit.jupiter.api.Disabled;
+import org.openrewrite.maven.jupiter.extension.GitJupiterExtension;
 
 import static com.soebes.itf.extension.assertj.MavenITAssertions.assertThat;
 
+@GitJupiterExtension
 @MavenJupiterExtension
 @MavenOption(MavenCLIOptions.NO_TRANSFER_PROGRESS)
 @MavenOption(MavenCLIExtra.MUTE_PLUGIN_VALIDATION_WARNING)

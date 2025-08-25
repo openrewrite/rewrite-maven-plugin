@@ -4,7 +4,7 @@
 
     <groupId>org.openrewrite.maven</groupId>
     <artifactId>rewrite-maven-plugin</artifactId>
-    <version>6.14.0-SNAPSHOT</version>
+    <version>6.17.0-SNAPSHOT</version>
     <packaging>maven-plugin</packaging>
 
     <name>rewrite-maven-plugin</name>
@@ -62,7 +62,7 @@
 
     <properties>
         <!-- Pinned versions, as RELEASE would make it into the published pom.xml  -->
-        <rewrite.version>8.59.0-SNAPSHOT</rewrite.version>
+        <rewrite.version>8.61.0-SNAPSHOT</rewrite.version>
 
         <!-- using 'ssh' url scheme by default, which assumes a human is performing git operations leveraging an ssh key -->
         <developerConnectionUrl>scm:git:ssh://git@github.com/openrewrite/rewrite-maven-plugin.git
@@ -78,7 +78,7 @@
         <jackson-bom.version>2.17.3</jackson-bom.version>
         <rocksdbjni.version>8.8.1</rocksdbjni.version>
         <itf-maven.version>0.13.1</itf-maven.version>
-        <maven-dependencies.version>3.9.10</maven-dependencies.version>
+        <maven-dependencies.version>3.9.11</maven-dependencies.version>
         <maven-release-plugin.version>3.1.1</maven-release-plugin.version>
         <maven-plugin-tools.version>3.15.1</maven-plugin-tools.version>
     </properties>
@@ -95,14 +95,14 @@
             <dependency>
                 <groupId>org.junit</groupId>
                 <artifactId>junit-bom</artifactId>
-                <version>5.13.3</version>
+                <version>5.13.4</version>
                 <scope>import</scope>
                 <type>pom</type>
             </dependency>
             <dependency>
                 <groupId>org.assertj</groupId>
                 <artifactId>assertj-bom</artifactId>
-                <version>3.27.3</version>
+                <version>3.27.4</version>
                 <scope>import</scope>
                 <type>pom</type>
             </dependency>
@@ -204,7 +204,7 @@
         <dependency>
             <groupId>io.micrometer</groupId>
             <artifactId>micrometer-core</artifactId>
-            <version>1.15.2</version>
+            <version>1.15.3</version>
         </dependency>
         <dependency>
             <groupId>org.rocksdb</groupId>
@@ -318,7 +318,7 @@
             <plugin>
                 <groupId>org.apache.maven.plugins</groupId>
                 <artifactId>maven-enforcer-plugin</artifactId>
-                <version>3.6.0</version>
+                <version>3.6.1</version>
                 <configuration>
                     <rules>
                         <requireJavaVersion>
@@ -410,7 +410,7 @@
             <plugin>
                 <groupId>org.apache.maven.plugins</groupId>
                 <artifactId>maven-javadoc-plugin</artifactId>
-                <version>3.11.2</version>
+                <version>3.11.3</version>
                 <executions>
                     <execution>
                         <phase>prepare-package</phase>

@@ -123,7 +123,7 @@ public abstract class AbstractRewriteBaseRunMojo extends AbstractRewriteMojo {
             Environment env = environment(recipeArtifactCoordinatesClassloader);
 
             Recipe recipe = env.activateRecipes(getActiveRecipes());
-            if (recipe.getName().equals("org.openrewrite.Recipe$Noop")) {
+            if ("org.openrewrite.Recipe$Noop".equals(recipe.getName())) {
                 getLog().warn("No recipes were activated." +
                               " Activate a recipe with <activeRecipes><recipe>com.fully.qualified.RecipeClassName</recipe></activeRecipes> in this plugin's <configuration> in your pom.xml," +
                               " or on the command line with -Drewrite.activeRecipes=com.fully.qualified.RecipeClassName");
@@ -141,13 +141,12 @@ public abstract class AbstractRewriteBaseRunMojo extends AbstractRewriteMojo {
                     .flatMap(Collection::stream).collect(toList());
             if (!failedValidations.isEmpty()) {
                 failedValidations.forEach(failedValidation -> getLog().error(
-                        "Recipe validation error in " + failedValidation.getProperty() + ": " +
-                        failedValidation.getMessage(), failedValidation.getException()));
+                  "Recipe validation error in " + failedValidation.getProperty() + ": " +
+                    failedValidation.getMessage(), failedValidation.getException()));
                 if (failOnInvalidActiveRecipes) {
                     throw new MojoExecutionException("Recipe validation errors detected as part of one or more activeRecipe(s). Please check error logs.");
-                } else {
-                    getLog().error("Recipe validation errors detected as part of one or more activeRecipe(s). Execution will continue regardless.");
                 }
+                getLog().error("Recipe validation errors detected as part of one or more activeRecipe(s). Execution will continue regardless.");
             }
 
             LargeSourceSet sourceSet = loadSourceSet(repositoryRoot, env, ctx);
@@ -408,7 +407,7 @@ public abstract class AbstractRewriteBaseRunMojo extends AbstractRewriteMojo {
                 maybeEmptyDirectories.add(projectRoot.resolve(result.getBefore().getSourcePath()).getParent());
             }
             if (maybeEmptyDirectories.isEmpty()) {
-                return Collections.emptyList();
+                return emptyList();
             }
             List<Path> emptyDirectories = new ArrayList<>(maybeEmptyDirectories.size());
             for (Path maybeEmptyDirectory : maybeEmptyDirectories) {

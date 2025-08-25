@@ -16,11 +16,18 @@
 package org.openrewrite.maven;
 
 import org.apache.maven.plugin.logging.Log;
+import org.jspecify.annotations.Nullable;
 import org.openrewrite.ExecutionContext;
 import org.openrewrite.SourceFile;
 import org.openrewrite.groovy.GroovyParser;
 import org.openrewrite.hcl.HclParser;
 import org.openrewrite.java.JavaParser;
+import org.openrewrite.jgit.lib.FileMode;
+import org.openrewrite.jgit.lib.Repository;
+import org.openrewrite.jgit.treewalk.FileTreeIterator;
+import org.openrewrite.jgit.treewalk.TreeWalk;
+import org.openrewrite.jgit.treewalk.WorkingTreeIterator;
+import org.openrewrite.jgit.treewalk.filter.PathFilterGroup;
 import org.openrewrite.json.JsonParser;
 import org.openrewrite.kotlin.KotlinParser;
 import org.openrewrite.properties.PropertiesParser;
@@ -37,16 +44,20 @@ import java.io.UncheckedIOException;
 import java.nio.file.*;
 import java.nio.file.attribute.BasicFileAttributes;
 import java.util.*;
-import java.util.stream.Collectors;
 import java.util.stream.Stream;
 
+import static java.util.Collections.emptySet;
+import static java.util.Collections.singleton;
+import static java.util.stream.Collectors.toList;
+
 public class ResourceParser {
-    private static final Set<String> DEFAULT_ACCEPTED_DIRECTORIES = new HashSet<>(Collections.singleton("src"));
+    private static final Set<String> DEFAULT_ACCEPTED_DIRECTORIES = new HashSet<>(singleton("src"));
     private static final Set<String> DEFAULT_IGNORED_DIRECTORIES = new HashSet<>(Arrays.asList(
             "build", "target", "out",
             ".sonar", ".gradle", ".idea", ".project", "node_modules", ".git", ".metadata", ".DS_Store", ".terraform"));
 
     private final Path baseDir;
+    private final @Nullable Repository repository;
     private final Log logger;
     private final Collection<PathMatcher> exclusions;
     private final int sizeThresholdMb;
@@ -62,9 +73,10 @@ public class ResourceParser {
 
     private final ExecutionContext ctx;
 
-    public ResourceParser(Path baseDir, Log logger, Collection<String> exclusions, Collection<String> plainTextMasks, int sizeThresholdMb, Collection<Path> excludedDirectories,
+    public ResourceParser(Path baseDir, @Nullable Repository repository, Log logger, Collection<String> exclusions, Collection<String> plainTextMasks, int sizeThresholdMb, Collection<Path> excludedDirectories,
                           JavaParser.Builder<? extends JavaParser, ?> javaParserBuilder, KotlinParser.Builder kotlinParserBuilder, ExecutionContext ctx) {
         this.baseDir = baseDir;
+        this.repository = repository;
         this.logger = logger;
         this.javaParserBuilder = javaParserBuilder;
         this.kotlinParserBuilder = kotlinParserBuilder;
@@ -78,7 +90,7 @@ public class ResourceParser {
     private Collection<PathMatcher> pathMatchers(Path basePath, Collection<String> pathExpressions) {
         return pathExpressions.stream()
                 .map(o -> basePath.getFileSystem().getPathMatcher("glob:" + o))
-                .collect(Collectors.toList());
+                .collect(toList());
     }
 
     public Stream<SourceFile> parse(Path searchDir, Collection<Path> alreadyParsed) {
@@ -106,7 +118,7 @@ public class ResourceParser {
         List<Path> resources = new ArrayList<>();
         List<Path> quarkPaths = new ArrayList<>();
         List<Path> plainTextPaths = new ArrayList<>();
-        Files.walkFileTree(searchDir, Collections.emptySet(), 16, new SimpleFileVisitor<Path>() {
+        Files.walkFileTree(searchDir, emptySet(), 16, new SimpleFileVisitor<Path>() {
             @Override
             public FileVisitResult preVisitDirectory(Path dir, BasicFileAttributes attrs) {
                 if (isExcluded(dir) || isIgnoredDirectory(searchDir, dir) || excludedDirectories.contains(dir)) {
@@ -274,6 +286,32 @@ public class ResourceParser {
         // This is counter-intuitive for most users and would otherwise require separate exclusions for files at the root and files in subdirectories
         if(!path.isAbsolute() && !path.startsWith(File.separator)) {
             return isExcluded(Paths.get("/" + path));
+        }
+
+        if (repository != null) {
+            String repoRelativePath = path.toString();
+            if (repoRelativePath.isEmpty() && "/".equals(repoRelativePath)) {
+                return false;
+            }
+
+            try (TreeWalk walk = new TreeWalk(repository)) {
+                walk.addTree(new FileTreeIterator(repository));
+                walk.setFilter(PathFilterGroup.createFromStrings(repoRelativePath));
+                while (walk.next()) {
+                    WorkingTreeIterator workingTreeIterator = walk.getTree(0, WorkingTreeIterator.class);
+                    if (walk.getPathString().equals(repoRelativePath)) {
+                        return workingTreeIterator.isEntryIgnored();
+                    }
+                    if (workingTreeIterator.getEntryFileMode().equals(FileMode.TREE)) {
+                        if (workingTreeIterator.isEntryIgnored()) {
+                            return true;
+                        }
+                        walk.enterSubtree();
+                    }
+                }
+            } catch (IOException e) {
+                throw new UncheckedIOException(e);
+            }
         }
         return false;
     }

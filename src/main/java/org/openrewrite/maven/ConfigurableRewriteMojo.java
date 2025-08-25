@@ -36,6 +36,7 @@ import java.nio.file.Paths;
 import java.util.*;
 
 import static java.util.Collections.emptyMap;
+import static java.util.Collections.emptySet;
 import static java.util.Collections.unmodifiableSet;
 import static java.util.stream.Collectors.toCollection;
 import static org.openrewrite.java.style.CheckstyleConfigLoader.loadCheckstyleConfig;
@@ -135,6 +136,7 @@ public abstract class ConfigurableRewriteMojo extends AbstractMojo {
                 "**/*.ksh",
                 "**/*.lock",
                 "**/lombok.config",
+                "**/[mM]akefile",
                 "**/*.md",
                 "**/*.mf",
                 "**/META-INF/services/**",
@@ -299,7 +301,7 @@ public abstract class ConfigurableRewriteMojo extends AbstractMojo {
 
     private static Set<String> getCleanedSet(@Nullable Set<@Nullable String> set) {
         if (set == null) {
-            return Collections.emptySet();
+            return emptySet();
         }
         Set<String> cleaned = set.stream()
                 .filter(Objects::nonNull)
