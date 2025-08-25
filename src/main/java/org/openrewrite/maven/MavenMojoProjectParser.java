@@ -466,7 +466,6 @@ public class MavenMojoProjectParser {
         // Some annotation processors output generated sources to the /target directory. These are added for parsing but
         // should be filtered out of the final SourceFile list.
         List<Path> generatedSourcePaths = listJavaSources(mavenProject.getBasedir().toPath().resolve(mavenProject.getBuild().getDirectory()));
-        
         List<Path> mainJavaSources = new ArrayList<>(generatedSourcePaths);
         for (String p : mavenProject.getCompileSourceRoots()) {
             mainJavaSources.addAll(listJavaSources(mavenProject.getBasedir().toPath().resolve(p)));
