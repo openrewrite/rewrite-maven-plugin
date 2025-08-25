@@ -466,16 +466,19 @@ public class MavenMojoProjectParser {
         // Some annotation processors output generated sources to the /target directory. These are added for parsing but
         // should be filtered out of the final SourceFile list.
         List<Path> generatedSourcePaths = listJavaSources(mavenProject.getBasedir().toPath().resolve(mavenProject.getBuild().getDirectory()));
-        String mavenSourceDirectory = mavenProject.getBuild().getSourceDirectory();
-        List<Path> mainJavaSources = Stream.concat(
-                generatedSourcePaths.stream(),
-                listJavaSources(mavenProject.getBasedir().toPath().resolve(mavenSourceDirectory)).stream()
-        ).collect(toList());
+        
+        List<Path> mainJavaSources = new ArrayList<>(generatedSourcePaths);
+        for (String p : mavenProject.getCompileSourceRoots()) {
+            mainJavaSources.addAll(listJavaSources(mavenProject.getBasedir().toPath().resolve(p)));
+        }
 
         alreadyParsed.addAll(mainJavaSources);
 
         // scan Kotlin files
-        List<Path> mainKotlinSources = listKotlinSources(mavenProject, mavenSourceDirectory);
+        List<Path> mainKotlinSources = new ArrayList<>();
+        for (String p : mavenProject.getCompileSourceRoots()) {
+            mainKotlinSources.addAll(listKotlinSources(mavenProject, p));
+        }
         alreadyParsed.addAll(mainKotlinSources);
 
         logInfo(mavenProject, "Parsing source files");
