@@ -61,7 +61,6 @@ import org.openrewrite.maven.tree.ProfileActivation;
 import org.openrewrite.maven.tree.ResolvedGroupArtifactVersion;
 import org.openrewrite.maven.utilities.MavenWrapper;
 import org.openrewrite.style.NamedStyles;
-import org.openrewrite.tree.ParsingExecutionContextView;
 import org.openrewrite.xml.tree.Xml;
 
 import java.io.File;
@@ -69,24 +68,22 @@ import java.io.IOException;
 import java.io.InputStream;
 import java.io.UncheckedIOException;
 import java.nio.charset.Charset;
+import java.nio.charset.StandardCharsets;
 import java.nio.file.*;
 import java.nio.file.attribute.BasicFileAttributes;
 import java.util.*;
 import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.function.Function;
+import java.util.function.Supplier;
 import java.util.function.UnaryOperator;
 import java.util.stream.Stream;
 
-import static java.util.Collections.emptyList;
-import static java.util.Collections.emptyMap;
-import static java.util.Collections.singletonList;
-import static java.util.Collections.singletonMap;
-import static java.util.stream.Collectors.toList;
-import static java.util.stream.Collectors.toMap;
-import static java.util.stream.Collectors.toSet;
+import static java.util.Collections.*;
+import static java.util.stream.Collectors.*;
 import static org.openrewrite.Tree.randomId;
 import static org.openrewrite.maven.MavenMojoProjectParser.MavenScope.MAIN;
 import static org.openrewrite.maven.MavenMojoProjectParser.MavenScope.TEST;
+import static org.openrewrite.tree.ParsingExecutionContextView.view;
 
 // -----------------------------------------------------------------------------------------------------------------
 // Notes About Provenance Information:
@@ -192,10 +189,6 @@ public class MavenMojoProjectParser {
         JavaParser.Builder<? extends JavaParser, ?> javaParserBuilder = JavaParser.fromJavaVersion()
                 .styles(styles)
                 .logCompilationWarningsAndErrors(false);
-        getCharset(mavenProject).ifPresent(charset -> {
-            ParsingExecutionContextView.view(ctx).setCharset(charset);
-            javaParserBuilder.charset(charset);
-        });
 
         // todo, add styles from autoDetect
         KotlinParser.Builder kotlinParserBuilder = KotlinParser.builder();
@@ -489,13 +482,23 @@ public class MavenMojoProjectParser {
 
         Stream<SourceFile> parsedJava = Stream.empty();
         if (!mainJavaSources.isEmpty()) {
-            parsedJava = javaParserBuilder.build().parse(mainJavaSources, baseDir, ctx);
+            parsedJava = Stream.of((Supplier<JavaParser>) javaParserBuilder::build)
+                    .map(Supplier::get)
+                    .flatMap(jp -> {
+                        view(ctx).setCharset(getCharset(mavenProject).orElse(null));
+                        return jp.parse(mainJavaSources, baseDir, ctx).onClose(() -> view(ctx).setCharset(null));
+                    });
             logDebug(mavenProject, "Scanned " + mainJavaSources.size() + " java source files in main scope.");
         }
 
         Stream<SourceFile> parsedKotlin = Stream.empty();
         if (!mainKotlinSources.isEmpty()) {
-            parsedKotlin = kotlinParserBuilder.build().parse(mainKotlinSources, baseDir, ctx);
+            parsedKotlin = Stream.of((Supplier<KotlinParser>) kotlinParserBuilder::build)
+                    .map(Supplier::get)
+                    .flatMap(kp -> {
+                        view(ctx).setCharset(StandardCharsets.UTF_8); // Kotlin requires UTF-8
+                        return kp.parse(mainKotlinSources, baseDir, ctx).onClose(() -> view(ctx).setCharset(null));
+                    });
             logDebug(mavenProject, "Scanned " + mainKotlinSources.size() + " kotlin source files in main scope.");
         }
 
@@ -549,13 +552,23 @@ public class MavenMojoProjectParser {
 
         Stream<SourceFile> parsedJava = Stream.empty();
         if (!testJavaSources.isEmpty()) {
-            parsedJava = javaParserBuilder.build().parse(testJavaSources, baseDir, ctx);
+            parsedJava = Stream.of((Supplier<JavaParser>) javaParserBuilder::build)
+                    .map(Supplier::get)
+                    .flatMap(jp -> {
+                        view(ctx).setCharset(getCharset(mavenProject).orElse(null));
+                        return jp.parse(testJavaSources, baseDir, ctx).onClose(() -> view(ctx).setCharset(null));
+                    });
             logDebug(mavenProject, "Scanned " + testJavaSources.size() + " java source files in test scope.");
         }
 
         Stream<SourceFile> parsedKotlin = Stream.empty();
         if (!testKotlinSources.isEmpty()) {
-            parsedKotlin = kotlinParserBuilder.build().parse(testKotlinSources, baseDir, ctx);
+            parsedKotlin = Stream.of((Supplier<KotlinParser>) kotlinParserBuilder::build)
+                    .map(Supplier::get)
+                    .flatMap(kp -> {
+                        view(ctx).setCharset(StandardCharsets.UTF_8); // Kotlin requires UTF-8
+                        return kp.parse(testKotlinSources, baseDir, ctx).onClose(() -> view(ctx).setCharset(null));
+                    });
             logDebug(mavenProject, "Scanned " + testKotlinSources.size() + " kotlin source files in test scope.");
         }
 
