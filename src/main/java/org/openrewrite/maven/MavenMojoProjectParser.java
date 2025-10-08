@@ -452,7 +452,7 @@ public class MavenMojoProjectParser {
         alreadyParsed.addAll(mainKotlinSources);
 
         logInfo(mavenProject, "Parsing source files");
-        List<Path> dependencies = mavenProject.getExecutionProject().getCompileClasspathElements().stream()
+        List<Path> dependencies = mavenProject.getCompileClasspathElements().stream()
                 .distinct()
                 .map(Paths::get)
                 .collect(toList());
@@ -521,7 +521,7 @@ public class MavenMojoProjectParser {
         List<Path> testKotlinSources = listKotlinSources(mavenProject, "test-compile", mavenProject.getBuild().getTestSourceDirectory());
         alreadyParsed.addAll(testKotlinSources);
 
-        List<Path> testDependencies = mavenProject.getExecutionProject().getTestClasspathElements().stream()
+        List<Path> testDependencies = mavenProject.getTestClasspathElements().stream()
                 .distinct()
                 .map(Paths::get)
                 .collect(toList());
