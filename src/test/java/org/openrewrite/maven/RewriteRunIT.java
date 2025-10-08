@@ -23,8 +23,8 @@ import org.junit.jupiter.api.condition.OS;
 import org.openrewrite.maven.jupiter.extension.GitJupiterExtension;
 
 import static com.soebes.itf.extension.assertj.MavenITAssertions.assertThat;
+import static org.openrewrite.PathUtils.separatorsToSystem;
 
-@DisabledOnOs(OS.WINDOWS)
 @MavenGoal("${project.groupId}:${project.artifactId}:${project.version}:run")
 @GitJupiterExtension
 @MavenJupiterExtension
@@ -52,8 +52,8 @@ class RewriteRunIT {
           .isSuccessful()
           .out()
           .warn()
-          .contains("Changes have been made to project/src/integration-test/java/sample/IntegrationTest.java by:")
-          .contains("Changes have been made to project/src/test/java/sample/RegularTest.java by:");
+          .contains(String.format("Changes have been made to %s by:", separatorsToSystem("project/src/integration-test/java/sample/IntegrationTest.java")))
+          .contains(String.format("Changes have been made to %s by:", separatorsToSystem("project/src/test/java/sample/RegularTest.java")));
     }
 
     @MavenTest
@@ -80,7 +80,7 @@ class RewriteRunIT {
           .isFailure()
           .out()
           .error()
-          .anySatisfy(line -> assertThat(line).contains("/sample/ThrowingRecipe.java", "This recipe throws an exception"));
+          .anySatisfy(line -> assertThat(line).contains(separatorsToSystem("/sample/ThrowingRecipe.java"), "This recipe throws an exception"));
     }
 
     @MavenTest
@@ -100,11 +100,12 @@ class RewriteRunIT {
     void command_line_options(MavenExecutionResult result) {
         assertThat(result).isSuccessful().out().error().isEmpty();
         assertThat(result).isSuccessful().out().warn()
-          .contains("Changes have been made to project/pom.xml by:")
+          .contains(String.format("Changes have been made to %s by:", separatorsToSystem("project/pom.xml")))
           .contains("    org.openrewrite.maven.RemovePlugin: {groupId=org.openrewrite.maven, artifactId=rewrite-maven-plugin}");
         assertThat(result.getMavenProjectResult().getModel().getBuild()).isNull();
     }
 
+    @DisabledOnOs(value = OS.WINDOWS, disabledReason = "Quotes for comment are removed during execution")
     @SystemProperties({
       @SystemProperty(value = "rewrite.activeRecipes", content = "org.openrewrite.java.AddCommentToMethod"),
       @SystemProperty(value = "rewrite.options", content = "comment='{\"test\":{\"some\":\"yeah\"}}',methodPattern=sample.SomeClass doTheThing(..)")
@@ -115,7 +116,7 @@ class RewriteRunIT {
           .isSuccessful()
           .out()
           .warn()
-          .contains("Changes have been made to project/src/main/java/sample/SomeClass.java by:")
+          .contains(String.format("Changes have been made to %s by:", separatorsToSystem("project/src/main/java/sample/SomeClass.java")))
           .contains("    org.openrewrite.java.AddCommentToMethod: {comment='{\"test\":{\"some\":\"yeah\"}}', methodPattern=sample.SomeClass doTheThing(..)}");
     }
 
@@ -147,10 +148,10 @@ class RewriteRunIT {
           .out()
           .warn()
           .contains(
-            "Changes have been made to project/containerfile.build by:",
-            "Changes have been made to project/Dockerfile by:",
-            "Changes have been made to project/Containerfile by:",
-            "Changes have been made to project/build.dockerfile by:"
+            String.format("Changes have been made to %s by:", separatorsToSystem("project/containerfile.build")),
+            String.format("Changes have been made to %s by:", separatorsToSystem("project/Dockerfile")),
+            String.format("Changes have been made to %s by:", separatorsToSystem("project/Containerfile")),
+            String.format("Changes have been made to %s by:", separatorsToSystem("project/build.dockerfile"))
           );
     }
 
@@ -162,10 +163,10 @@ class RewriteRunIT {
           .out()
           .warn()
           .contains(
-            "Changes have been made to project/src/main/java/sample/in-src.ext by:",
-            "Changes have been made to project/.in-root by:",
-            "Changes have been made to project/from-default-list.py by:",
-            "Changes have been made to project/src/main/java/sample/Dummy.java by:"
+            String.format("Changes have been made to %s by:", separatorsToSystem("project/src/main/java/sample/in-src.ext")),
+            String.format("Changes have been made to %s by:", separatorsToSystem("project/.in-root")),
+            String.format("Changes have been made to %s by:", separatorsToSystem("project/from-default-list.py")),
+            String.format("Changes have been made to %s by:", separatorsToSystem("project/src/main/java/sample/Dummy.java"))
           )
           .doesNotContain("in-root.ignored");
     }
