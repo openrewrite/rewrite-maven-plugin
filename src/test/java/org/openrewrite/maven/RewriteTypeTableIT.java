@@ -17,8 +17,10 @@ package org.openrewrite.maven;
 
 import com.soebes.itf.jupiter.extension.*;
 import com.soebes.itf.jupiter.maven.MavenExecutionResult;
+import org.openrewrite.PathUtils;
 
 import static com.soebes.itf.extension.assertj.MavenITAssertions.assertThat;
+import static org.openrewrite.PathUtils.separatorsToSystem;
 
 @MavenJupiterExtension
 @MavenOption(MavenCLIOptions.NO_TRANSFER_PROGRESS)
@@ -36,7 +38,7 @@ class RewriteTypeTableIT {
             "contains guava 33.3.1-jre")
           .matches(logLines -> logLines.stream().anyMatch(line -> line.contains("Wrote com.google.guava:guava:jar:32.0.0-jre")),
             "contains guava 32.0.0-jre")
-          .matches(logLines -> logLines.stream().anyMatch(line -> line.contains("Wrote src/main/resources/META-INF/rewrite/classpath.tsv.gz")),
+          .matches(logLines -> logLines.stream().anyMatch(line -> line.contains(String.format("Wrote %s", separatorsToSystem("src/main/resources/META-INF/rewrite/classpath.tsv.gz")))),
             "write classpath.tsv.gz");
         assertThat(result).out().error().isEmpty();
     }

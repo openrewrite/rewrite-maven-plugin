@@ -201,6 +201,11 @@
             <artifactId>rewrite-kotlin</artifactId>
         </dependency>
         <dependency>
+            <groupId>org.openrewrite</groupId>
+            <artifactId>rewrite-polyglot</artifactId>
+            <version>2.7.2</version>
+        </dependency>
+        <dependency>
             <groupId>org.codehaus.plexus</groupId>
             <artifactId>plexus-xml</artifactId>
             <version>4.1.0</version>
