@@ -4,7 +4,7 @@
 
     <groupId>org.openrewrite.maven</groupId>
     <artifactId>rewrite-maven-plugin</artifactId>
-    <version>6.21.0-SNAPSHOT</version>
+    <version>6.20.1-SNAPSHOT</version>
     <packaging>maven-plugin</packaging>
 
     <name>rewrite-maven-plugin</name>
