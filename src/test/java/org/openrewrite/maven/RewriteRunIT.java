@@ -52,8 +52,8 @@ class RewriteRunIT {
           .isSuccessful()
           .out()
           .warn()
-          .contains(String.format("Changes have been made to %s by:", separatorsToSystem("project/src/integration-test/java/sample/IntegrationTest.java")))
-          .contains(String.format("Changes have been made to %s by:", separatorsToSystem("project/src/test/java/sample/RegularTest.java")));
+          .contains("Changes have been made to %s by:".formatted(separatorsToSystem("project/src/integration-test/java/sample/IntegrationTest.java")))
+          .contains("Changes have been made to %s by:".formatted(separatorsToSystem("project/src/test/java/sample/RegularTest.java")));
     }
 
     @MavenTest
@@ -100,7 +100,7 @@ class RewriteRunIT {
     void command_line_options(MavenExecutionResult result) {
         assertThat(result).isSuccessful().out().error().isEmpty();
         assertThat(result).isSuccessful().out().warn()
-          .contains(String.format("Changes have been made to %s by:", separatorsToSystem("project/pom.xml")))
+          .contains("Changes have been made to %s by:".formatted(separatorsToSystem("project/pom.xml")))
           .contains("    org.openrewrite.maven.RemovePlugin: {groupId=org.openrewrite.maven, artifactId=rewrite-maven-plugin}");
         assertThat(result.getMavenProjectResult().getModel().getBuild()).isNull();
     }
@@ -116,7 +116,7 @@ class RewriteRunIT {
           .isSuccessful()
           .out()
           .warn()
-          .contains(String.format("Changes have been made to %s by:", separatorsToSystem("project/src/main/java/sample/SomeClass.java")))
+          .contains("Changes have been made to %s by:".formatted(separatorsToSystem("project/src/main/java/sample/SomeClass.java")))
           .contains("    org.openrewrite.java.AddCommentToMethod: {comment='{\"test\":{\"some\":\"yeah\"}}', methodPattern=sample.SomeClass doTheThing(..)}");
     }
 
@@ -148,10 +148,10 @@ class RewriteRunIT {
           .out()
           .warn()
           .contains(
-            String.format("Changes have been made to %s by:", separatorsToSystem("project/containerfile.build")),
-            String.format("Changes have been made to %s by:", separatorsToSystem("project/Dockerfile")),
-            String.format("Changes have been made to %s by:", separatorsToSystem("project/Containerfile")),
-            String.format("Changes have been made to %s by:", separatorsToSystem("project/build.dockerfile"))
+                "Changes have been made to %s by:".formatted(separatorsToSystem("project/containerfile.build")),
+                "Changes have been made to %s by:".formatted(separatorsToSystem("project/Dockerfile")),
+                "Changes have been made to %s by:".formatted(separatorsToSystem("project/Containerfile")),
+                "Changes have been made to %s by:".formatted(separatorsToSystem("project/build.dockerfile"))
           );
     }
 
@@ -163,10 +163,10 @@ class RewriteRunIT {
           .out()
           .warn()
           .contains(
-            String.format("Changes have been made to %s by:", separatorsToSystem("project/src/main/java/sample/in-src.ext")),
-            String.format("Changes have been made to %s by:", separatorsToSystem("project/.in-root")),
-            String.format("Changes have been made to %s by:", separatorsToSystem("project/from-default-list.py")),
-            String.format("Changes have been made to %s by:", separatorsToSystem("project/src/main/java/sample/Dummy.java"))
+                  "Changes have been made to %s by:".formatted(separatorsToSystem("project/src/main/java/sample/in-src.ext")),
+                  "Changes have been made to %s by:".formatted(separatorsToSystem("project/.in-root")),
+                  "Changes have been made to %s by:".formatted(separatorsToSystem("project/from-default-list.py")),
+                  "Changes have been made to %s by:".formatted(separatorsToSystem("project/src/main/java/sample/Dummy.java"))
           )
           .doesNotContain("in-root.ignored");
     }
