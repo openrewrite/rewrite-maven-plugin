@@ -162,10 +162,10 @@ class RewriteRunIT {
           .out()
           .warn()
           .contains(
-                "Changes have been made to %s by:".formatted(separatorsToSystem("project/containerfile.build")),
-                "Changes have been made to %s by:".formatted(separatorsToSystem("project/Dockerfile")),
-                "Changes have been made to %s by:".formatted(separatorsToSystem("project/Containerfile")),
-                "Changes have been made to %s by:".formatted(separatorsToSystem("project/build.dockerfile"))
+            "Changes have been made to %s by:".formatted(separatorsToSystem("project/containerfile.build")),
+            "Changes have been made to %s by:".formatted(separatorsToSystem("project/Dockerfile")),
+            "Changes have been made to %s by:".formatted(separatorsToSystem("project/Containerfile")),
+            "Changes have been made to %s by:".formatted(separatorsToSystem("project/build.dockerfile"))
           );
     }
 
@@ -177,10 +177,10 @@ class RewriteRunIT {
           .out()
           .warn()
           .contains(
-                  "Changes have been made to %s by:".formatted(separatorsToSystem("project/src/main/java/sample/in-src.ext")),
-                  "Changes have been made to %s by:".formatted(separatorsToSystem("project/.in-root")),
-                  "Changes have been made to %s by:".formatted(separatorsToSystem("project/from-default-list.py")),
-                  "Changes have been made to %s by:".formatted(separatorsToSystem("project/src/main/java/sample/Dummy.java"))
+            "Changes have been made to %s by:".formatted(separatorsToSystem("project/src/main/java/sample/in-src.ext")),
+            "Changes have been made to %s by:".formatted(separatorsToSystem("project/.in-root")),
+            "Changes have been made to %s by:".formatted(separatorsToSystem("project/from-default-list.py")),
+            "Changes have been made to %s by:".formatted(separatorsToSystem("project/src/main/java/sample/Dummy.java"))
           )
           .doesNotContain("in-root.ignored");
     }
