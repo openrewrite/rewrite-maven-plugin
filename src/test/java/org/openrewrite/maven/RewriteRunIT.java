@@ -56,6 +56,20 @@ class RewriteRunIT {
           .contains("Changes have been made to %s by:".formatted(separatorsToSystem("project/src/test/java/sample/RegularTest.java")));
     }
 
+    @MavenGoal("generate-sources")
+    @MavenTest
+    @SystemProperties({
+      @SystemProperty(value = "rewrite.activeRecipes", content = "org.openrewrite.java.format.SingleLineComments"),
+    })
+    void multi_main_source_sets_project(MavenExecutionResult result) {
+        assertThat(result)
+          .isSuccessful()
+          .out()
+          .warn()
+          .contains("Changes have been made to project/src/main/java/sample/MainClass.java by:")
+          .contains("Changes have been made to project/src/additional-main/java/sample/AdditionalMainClass.java by:");
+    }
+
     @MavenTest
     void single_project(MavenExecutionResult result) {
         assertThat(result)
@@ -148,10 +162,10 @@ class RewriteRunIT {
           .out()
           .warn()
           .contains(
-          "Changes have been made to %s by:".formatted(separatorsToSystem("project/containerfile.build")),
-          "Changes have been made to %s by:".formatted(separatorsToSystem("project/Dockerfile")),
-          "Changes have been made to %s by:".formatted(separatorsToSystem("project/Containerfile")),
-          "Changes have been made to %s by:".formatted(separatorsToSystem("project/build.dockerfile"))
+            "Changes have been made to %s by:".formatted(separatorsToSystem("project/containerfile.build")),
+            "Changes have been made to %s by:".formatted(separatorsToSystem("project/Dockerfile")),
+            "Changes have been made to %s by:".formatted(separatorsToSystem("project/Containerfile")),
+            "Changes have been made to %s by:".formatted(separatorsToSystem("project/build.dockerfile"))
           );
     }
 
