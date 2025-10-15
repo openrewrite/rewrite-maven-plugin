@@ -1,17 +1,3 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <suppressions xmlns="https://jeremylong.github.io/DependencyCheck/dependency-suppression.1.3.xsd">
-    <suppress>
-        <notes><![CDATA[
-           file name: rewrite-kotlin-1.6.0-SNAPSHOT.jar
-           ]]></notes>
-        <cve>CVE-2023-30853</cve>
-    </suppress>
-    <suppress>
-        <notes><![CDATA[
-            file name: jackson-databind-2.15.2.jar
-            This is not a really valid CVE and not really exploitable as Java code needs to be modified: https://github.com/FasterXML/jackson-databind/issues/3972
-        ]]></notes>
-        <packageUrl regex="true">^pkg:maven/com\.fasterxml\.jackson\.core/jackson\-databind@.*$</packageUrl>
-        <cve>CVE-2023-35116</cve>
-    </suppress>
 </suppressions>
