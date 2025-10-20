@@ -22,9 +22,13 @@ import org.junit.jupiter.api.condition.DisabledOnOs;
 import org.junit.jupiter.api.condition.OS;
 import org.openrewrite.maven.jupiter.extension.GitJupiterExtension;
 
+import java.nio.file.Files;
 import java.nio.file.Path;
+import java.util.List;
+import java.util.stream.Stream;
 
 import static com.soebes.itf.extension.assertj.MavenITAssertions.assertThat;
+import static org.assertj.core.api.Assertions.assertThat;
 import static org.openrewrite.PathUtils.separatorsToSystem;
 
 @MavenGoal("${project.groupId}:${project.artifactId}:${project.version}:run")
@@ -181,7 +185,29 @@ class RewriteRunIT {
             "        org.openrewrite.maven.search.DependencyInsight: {groupIdPattern=*, artifactIdPattern=lombok, scope=compile}"
           );
         Path targetProjectDirectory = result.getMavenProjectResult().getTargetProjectDirectory();
-        // TODO assert a file like target/rewrite/datatables/2025-10-20_17-02-22-580/org.openrewrite.maven.table.DependenciesInUse.csv exists and contains two data rows
+
+        // Verify that a CSV file with DependenciesInUse datatable exists
+        Path datatablesDir = targetProjectDirectory.resolve("target/rewrite/datatables");
+        assertThat(datatablesDir).exists().isDirectory();
+
+        // Find the timestamped directory (format: YYYY-MM-DD_HH-mm-ss-SSS)
+        Path csvFile;
+        try (Stream<Path> timestampedDirs = Files.list(datatablesDir)) {
+            Path timestampedDir = timestampedDirs
+                .filter(Files::isDirectory)
+                .findFirst()
+                .orElseThrow(() -> new AssertionError("No timestamped directory found in " + datatablesDir));
+
+            csvFile = timestampedDir.resolve("org.openrewrite.maven.table.DependenciesInUse.csv");
+            assertThat(csvFile).exists().isRegularFile();
+        }
+
+        // Verify CSV contains exactly two data rows (header + 2 dependency rows)
+        List<String> lines = Files.readAllLines(csvFile);
+        assertThat(lines).hasSize(3); // header + 2 dependencies (guava and lombok)
+        assertThat(lines.get(0)).contains("Group", "Artifact"); // CSV header
+        assertThat(lines).anySatisfy(line -> assertThat(line).contains("com.google.guava", "guava"));
+        assertThat(lines).anySatisfy(line -> assertThat(line).contains("org.projectlombok", "lombok"));
     }
 
     @MavenTest
