@@ -28,7 +28,7 @@
                     <configLocation>
                         ${maven.multiModuleProjectDirectory}/src/test/resources-its/org/openrewrite/maven/RewriteRunIT/datatable_export/rewrite.yml
                     </configLocation>
-                    <exportDataTables>true</exportDataTables>
+                    <exportDatatables>true</exportDatatables>
                 </configuration>
             </plugin>
         </plugins>
