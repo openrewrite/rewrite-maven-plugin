@@ -22,6 +22,8 @@ import org.junit.jupiter.api.condition.DisabledOnOs;
 import org.junit.jupiter.api.condition.OS;
 import org.openrewrite.maven.jupiter.extension.GitJupiterExtension;
 
+import java.nio.file.Path;
+
 import static com.soebes.itf.extension.assertj.MavenITAssertions.assertThat;
 import static org.openrewrite.PathUtils.separatorsToSystem;
 
@@ -170,6 +172,19 @@ class RewriteRunIT {
     }
 
     @MavenTest
+    void datatable_export(MavenExecutionResult result) throws Exception {
+        assertThat(result).isSuccessful().out().error().isEmpty();
+        assertThat(result).isSuccessful().out().warn()
+          .contains("Changes have been made to %s by:".formatted(separatorsToSystem("project/pom.xml")))
+          .contains(
+            "    org.openrewrite.maven.search.DependencyInsight: {groupIdPattern=*, artifactIdPattern=guava, scope=compile}",
+            "        org.openrewrite.maven.search.DependencyInsight: {groupIdPattern=*, artifactIdPattern=lombok, scope=compile}"
+          );
+        Path targetProjectDirectory = result.getMavenProjectResult().getTargetProjectDirectory();
+        // TODO assert a file like target/rewrite/datatables/2025-10-20_17-02-22-580/org.openrewrite.maven.table.DependenciesInUse.csv exists and contains two data rows
+    }
+
+    @MavenTest
     @SystemProperty(value = "rewrite.additionalPlainTextMasks", content = "**/*.ext,**/.in-root")
     void plaintext_masks(MavenExecutionResult result) {
         assertThat(result)
@@ -184,5 +199,4 @@ class RewriteRunIT {
           )
           .doesNotContain("in-root.ignored");
     }
-
 }
