@@ -209,12 +209,10 @@ class RewriteRunIT {
         assertThat(lines.get(0)).contains("Group", "Artifact"); // CSV header
 
         // Get only the data rows (skip header and description rows)
-        List<String> dataRows = lines.subList(2, lines.size());
-        assertThat(dataRows).hasSize(2); // Exactly 2 dependencies (guava and lombok)
-
-        // Verify both expected dependencies are present
-        assertThat(dataRows).anySatisfy(line -> assertThat(line).contains("com.google.guava", "guava"));
-        assertThat(dataRows).anySatisfy(line -> assertThat(line).contains("org.projectlombok", "lombok"));
+        assertThat(lines.subList(2, lines.size()))
+          .hasSize(2)
+          .anySatisfy(line -> assertThat(line).contains("com.google.guava", "guava"))
+          .anySatisfy(line -> assertThat(line).contains("org.projectlombok", "lombok"));
     }
 
     @MavenTest
