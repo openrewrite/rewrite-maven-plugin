@@ -22,7 +22,13 @@ import org.junit.jupiter.api.condition.DisabledOnOs;
 import org.junit.jupiter.api.condition.OS;
 import org.openrewrite.maven.jupiter.extension.GitJupiterExtension;
 
+import java.nio.file.Files;
+import java.nio.file.Path;
+import java.util.List;
+import java.util.stream.Stream;
+
 import static com.soebes.itf.extension.assertj.MavenITAssertions.assertThat;
+import static org.assertj.core.api.Assertions.assertThat;
 import static org.openrewrite.PathUtils.separatorsToSystem;
 
 @MavenGoal("${project.groupId}:${project.artifactId}:${project.version}:run")
@@ -170,6 +176,46 @@ class RewriteRunIT {
     }
 
     @MavenTest
+    void datatable_export(MavenExecutionResult result) throws Exception {
+        assertThat(result).isSuccessful().out().error().isEmpty();
+        assertThat(result).isSuccessful().out().warn()
+          .contains("Changes have been made to %s by:".formatted(separatorsToSystem("project/pom.xml")))
+          .contains(
+            "    org.openrewrite.maven.search.DependencyInsight: {groupIdPattern=*, artifactIdPattern=guava, scope=compile}",
+            "        org.openrewrite.maven.search.DependencyInsight: {groupIdPattern=*, artifactIdPattern=lombok, scope=compile}"
+          );
+        Path targetProjectDirectory = result.getMavenProjectResult().getTargetProjectDirectory();
+
+        // Verify that a CSV file with DependenciesInUse datatable exists
+        Path datatablesDir = targetProjectDirectory.resolve("target/rewrite/datatables");
+        assertThat(datatablesDir).exists().isDirectory();
+
+        // Find the timestamped directory (format: YYYY-MM-DD_HH-mm-ss-SSS)
+        Path csvFile;
+        try (Stream<Path> timestampedDirs = Files.list(datatablesDir)) {
+            Path timestampedDir = timestampedDirs
+                .filter(Files::isDirectory)
+                .findFirst()
+                .orElseThrow(() -> new AssertionError("No timestamped directory found in " + datatablesDir));
+
+            csvFile = timestampedDir.resolve("org.openrewrite.maven.table.DependenciesInUse.csv");
+            assertThat(csvFile).exists().isRegularFile();
+        }
+
+        // Verify CSV contains expected structure and data rows
+        // CSV format: header row, description row, data rows
+        List<String> lines = Files.readAllLines(csvFile);
+        assertThat(lines).hasSizeGreaterThanOrEqualTo(4); // header + description + 2 data rows
+        assertThat(lines.get(0)).contains("Group", "Artifact"); // CSV header
+
+        // Get only the data rows (skip header and description rows)
+        assertThat(lines.subList(2, lines.size()))
+          .hasSize(2)
+          .anySatisfy(line -> assertThat(line).contains("com.google.guava", "guava"))
+          .anySatisfy(line -> assertThat(line).contains("org.projectlombok", "lombok"));
+    }
+
+    @MavenTest
     @SystemProperty(value = "rewrite.additionalPlainTextMasks", content = "**/*.ext,**/.in-root")
     void plaintext_masks(MavenExecutionResult result) {
         assertThat(result)
@@ -184,5 +230,4 @@ class RewriteRunIT {
           )
           .doesNotContain("in-root.ignored");
     }
-
 }
