@@ -28,6 +28,7 @@ import java.util.List;
 import java.util.stream.Stream;
 
 import static com.soebes.itf.extension.assertj.MavenITAssertions.assertThat;
+import static org.assertj.core.api.Assertions.assertThat;
 import static org.openrewrite.PathUtils.separatorsToSystem;
 
 @MavenGoal("${project.groupId}:${project.artifactId}:${project.version}:run")
@@ -205,7 +206,7 @@ class RewriteRunIT {
         // CSV format: header row, description row, data rows
         List<String> lines = Files.readAllLines(csvFile);
         assertThat(lines).hasSizeGreaterThanOrEqualTo(4); // header + description + 2 data rows
-        assertThat(lines.getFirst()).contains("Group", "Artifact"); // CSV header
+        assertThat(lines.get(0)).contains("Group", "Artifact"); // CSV header
 
         // Get only the data rows (skip header and description rows)
         assertThat(lines.subList(2, lines.size()))
