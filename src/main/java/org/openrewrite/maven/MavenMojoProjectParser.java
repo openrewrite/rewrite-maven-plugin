@@ -449,7 +449,7 @@ public class MavenMojoProjectParser {
         Stream<SourceFile> sourceFiles = Stream.of();
 
         // scan Java files
-        List<Path> mainJavaSources = listJavaSources(mavenProject, mavenProject.getExecutionProject().getCompileSourceRoots());
+        Collection<Path> mainJavaSources = listJavaSources(mavenProject, mavenProject.getExecutionProject().getCompileSourceRoots());
         alreadyParsed.addAll(mainJavaSources);
 
         // scan Kotlin files
@@ -519,7 +519,7 @@ public class MavenMojoProjectParser {
         Stream<SourceFile> sourceFiles = Stream.of();
 
         // scan Java files
-        List<Path> testJavaSources = listJavaSources(mavenProject, mavenProject.getExecutionProject().getTestCompileSourceRoots());
+        Collection<Path> testJavaSources = listJavaSources(mavenProject, mavenProject.getExecutionProject().getTestCompileSourceRoots());
         alreadyParsed.addAll(testJavaSources);
 
         // scan Kotlin files
@@ -828,8 +828,8 @@ public class MavenMojoProjectParser {
         };
     }
 
-    private static List<Path> listJavaSources(MavenProject mavenProject, List<String> compileSourceRoots) throws MojoExecutionException {
-        List<Path> javaSources = new ArrayList<>();
+    private static Collection<Path> listJavaSources(MavenProject mavenProject, List<String> compileSourceRoots) throws MojoExecutionException {
+        Set<Path> javaSources = new LinkedHashSet<>();
         for (String compileSourceRoot : compileSourceRoots) {
             javaSources.addAll(listSources(mavenProject.getBasedir().toPath().resolve(compileSourceRoot), ".java"));
         }
