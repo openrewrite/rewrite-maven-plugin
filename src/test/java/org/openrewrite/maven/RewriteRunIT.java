@@ -47,6 +47,15 @@ class RewriteRunIT {
           .anySatisfy(line -> assertThat(line).contains("org.openrewrite.staticanalysis.SimplifyBooleanExpression"));
     }
 
+    @MavenTest
+    void multi_module_resources(MavenExecutionResult result) {
+        assertThat(result)
+          .isSuccessful()
+          .out()
+          .warn()
+          .anySatisfy(line -> assertThat(line).contains("org.openrewrite.xml.ChangeTagName"));
+    }
+
     @MavenGoal("generate-test-sources")
     @MavenTest
     @SystemProperties({
