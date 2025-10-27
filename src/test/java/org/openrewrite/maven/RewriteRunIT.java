@@ -53,7 +53,7 @@ class RewriteRunIT {
           .out()
           .warn()
           .contains("Changes have been made to %s by:".formatted(separatorsToSystem("project/a/src/main/resources/example.xml")))
-          .contains("org.openrewrite.xml.ChangeTagName: {elementName=/foo, newName=bar}"));
+          .contains("    org.openrewrite.xml.ChangeTagName: {elementName=/foo, newName=bar}");
     }
 
     @MavenGoal("generate-test-sources")
