@@ -52,8 +52,8 @@ class RewriteRunIT {
           .isSuccessful()
           .out()
           .warn()
-          .anySatisfy(line -> assertThat(line).isEqualTo("Changes have been made to project/a/src/main/resources/example.xml by:"))
-          .anySatisfy(line -> assertThat(line).contains("org.openrewrite.xml.ChangeTagName: {elementName=/foo, newName=bar}"));
+          .contains("Changes have been made to %s by:".formatted(separatorsToSystem("project/a/src/main/resources/example.xml")))
+          .contains("org.openrewrite.xml.ChangeTagName: {elementName=/foo, newName=bar}"));
     }
 
     @MavenGoal("generate-test-sources")
