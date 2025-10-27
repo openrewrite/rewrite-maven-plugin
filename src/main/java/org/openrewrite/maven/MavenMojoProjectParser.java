@@ -926,10 +926,13 @@ public class MavenMojoProjectParser {
     }
 
     private Collection<String> mergeExclusions(MavenProject mavenProject) {
+        Path projectPath = mavenProject.getBasedir().toPath();
         return Stream.concat(
                 pathsToOtherMavenProjects(mavenProject).stream()
-                        .map(subproject -> separatorsToUnix(baseDir.relativize(mavenProject.getBasedir().toPath()).toString())),
-                exclusions.stream()).collect(toList());
+                        .filter(otherProjectPath -> !projectPath.startsWith(otherProjectPath))
+                        .map(subproject -> separatorsToUnix(baseDir.relativize(subproject).toString())),
+                exclusions.stream()
+        ).collect(toList());
     }
 
     private Collection<PathMatcher> pathMatchers(Path basePath, Collection<String> pathExpressions) {

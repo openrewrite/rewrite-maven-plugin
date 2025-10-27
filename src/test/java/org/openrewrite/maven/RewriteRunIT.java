@@ -28,7 +28,6 @@ import java.util.List;
 import java.util.stream.Stream;
 
 import static com.soebes.itf.extension.assertj.MavenITAssertions.assertThat;
-import static org.assertj.core.api.Assertions.assertThat;
 import static org.openrewrite.PathUtils.separatorsToSystem;
 
 @MavenGoal("${project.groupId}:${project.artifactId}:${project.version}:run")
@@ -45,6 +44,16 @@ class RewriteRunIT {
           .out()
           .warn()
           .anySatisfy(line -> assertThat(line).contains("org.openrewrite.staticanalysis.SimplifyBooleanExpression"));
+    }
+
+    @MavenTest
+    void multi_module_resources(MavenExecutionResult result) {
+        assertThat(result)
+          .isSuccessful()
+          .out()
+          .warn()
+          .contains("Changes have been made to %s by:".formatted(separatorsToSystem("project/a/src/main/resources/example.xml")))
+          .contains("    org.openrewrite.xml.ChangeTagName: {elementName=/foo, newName=bar}");
     }
 
     @MavenGoal("generate-test-sources")

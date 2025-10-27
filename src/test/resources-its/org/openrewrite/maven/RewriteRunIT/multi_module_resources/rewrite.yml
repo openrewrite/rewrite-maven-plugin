@@ -1,0 +1,8 @@
+---
+type: specs.openrewrite.org/v1beta/recipe
+name: bug.report.ChangeTag
+displayName: Change XML tag name
+recipeList:
+  - org.openrewrite.xml.ChangeTagName:
+      elementName: /foo
+      newName: bar
