@@ -28,7 +28,6 @@ import java.util.List;
 import java.util.stream.Stream;
 
 import static com.soebes.itf.extension.assertj.MavenITAssertions.assertThat;
-import static org.assertj.core.api.Assertions.assertThat;
 import static org.openrewrite.PathUtils.separatorsToSystem;
 
 @MavenGoal("${project.groupId}:${project.artifactId}:${project.version}:run")
@@ -53,7 +52,8 @@ class RewriteRunIT {
           .isSuccessful()
           .out()
           .warn()
-          .anySatisfy(line -> assertThat(line).contains("org.openrewrite.xml.ChangeTagName"));
+          .anySatisfy(line -> assertThat(line).isEqualTo("Changes have been made to project/a/src/main/resources/example.xml by:"))
+          .anySatisfy(line -> assertThat(line).contains("org.openrewrite.xml.ChangeTagName: {elementName=/foo, newName=bar}"));
     }
 
     @MavenGoal("generate-test-sources")
