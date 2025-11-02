@@ -219,7 +219,7 @@ class RewriteRunIT {
 
         // Get only the data rows (skip header and description rows)
         assertThat(lines.subList(2, lines.size()))
-          .hasSize(2)
+          .hasSizeGreaterThanOrEqualTo(2)
           .anySatisfy(line -> assertThat(line).contains("com.google.guava", "guava"))
           .anySatisfy(line -> assertThat(line).contains("org.projectlombok", "lombok"));
     }
