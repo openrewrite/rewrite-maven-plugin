@@ -4,7 +4,7 @@
 
     <groupId>org.openrewrite.maven</groupId>
     <artifactId>rewrite-maven-plugin</artifactId>
-    <version>6.20.0-SNAPSHOT</version>
+    <version>6.23.0-SNAPSHOT</version>
     <packaging>maven-plugin</packaging>
 
     <name>rewrite-maven-plugin</name>
@@ -62,7 +62,8 @@
 
     <properties>
         <!-- Pinned versions, as RELEASE would make it into the published pom.xml  -->
-        <rewrite.version>8.63.0-SNAPSHOT</rewrite.version>
+        <rewrite.version>8.66.0-SNAPSHOT</rewrite.version>
+        <rewrite-polyglot.version>2.8.0-SNAPSHOT</rewrite-polyglot.version>
 
         <!-- using 'ssh' url scheme by default, which assumes a human is performing git operations leveraging an ssh key -->
         <developerConnectionUrl>scm:git:ssh://git@github.com/openrewrite/rewrite-maven-plugin.git
@@ -80,7 +81,7 @@
         <itf-maven.version>0.13.1</itf-maven.version>
         <maven-dependencies.version>3.9.11</maven-dependencies.version>
         <maven-release-plugin.version>3.1.1</maven-release-plugin.version>
-        <maven-plugin-tools.version>3.15.1</maven-plugin-tools.version>
+        <maven-plugin-tools.version>3.15.2</maven-plugin-tools.version>
     </properties>
 
     <dependencyManagement>
@@ -162,6 +163,10 @@
         </dependency>
         <dependency>
             <groupId>org.openrewrite</groupId>
+            <artifactId>rewrite-kotlin</artifactId>
+        </dependency>
+        <dependency>
+            <groupId>org.openrewrite</groupId>
             <artifactId>rewrite-xml</artifactId>
         </dependency>
         <dependency>
@@ -170,35 +175,8 @@
         </dependency>
         <dependency>
             <groupId>org.openrewrite</groupId>
-            <artifactId>rewrite-hcl</artifactId>
-        </dependency>
-        <dependency>
-            <groupId>org.openrewrite</groupId>
-            <artifactId>rewrite-json</artifactId>
-        </dependency>
-        <dependency>
-            <groupId>org.openrewrite</groupId>
-            <artifactId>rewrite-properties</artifactId>
-        </dependency>
-        <dependency>
-            <groupId>org.openrewrite</groupId>
-            <artifactId>rewrite-protobuf</artifactId>
-        </dependency>
-        <dependency>
-            <groupId>org.openrewrite</groupId>
-            <artifactId>rewrite-toml</artifactId>
-        </dependency>
-        <dependency>
-            <groupId>org.openrewrite</groupId>
-            <artifactId>rewrite-yaml</artifactId>
-        </dependency>
-        <dependency>
-            <groupId>org.openrewrite</groupId>
-            <artifactId>rewrite-groovy</artifactId>
-        </dependency>
-        <dependency>
-            <groupId>org.openrewrite</groupId>
-            <artifactId>rewrite-kotlin</artifactId>
+            <artifactId>rewrite-polyglot</artifactId>
+            <version>${rewrite-polyglot.version}</version>
         </dependency>
         <dependency>
             <groupId>org.codehaus.plexus</groupId>
@@ -208,7 +186,7 @@
         <dependency>
             <groupId>io.micrometer</groupId>
             <artifactId>micrometer-core</artifactId>
-            <version>1.15.4</version>
+            <version>1.15.5</version>
         </dependency>
         <dependency>
             <groupId>org.rocksdb</groupId>
@@ -322,7 +300,7 @@
             <plugin>
                 <groupId>org.apache.maven.plugins</groupId>
                 <artifactId>maven-enforcer-plugin</artifactId>
-                <version>3.6.1</version>
+                <version>3.6.2</version>
                 <configuration>
                     <rules>
                         <requireJavaVersion>
@@ -394,7 +372,7 @@
                     <dependency>
                         <groupId>org.ow2.asm</groupId>
                         <artifactId>asm</artifactId>
-                        <version>9.8</version>
+                        <version>9.9</version>
                     </dependency>
                 </dependencies>
                 <executions>
@@ -527,7 +505,7 @@
             <plugin>
                 <groupId>org.owasp</groupId>
                 <artifactId>dependency-check-maven</artifactId>
-                <version>12.1.6</version>
+                <version>12.1.8</version>
                 <configuration>
                     <nvdApiKey>${env.NVD_API_KEY}</nvdApiKey>
                     <failBuildOnCVSS>9</failBuildOnCVSS>
