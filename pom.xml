@@ -62,8 +62,8 @@
 
     <properties>
         <!-- Pinned versions, as RELEASE would make it into the published pom.xml  -->
-        <rewrite.version>8.66.0-SNAPSHOT</rewrite.version>
-        <rewrite-polyglot.version>2.8.0-SNAPSHOT</rewrite-polyglot.version>
+        <rewrite.version>8.66.1</rewrite.version>
+        <rewrite-polyglot.version>2.8.0</rewrite-polyglot.version>
 
         <!-- using 'ssh' url scheme by default, which assumes a human is performing git operations leveraging an ssh key -->
         <developerConnectionUrl>scm:git:ssh://git@github.com/openrewrite/rewrite-maven-plugin.git
