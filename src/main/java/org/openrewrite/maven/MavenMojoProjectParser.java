@@ -492,6 +492,7 @@ public class MavenMojoProjectParser {
             Path resourcePath = mavenProject.getBasedir().toPath().resolve(resource.getDirectory());
             if (Files.exists(resourcePath) && !alreadyParsed.contains(resourcePath)) {
                 List<Path> accepted = omniParser.acceptedPaths(baseDir, resourcePath);
+                alreadyParsed.add(resourcePath);
                 sourceFiles = Stream.concat(sourceFiles, omniParser.parse(accepted, baseDir, ctx));
                 alreadyParsed.addAll(accepted);
             }
@@ -561,6 +562,7 @@ public class MavenMojoProjectParser {
             Path resourcePath = mavenProject.getBasedir().toPath().resolve(resource.getDirectory());
             if (Files.exists(resourcePath) && !alreadyParsed.contains(resourcePath)) {
                 List<Path> accepted = omniParser.acceptedPaths(baseDir, resourcePath);
+                alreadyParsed.add(resourcePath);
                 sourceFiles = Stream.concat(sourceFiles, omniParser.parse(accepted, baseDir, ctx));
                 alreadyParsed.addAll(accepted);
             }
