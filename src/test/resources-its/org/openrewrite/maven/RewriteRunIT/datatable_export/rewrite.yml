@@ -1,0 +1,13 @@
+type: specs.openrewrite.org/v1beta/recipe
+name: com.github.timtebeek.FindBoth
+displayName: Find dependencies
+description: Find all usages of both Guava and Lombok dependencies in Maven projects.
+recipeList:
+  - org.openrewrite.maven.search.DependencyInsight:
+      groupIdPattern: "*"
+      artifactIdPattern: "guava"
+      scope: compile
+  - org.openrewrite.maven.search.DependencyInsight:
+      groupIdPattern: "*"
+      artifactIdPattern: "lombok"
+      scope: compile

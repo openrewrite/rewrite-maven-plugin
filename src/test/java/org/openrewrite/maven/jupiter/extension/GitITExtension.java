@@ -22,7 +22,6 @@ import org.openrewrite.jgit.api.Git;
 
 import java.lang.reflect.Method;
 import java.nio.file.Path;
-import java.nio.file.Paths;
 
 class GitITExtension implements BeforeEachCallback {
     @Override
@@ -39,7 +38,7 @@ class GitITExtension implements BeforeEachCallback {
     }
 
     static Path getMavenBaseDir() {
-        return Paths.get(System.getProperty("basedir", System.getProperty("user.dir", ".")));
+        return Path.of(System.getProperty("basedir", System.getProperty("user.dir", ".")));
     }
 
     static String toFullyQualifiedPath(Class<?> testClass) {

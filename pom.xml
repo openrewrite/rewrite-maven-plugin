@@ -4,7 +4,7 @@
 
     <groupId>org.openrewrite.maven</groupId>
     <artifactId>rewrite-maven-plugin</artifactId>
-    <version>6.17.0-SNAPSHOT</version>
+    <version>6.25.0-SNAPSHOT</version>
     <packaging>maven-plugin</packaging>
 
     <name>rewrite-maven-plugin</name>
@@ -62,7 +62,8 @@
 
     <properties>
         <!-- Pinned versions, as RELEASE would make it into the published pom.xml  -->
-        <rewrite.version>8.61.0-SNAPSHOT</rewrite.version>
+        <rewrite.version>8.68.0-SNAPSHOT</rewrite.version>
+        <rewrite-polyglot.version>2.9.0-SNAPSHOT</rewrite-polyglot.version>
 
         <!-- using 'ssh' url scheme by default, which assumes a human is performing git operations leveraging an ssh key -->
         <developerConnectionUrl>scm:git:ssh://git@github.com/openrewrite/rewrite-maven-plugin.git
@@ -79,8 +80,8 @@
         <rocksdbjni.version>8.8.1</rocksdbjni.version>
         <itf-maven.version>0.13.1</itf-maven.version>
         <maven-dependencies.version>3.9.11</maven-dependencies.version>
-        <maven-release-plugin.version>3.1.1</maven-release-plugin.version>
-        <maven-plugin-tools.version>3.15.1</maven-plugin-tools.version>
+        <maven-release-plugin.version>3.2.0</maven-release-plugin.version>
+        <maven-plugin-tools.version>3.15.2</maven-plugin-tools.version>
     </properties>
 
     <dependencyManagement>
@@ -95,14 +96,14 @@
             <dependency>
                 <groupId>org.junit</groupId>
                 <artifactId>junit-bom</artifactId>
-                <version>5.13.4</version>
+                <version>6.0.1</version>
                 <scope>import</scope>
                 <type>pom</type>
             </dependency>
             <dependency>
                 <groupId>org.assertj</groupId>
                 <artifactId>assertj-bom</artifactId>
-                <version>3.27.4</version>
+                <version>3.27.6</version>
                 <scope>import</scope>
                 <type>pom</type>
             </dependency>
@@ -123,7 +124,7 @@
             <dependency>
                 <groupId>org.apache.maven</groupId>
                 <artifactId>maven-api-xml</artifactId>
-                <version>4.0.0-rc-4</version>
+                <version>4.0.0-rc-5</version>
                 <scope>provided</scope>
             </dependency>
             <dependency>
@@ -158,6 +159,14 @@
         </dependency>
         <dependency>
             <groupId>org.openrewrite</groupId>
+            <artifactId>rewrite-java-25</artifactId>
+        </dependency>
+        <dependency>
+            <groupId>org.openrewrite</groupId>
+            <artifactId>rewrite-kotlin</artifactId>
+        </dependency>
+        <dependency>
+            <groupId>org.openrewrite</groupId>
             <artifactId>rewrite-xml</artifactId>
         </dependency>
         <dependency>
@@ -166,35 +175,8 @@
         </dependency>
         <dependency>
             <groupId>org.openrewrite</groupId>
-            <artifactId>rewrite-hcl</artifactId>
-        </dependency>
-        <dependency>
-            <groupId>org.openrewrite</groupId>
-            <artifactId>rewrite-json</artifactId>
-        </dependency>
-        <dependency>
-            <groupId>org.openrewrite</groupId>
-            <artifactId>rewrite-properties</artifactId>
-        </dependency>
-        <dependency>
-            <groupId>org.openrewrite</groupId>
-            <artifactId>rewrite-protobuf</artifactId>
-        </dependency>
-        <dependency>
-            <groupId>org.openrewrite</groupId>
-            <artifactId>rewrite-toml</artifactId>
-        </dependency>
-        <dependency>
-            <groupId>org.openrewrite</groupId>
-            <artifactId>rewrite-yaml</artifactId>
-        </dependency>
-        <dependency>
-            <groupId>org.openrewrite</groupId>
-            <artifactId>rewrite-groovy</artifactId>
-        </dependency>
-        <dependency>
-            <groupId>org.openrewrite</groupId>
-            <artifactId>rewrite-kotlin</artifactId>
+            <artifactId>rewrite-polyglot</artifactId>
+            <version>${rewrite-polyglot.version}</version>
         </dependency>
         <dependency>
             <groupId>org.codehaus.plexus</groupId>
@@ -204,7 +186,7 @@
         <dependency>
             <groupId>io.micrometer</groupId>
             <artifactId>micrometer-core</artifactId>
-            <version>1.15.3</version>
+            <version>1.16.0</version>
         </dependency>
         <dependency>
             <groupId>org.rocksdb</groupId>
@@ -318,7 +300,7 @@
             <plugin>
                 <groupId>org.apache.maven.plugins</groupId>
                 <artifactId>maven-enforcer-plugin</artifactId>
-                <version>3.6.1</version>
+                <version>3.6.2</version>
                 <configuration>
                     <rules>
                         <requireJavaVersion>
@@ -366,7 +348,7 @@
             <plugin>
                 <groupId>org.apache.maven.plugins</groupId>
                 <artifactId>maven-failsafe-plugin</artifactId>
-                <version>3.5.3</version>
+                <version>3.5.4</version>
                 <executions>
                     <execution>
                         <goals>
@@ -386,6 +368,13 @@
                     <goalPrefix>rewrite</goalPrefix>
                     <requiredJavaVersion>8</requiredJavaVersion>
                 </configuration>
+                <dependencies>
+                    <dependency>
+                        <groupId>org.ow2.asm</groupId>
+                        <artifactId>asm</artifactId>
+                        <version>9.9</version>
+                    </dependency>
+                </dependencies>
                 <executions>
                     <execution>
                         <id>generate-helpmojo</id>
@@ -398,7 +387,7 @@
             <plugin>
                 <groupId>org.apache.maven.plugins</groupId>
                 <artifactId>maven-compiler-plugin</artifactId>
-                <version>3.14.0</version>
+                <version>3.14.1</version>
                 <configuration>
                     <compilerArgs>
                         <arg>-Xlint:deprecation</arg>
@@ -410,7 +399,7 @@
             <plugin>
                 <groupId>org.apache.maven.plugins</groupId>
                 <artifactId>maven-javadoc-plugin</artifactId>
-                <version>3.11.3</version>
+                <version>3.12.0</version>
                 <executions>
                     <execution>
                         <phase>prepare-package</phase>
@@ -424,7 +413,7 @@
             <plugin>
                 <groupId>org.apache.maven.plugins</groupId>
                 <artifactId>maven-source-plugin</artifactId>
-                <version>3.3.1</version>
+                <version>3.4.0</version>
                 <executions>
                     <execution>
                         <phase>prepare-package</phase>
@@ -516,7 +505,7 @@
             <plugin>
                 <groupId>org.owasp</groupId>
                 <artifactId>dependency-check-maven</artifactId>
-                <version>12.1.3</version>
+                <version>12.1.9</version>
                 <configuration>
                     <nvdApiKey>${env.NVD_API_KEY}</nvdApiKey>
                     <failBuildOnCVSS>9</failBuildOnCVSS>

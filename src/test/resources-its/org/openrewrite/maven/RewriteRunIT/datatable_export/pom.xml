@@ -1,0 +1,36 @@
+<project>
+    <modelVersion>4.0.0</modelVersion>
+    <groupId>com.mycompany.app</groupId>
+    <artifactId>my-app</artifactId>
+    <version>1</version>
+    <dependencies>
+        <dependency>
+            <groupId>com.google.guava</groupId>
+            <artifactId>guava</artifactId>
+            <version>32.0.0-jre</version>
+        </dependency>
+        <dependency>
+            <groupId>org.projectlombok</groupId>
+            <artifactId>lombok</artifactId>
+            <version>1.18.42</version>
+        </dependency>
+    </dependencies>
+    <build>
+        <plugins>
+            <plugin>
+                <groupId>@project.groupId@</groupId>
+                <artifactId>@project.artifactId@</artifactId>
+                <version>@project.version@</version>
+                <configuration>
+                    <activeRecipes>
+                        <recipe>com.github.timtebeek.FindBoth</recipe>
+                    </activeRecipes>
+                    <configLocation>
+                        ${maven.multiModuleProjectDirectory}/src/test/resources-its/org/openrewrite/maven/RewriteRunIT/datatable_export/rewrite.yml
+                    </configLocation>
+                    <exportDatatables>true</exportDatatables>
+                </configuration>
+            </plugin>
+        </plugins>
+    </build>
+</project>
