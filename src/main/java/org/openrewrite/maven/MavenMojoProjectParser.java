@@ -231,7 +231,7 @@ public class MavenMojoProjectParser {
         sourceFiles = Stream.concat(sourceFiles, nonProjectResources);
 
         return sourceFiles.map(addProvenance(projectProvenance))
-                .map(addGitObjectId())
+                .map(addGitTreeEntryInformation())
                 .map(this::logParseErrors);
     }
 
@@ -836,7 +836,7 @@ public class MavenMojoProjectParser {
         };
     }
 
-    private <T extends SourceFile> UnaryOperator<T> addGitObjectId() {
+    private <T extends SourceFile> UnaryOperator<T> addGitTreeEntryInformation() {
         return s -> {
             if (repository == null) {
                 return s;
@@ -856,7 +856,7 @@ public class MavenMojoProjectParser {
                     treeWalk.setFilter(PathFilter.create(PathUtils.separatorsToUnix(s.getSourcePath().toString())));
 
                     if (treeWalk.next()) {
-                        return s.withMarkers(s.getMarkers().add(new GitObject(randomId(), treeWalk.getObjectId(0).name())));
+                        return s.withMarkers(s.getMarkers().add(new GitTreeEntry(randomId(), treeWalk.getObjectId(0).name(), new org.openrewrite.marker.FileMode(treeWalk.getRawMode(0)))));
                     }
                     return s;
                 }
