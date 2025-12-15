@@ -27,7 +27,7 @@ class MavenLoggingResolutionEventListener implements ResolutionEventListener {
     private final Log logger;
 
     public MavenLoggingResolutionEventListener(Log logger) {
-        this.logger = Objects.requireNonNull(logger, "logger cannot be null");
+        this.logger = logger;
     }
 
     @Override
