@@ -20,7 +20,6 @@ import org.jspecify.annotations.Nullable;
 import org.openrewrite.maven.tree.*;
 
 import java.util.List;
-import java.util.Objects;
 
 class MavenLoggingResolutionEventListener implements ResolutionEventListener {
 
