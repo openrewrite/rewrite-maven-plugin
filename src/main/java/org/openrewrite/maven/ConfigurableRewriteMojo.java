@@ -31,6 +31,8 @@ import org.openrewrite.style.NamedStyles;
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.StringWriter;
+import java.nio.charset.StandardCharsets;
+import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.util.*;
@@ -45,8 +47,8 @@ import static org.openrewrite.java.style.CheckstyleConfigLoader.loadCheckstyleCo
 public abstract class ConfigurableRewriteMojo extends AbstractMojo {
 
     private static final String CHECKSTYLE_DOCTYPE = "module PUBLIC " +
-                                                     "\"-//Checkstyle//DTD Checkstyle Configuration 1.3//EN\" " +
-                                                     "\"https://checkstyle.org/dtds/configuration_1_3.dtd\"";
+            "\"-//Checkstyle//DTD Checkstyle Configuration 1.3//EN\" " +
+            "\"https://checkstyle.org/dtds/configuration_1_3.dtd\"";
 
     @Parameter(property = "rewrite.configLocation", alias = "configLocation", defaultValue = "${maven.multiModuleProjectDirectory}/rewrite.yml")
     protected String configLocation;
@@ -79,6 +81,10 @@ public abstract class ConfigurableRewriteMojo extends AbstractMojo {
     @Parameter(property = "rewrite.checkstyleConfigFile", alias = "checkstyleConfigFile")
     @Nullable
     protected String checkstyleConfigFile;
+
+    @Parameter(property = "rewrite.checkstyleVariables", alias = "checkstyleVariables")
+    @Nullable
+    protected Map<String, String> checkstyleVariables;
 
     @Parameter(property = "rewrite.checkstyleDetectionEnabled", alias = "checkstyleDetectionEnabled", defaultValue = "true")
     protected boolean checkstyleDetectionEnabled;
@@ -243,7 +249,22 @@ public abstract class ConfigurableRewriteMojo extends AbstractMojo {
         try {
             Plugin checkstylePlugin = project.getPlugin("org.apache.maven.plugins:maven-checkstyle-plugin");
             if (checkstyleConfigFile != null && !checkstyleConfigFile.isEmpty()) {
-                styles.add(loadCheckstyleConfig(Paths.get(checkstyleConfigFile), emptyMap()));
+                Path checkstyleConfigPath = Paths.get(checkstyleConfigFile);
+                if (checkstyleVariables != null) {
+                    try {
+                        String configContent = new String(Files.readAllBytes(checkstyleConfigPath), StandardCharsets.UTF_8);
+                        String substituted = substituteCheckstyleVariables(configContent);
+                        getLog().debug("Applied checkstyle variables for " + checkstyleConfigPath);
+                        styles.add(loadCheckstyleConfig(substituted, emptyMap()));
+                    } catch (IOException e) {
+                        getLog().warn("Unable to read checkstyle configuration from " + checkstyleConfigPath +
+                                ". Falling back to original file. Checkstyle will not inform rewrite execution.", e);
+                        // fallback to original path if reading fails
+                        styles.add(loadCheckstyleConfig(checkstyleConfigPath, emptyMap()));
+                    }
+                } else {
+                    styles.add(loadCheckstyleConfig(checkstyleConfigPath, emptyMap()));
+                }
             } else if (checkstyleDetectionEnabled && checkstylePlugin != null) {
                 Object checkstyleConfRaw = checkstylePlugin.getConfiguration();
                 if (checkstyleConfRaw instanceof Xpp3Dom) {
@@ -255,10 +276,23 @@ public abstract class ConfigurableRewriteMojo extends AbstractMojo {
                         Path configPath = Paths.get(checkstylePlugin.getLocation("").getSource().getLocation())
                                 .resolveSibling(xmlConfigLocation.getValue());
                         if (configPath.toFile().exists()) {
-                            styles.add(loadCheckstyleConfig(configPath, emptyMap()));
+                            try {
+                                String configContent = new String(Files.readAllBytes(configPath), StandardCharsets.UTF_8);
+                                String substituted = substituteCheckstyleVariables(configContent);
+                                getLog().debug("Applied checkstyle variables for detected plugin config at " + configPath);
+                                styles.add(loadCheckstyleConfig(substituted, emptyMap()));
+                            } catch (IOException e) {
+                                getLog().warn("Unable to read detected checkstyle configuration from " + configPath +
+                                        ". Falling back to original file.", e);
+                                styles.add(loadCheckstyleConfig(configPath, emptyMap()));
+                            }
                         }
                     } else if (xmlCheckstyleRules != null && xmlCheckstyleRules.getChildCount() > 0) {
-                        styles.add(loadCheckstyleConfig(toCheckStyleDocument(xmlCheckstyleRules.getChild(0)), emptyMap()));
+                        String doc = toCheckStyleDocument(xmlCheckstyleRules.getChild(0));
+                        if (checkstyleVariables != null) {
+                            doc = substituteCheckstyleVariables(doc);
+                        }
+                        styles.add(loadCheckstyleConfig(doc, emptyMap()));
                     } else {
                         // When no config location is specified, the maven-checkstyle-plugin falls back on sun_checks.xml
                         try (InputStream is = org.openrewrite.tools.checkstyle.Checker.class.getResourceAsStream("/sun_checks.xml")) {
@@ -285,6 +319,27 @@ public abstract class ConfigurableRewriteMojo extends AbstractMojo {
         dom.writeToSerializer("", serializer);
 
         return stringWriter.toString();
+    }
+
+    /**
+     * Substitute variables in the Checkstyle configuration content using only the values provided via the
+     * {@code checkstyleVariables} plugin parameter.
+     *
+     * The method performs a straightforward literal replacement of occurrences like ${name} → value.
+     * No project or system properties are consulted.
+     */
+    private String substituteCheckstyleVariables(String content) {
+        if (content == null || content.isEmpty() || checkstyleVariables == null || checkstyleVariables.isEmpty()) {
+            return content;
+        }
+
+        String result = content;
+        for (Map.Entry<String, String> e : checkstyleVariables.entrySet()) {
+            String placeholder = "${" + e.getKey() + "}";
+            String value = e.getValue() == null ? "" : e.getValue();
+            result = result.replace(placeholder, value);
+        }
+        return result;
     }
 
     protected Set<String> getRecipeArtifactCoordinates() {
