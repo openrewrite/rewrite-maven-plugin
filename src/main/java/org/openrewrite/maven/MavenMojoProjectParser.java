@@ -619,6 +619,7 @@ public class MavenMojoProjectParser {
         mavenParserBuilder.property("basedir", topLevelProject.getBasedir().getAbsoluteFile().getParent());
         mavenParserBuilder.property("project.basedir", topLevelProject.getBasedir().getAbsoluteFile().getParent());
         topLevelProject.getActiveProfiles().forEach(it -> mavenParserBuilder.activeProfiles(it.getId()));
+        topLevelProject.getInjectedProfileIds().forEach((gav, profiles) -> mavenParserBuilder.activeProfiles(profiles.toArray(new String[0])));
         mavenSession.getRequest().getActiveProfiles().forEach(mavenParserBuilder::activeProfiles);
         mavenSession.getUserProperties().forEach((key, value) ->
                 mavenParserBuilder.property((String) key, (String) value));
