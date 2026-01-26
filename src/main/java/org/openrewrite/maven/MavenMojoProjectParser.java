@@ -504,6 +504,17 @@ public class MavenMojoProjectParser {
             }
         }
 
+        // Also parse webapp resources (e.g., web.xml) for WAR projects
+        if ("war".equals(mavenProject.getPackaging())) {
+            Path webappPath = mavenProject.getBasedir().toPath().resolve("src/main/webapp");
+            if (Files.exists(webappPath) && !alreadyParsed.contains(webappPath)) {
+                List<Path> accepted = omniParser.acceptedPaths(baseDir, webappPath);
+                alreadyParsed.add(webappPath);
+                sourceFiles = Stream.concat(sourceFiles, omniParser.parse(accepted, baseDir, ctx));
+                alreadyParsed.addAll(accepted);
+            }
+        }
+
         List<Marker> mainProjectProvenance = new ArrayList<>();
         mainProjectProvenance.add(JavaSourceSet.build("main", dependencies));
         mainProjectProvenance.add(getSrcMainJavaVersion(mavenProject));
