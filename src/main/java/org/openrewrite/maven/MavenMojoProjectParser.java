@@ -20,6 +20,7 @@ import org.apache.maven.artifact.DependencyResolutionRequiredException;
 import org.apache.maven.execution.MavenExecutionRequest;
 import org.apache.maven.execution.MavenSession;
 import org.apache.maven.model.Plugin;
+import org.apache.maven.model.PluginManagement;
 import org.apache.maven.model.PluginExecution;
 import org.apache.maven.model.Repository;
 import org.apache.maven.model.Resource;
@@ -280,22 +281,43 @@ public class MavenMojoProjectParser {
         TEST
     }
 
-    private static Optional<Charset> getCharset(MavenProject mavenProject) {
+    static Optional<Charset> getCharset(MavenProject mavenProject) {
         String compilerPluginKey = MAVEN_COMPILER_PLUGIN;
         Plugin plugin = Optional.ofNullable(mavenProject.getPlugin(compilerPluginKey))
-                .orElseGet(() -> mavenProject.getPluginManagement().getPluginsAsMap().get(compilerPluginKey));
+                .orElseGet(() -> {
+                    PluginManagement pluginManagement = mavenProject.getPluginManagement();
+                    return pluginManagement != null ? pluginManagement.getPluginsAsMap().get(compilerPluginKey) : null;
+                });
         if (plugin != null && plugin.getConfiguration() instanceof Xpp3Dom) {
             Xpp3Dom encoding = ((Xpp3Dom) plugin.getConfiguration()).getChild("encoding");
             if (encoding != null && StringUtils.isNotEmpty(encoding.getValue())) {
-                return Optional.of(Charset.forName(encoding.getValue()));
+                String resolved = resolveProperty(encoding.getValue(), mavenProject);
+                if (resolved != null) {
+                    return Optional.of(Charset.forName(resolved));
+                }
             }
         }
 
         Object mavenSourceEncoding = mavenProject.getProperties().get("project.build.sourceEncoding");
         if (mavenSourceEncoding != null) {
-            return Optional.of(Charset.forName(mavenSourceEncoding.toString()));
+            String resolved = resolveProperty(mavenSourceEncoding.toString(), mavenProject);
+            if (resolved != null) {
+                return Optional.of(Charset.forName(resolved));
+            }
         }
         return Optional.empty();
+    }
+
+    private static @Nullable String resolveProperty(String value, MavenProject mavenProject) {
+        if (value.startsWith("${") && value.endsWith("}")) {
+            String propertyName = value.substring(2, value.length() - 1);
+            String resolved = mavenProject.getProperties().getProperty(propertyName);
+            if (resolved != null && !resolved.contains("${")) {
+                return resolved;
+            }
+            return null;
+        }
+        return value.contains("${") ? null : value;
     }
 
     static org.openrewrite.jgit.lib.@Nullable Repository getRepository(Path rootDir) {
