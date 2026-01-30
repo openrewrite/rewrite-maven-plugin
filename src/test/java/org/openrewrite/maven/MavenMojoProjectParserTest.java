@@ -41,12 +41,39 @@ class MavenMojoProjectParserTest {
         assertThat(marker.getTargetCompatibility()).isEqualTo(System.getProperty("java.specification.version"));
     }
 
-    @DisplayName("getCharset should not throw when encoding is a property placeholder")
+    @DisplayName("getCharset should resolve encoding from property placeholder")
     @Test
-    void getCharsetShouldNotThrowWhenEncodingIsPropertyPlaceholder() {
+    void getCharsetShouldResolveEncodingFromPropertyPlaceholder() {
         MavenProject mavenProject = new MavenProject();
+        mavenProject.getProperties().setProperty("java.encoding", "UTF-8");
 
         // Set up maven-compiler-plugin with encoding as property placeholder
+        Plugin compilerPlugin = new Plugin();
+        compilerPlugin.setGroupId("org.apache.maven.plugins");
+        compilerPlugin.setArtifactId("maven-compiler-plugin");
+
+        Xpp3Dom configuration = new Xpp3Dom("configuration");
+        Xpp3Dom encoding = new Xpp3Dom("encoding");
+        encoding.setValue("${java.encoding}");
+        configuration.addChild(encoding);
+        compilerPlugin.setConfiguration(configuration);
+
+        Build build = new Build();
+        build.addPlugin(compilerPlugin);
+        mavenProject.setBuild(build);
+
+        // Should resolve the property and return the charset
+        Optional<Charset> charset = MavenMojoProjectParser.getCharset(mavenProject);
+        assertThat(charset).isPresent();
+        assertThat(charset.get().name()).isEqualTo("UTF-8");
+    }
+
+    @DisplayName("getCharset should return empty when property placeholder is unresolved")
+    @Test
+    void getCharsetShouldReturnEmptyWhenPropertyPlaceholderIsUnresolved() {
+        MavenProject mavenProject = new MavenProject();
+
+        // Set up maven-compiler-plugin with encoding as property placeholder (not defined)
         Plugin compilerPlugin = new Plugin();
         compilerPlugin.setGroupId("org.apache.maven.plugins");
         compilerPlugin.setArtifactId("maven-compiler-plugin");

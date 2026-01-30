@@ -290,16 +290,34 @@ public class MavenMojoProjectParser {
                 });
         if (plugin != null && plugin.getConfiguration() instanceof Xpp3Dom) {
             Xpp3Dom encoding = ((Xpp3Dom) plugin.getConfiguration()).getChild("encoding");
-            if (encoding != null && StringUtils.isNotEmpty(encoding.getValue()) && !encoding.getValue().contains("${")) {
-                return Optional.of(Charset.forName(encoding.getValue()));
+            if (encoding != null && StringUtils.isNotEmpty(encoding.getValue())) {
+                String resolved = resolveProperty(encoding.getValue(), mavenProject);
+                if (resolved != null) {
+                    return Optional.of(Charset.forName(resolved));
+                }
             }
         }
 
         Object mavenSourceEncoding = mavenProject.getProperties().get("project.build.sourceEncoding");
-        if (mavenSourceEncoding != null && !mavenSourceEncoding.toString().contains("${")) {
-            return Optional.of(Charset.forName(mavenSourceEncoding.toString()));
+        if (mavenSourceEncoding != null) {
+            String resolved = resolveProperty(mavenSourceEncoding.toString(), mavenProject);
+            if (resolved != null) {
+                return Optional.of(Charset.forName(resolved));
+            }
         }
         return Optional.empty();
+    }
+
+    private static @Nullable String resolveProperty(String value, MavenProject mavenProject) {
+        if (value.startsWith("${") && value.endsWith("}")) {
+            String propertyName = value.substring(2, value.length() - 1);
+            String resolved = mavenProject.getProperties().getProperty(propertyName);
+            if (resolved != null && !resolved.contains("${")) {
+                return resolved;
+            }
+            return null;
+        }
+        return value.contains("${") ? null : value;
     }
 
     static org.openrewrite.jgit.lib.@Nullable Repository getRepository(Path rootDir) {
