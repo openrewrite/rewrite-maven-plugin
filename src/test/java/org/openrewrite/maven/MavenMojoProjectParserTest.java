@@ -74,6 +74,7 @@ class MavenMojoProjectParserTest {
     @Test
     void getCharsetShouldNotThrowWhenSourceEncodingIsPropertyPlaceholder() {
         MavenProject mavenProject = new MavenProject();
+        mavenProject.setBuild(new Build());
         mavenProject.getProperties().setProperty("project.build.sourceEncoding", "${java.encoding}");
 
         // Should not throw IllegalCharsetNameException

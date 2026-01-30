@@ -20,6 +20,7 @@ import org.apache.maven.artifact.DependencyResolutionRequiredException;
 import org.apache.maven.execution.MavenExecutionRequest;
 import org.apache.maven.execution.MavenSession;
 import org.apache.maven.model.Plugin;
+import org.apache.maven.model.PluginManagement;
 import org.apache.maven.model.PluginExecution;
 import org.apache.maven.model.Repository;
 import org.apache.maven.model.Resource;
@@ -283,16 +284,19 @@ public class MavenMojoProjectParser {
     static Optional<Charset> getCharset(MavenProject mavenProject) {
         String compilerPluginKey = MAVEN_COMPILER_PLUGIN;
         Plugin plugin = Optional.ofNullable(mavenProject.getPlugin(compilerPluginKey))
-                .orElseGet(() -> mavenProject.getPluginManagement().getPluginsAsMap().get(compilerPluginKey));
+                .orElseGet(() -> {
+                    PluginManagement pluginManagement = mavenProject.getPluginManagement();
+                    return pluginManagement != null ? pluginManagement.getPluginsAsMap().get(compilerPluginKey) : null;
+                });
         if (plugin != null && plugin.getConfiguration() instanceof Xpp3Dom) {
             Xpp3Dom encoding = ((Xpp3Dom) plugin.getConfiguration()).getChild("encoding");
-            if (encoding != null && StringUtils.isNotEmpty(encoding.getValue())) {
+            if (encoding != null && StringUtils.isNotEmpty(encoding.getValue()) && !encoding.getValue().contains("${")) {
                 return Optional.of(Charset.forName(encoding.getValue()));
             }
         }
 
         Object mavenSourceEncoding = mavenProject.getProperties().get("project.build.sourceEncoding");
-        if (mavenSourceEncoding != null) {
+        if (mavenSourceEncoding != null && !mavenSourceEncoding.toString().contains("${")) {
             return Optional.of(Charset.forName(mavenSourceEncoding.toString()));
         }
         return Optional.empty();
