@@ -280,7 +280,7 @@ public class MavenMojoProjectParser {
         TEST
     }
 
-    private static Optional<Charset> getCharset(MavenProject mavenProject) {
+    static Optional<Charset> getCharset(MavenProject mavenProject) {
         String compilerPluginKey = MAVEN_COMPILER_PLUGIN;
         Plugin plugin = Optional.ofNullable(mavenProject.getPlugin(compilerPluginKey))
                 .orElseGet(() -> mavenProject.getPluginManagement().getPluginsAsMap().get(compilerPluginKey));
