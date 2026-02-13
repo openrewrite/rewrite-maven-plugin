@@ -19,6 +19,8 @@ import com.soebes.itf.jupiter.extension.*;
 import com.soebes.itf.jupiter.maven.MavenExecutionResult;
 import org.junit.jupiter.api.Disabled;
 import org.junit.jupiter.api.condition.DisabledOnOs;
+import org.junit.jupiter.api.condition.EnabledForJreRange;
+import org.junit.jupiter.api.condition.JRE;
 import org.junit.jupiter.api.condition.OS;
 import org.openrewrite.maven.jupiter.extension.GitJupiterExtension;
 
@@ -242,5 +244,17 @@ class RewriteRunIT {
             "Changes have been made to %s by:".formatted(separatorsToSystem("project/src/main/java/sample/Dummy.java"))
           )
           .doesNotContain("in-root.ignored");
+    }
+
+    /**
+     * On JDK 25, Lombok annotation processing on comment-free main sources followed by test sources
+     * with comments triggers a LinkageError in JavaUnrestrictedClassLoader.defineClass().
+     * Requires --add-exports flags in .mvn/jvm.config for the fallback to work.
+     */
+    @MavenTest
+    @EnabledForJreRange(min = JRE.JAVA_25)
+    void lombok_jdk25_linkage_error(MavenExecutionResult result) {
+        assertThat(result)
+          .isSuccessful();
     }
 }
