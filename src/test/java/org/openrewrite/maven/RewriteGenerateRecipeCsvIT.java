@@ -35,4 +35,14 @@ class RewriteGenerateRecipeCsvIT {
         assertThat(result).out().info()
           .anySatisfy(line -> assertThat(line).contains("Generated recipes.csv"));
     }
+
+    @MavenTest
+    void generates_csv_from_java_recipe(MavenExecutionResult result) {
+        assertThat(result)
+          .isSuccessful()
+          .project()
+          .has("src/main/resources/META-INF/rewrite");
+        assertThat(result).out().info()
+          .anySatisfy(line -> assertThat(line).contains("Generated recipes.csv"));
+    }
 }
