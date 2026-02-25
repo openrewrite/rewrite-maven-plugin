@@ -1,0 +1,8 @@
+---
+type: specs.openrewrite.org/v1beta/recipe
+name: org.openrewrite.test.TestRecipe
+displayName: Test recipe
+description: A test recipe for CSV generation testing.
+recipeList:
+  - org.openrewrite.text.ChangeText:
+      toText: "Hello World"
