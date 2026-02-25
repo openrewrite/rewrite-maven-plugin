@@ -43,11 +43,11 @@ import java.util.List;
  * If an existing {@code recipes.csv} is present, generated data is merged into it,
  * preserving any manually added entries.
  * <p>
- * {@code ./mvnw rewrite:generateRecipeCsv}
+ * {@code ./mvnw rewrite:recipeCsvGenerate}
  */
 @Execute(phase = LifecyclePhase.PROCESS_CLASSES)
-@Mojo(name = "generateRecipeCsv", requiresDependencyResolution = ResolutionScope.RUNTIME, threadSafe = true)
-public class RewriteGenerateRecipeCsvMojo extends AbstractRewriteMojo {
+@Mojo(name = "recipeCsvGenerate", requiresDependencyResolution = ResolutionScope.RUNTIME, threadSafe = true)
+public class RecipeCsvGenerateMojo extends AbstractRewriteMojo {
 
     @Override
     public void execute() throws MojoExecutionException {

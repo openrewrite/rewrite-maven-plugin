@@ -20,11 +20,11 @@ import com.soebes.itf.jupiter.maven.MavenExecutionResult;
 
 import static com.soebes.itf.extension.assertj.MavenITAssertions.assertThat;
 
-@MavenGoal("${project.groupId}:${project.artifactId}:${project.version}:generateRecipeCsv")
+@MavenGoal("${project.groupId}:${project.artifactId}:${project.version}:recipeCsvGenerate")
 @MavenJupiterExtension
 @MavenOption(MavenCLIOptions.NO_TRANSFER_PROGRESS)
 @MavenOption(MavenCLIExtra.MUTE_PLUGIN_VALIDATION_WARNING)
-class RewriteGenerateRecipeCsvIT {
+class RecipeCsvGenerateIT {
 
     @MavenTest
     void generates_csv_from_yaml_recipe(MavenExecutionResult result) {

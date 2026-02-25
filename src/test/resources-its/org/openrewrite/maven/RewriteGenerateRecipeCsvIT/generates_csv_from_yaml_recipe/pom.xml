@@ -7,7 +7,7 @@
     <artifactId>test-recipe-project</artifactId>
     <version>1.0.0</version>
     <packaging>jar</packaging>
-    <name>RewriteGenerateRecipeCsvIT#generates_csv_from_yaml_recipe</name>
+    <name>RewriterecipeCsvGenerateIT#generates_csv_from_yaml_recipe</name>
 
     <properties>
         <maven.compiler.source>8</maven.compiler.source>
