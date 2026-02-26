@@ -69,7 +69,6 @@ import org.openrewrite.maven.tree.ResolvedGroupArtifactVersion;
 import org.openrewrite.maven.utilities.MavenWrapper;
 import org.openrewrite.polyglot.OmniParser;
 import org.openrewrite.quark.QuarkParser;
-import org.openrewrite.style.NamedStyles;
 import org.openrewrite.text.PlainTextParser;
 import org.openrewrite.xml.tree.Xml;
 
@@ -164,13 +163,13 @@ public class MavenMojoProjectParser {
         this.parseAdditionalResources = parseAdditionalResources;
     }
 
-    public Stream<SourceFile> listSourceFiles(MavenProject mavenProject, List<NamedStyles> styles,
+    public Stream<SourceFile> listSourceFiles(MavenProject mavenProject,
                                               ExecutionContext ctx) throws DependencyResolutionRequiredException, MojoExecutionException, MojoFailureException {
         if (runPerSubmodule) {
             //If running per submodule, parse the source files for only the current project.
             List<Marker> projectProvenance = generateProvenance(mavenProject);
             Xml.Document maven = parseMaven(mavenProject, projectProvenance, ctx);
-            return listSourceFiles(mavenProject, maven, projectProvenance, styles, ctx);
+            return listSourceFiles(mavenProject, maven, projectProvenance, ctx);
         }
         //If running across all projects, iterate and parse source files from each project
         Map<MavenProject, List<Marker>> projectProvenances = mavenSession.getProjects().stream()
@@ -180,20 +179,20 @@ public class MavenMojoProjectParser {
           .flatMap(project -> {
               List<Marker> projectProvenance = projectProvenances.get(project);
               try {
-                  return listSourceFiles(project, projectMap.get(project), projectProvenance, styles, ctx);
+                  return listSourceFiles(project, projectMap.get(project), projectProvenance, ctx);
               } catch (DependencyResolutionRequiredException | MojoExecutionException e) {
                   throw sneakyThrow(e);
               }
           });
     }
 
-    public Stream<SourceFile> listSourceFiles(MavenProject mavenProject, Xml.@Nullable Document maven, List<Marker> projectProvenance, List<NamedStyles> styles,
+    public Stream<SourceFile> listSourceFiles(MavenProject mavenProject, Xml.@Nullable Document maven, List<Marker> projectProvenance,
                                               ExecutionContext ctx) throws DependencyResolutionRequiredException, MojoExecutionException {
-        return listSourceFiles(mavenProject, maven, projectProvenance, Arrays.asList(MAIN, TEST),  styles, ctx);
+        return listSourceFiles(mavenProject, maven, projectProvenance, Arrays.asList(MAIN, TEST), ctx);
     }
 
     public Stream<SourceFile> listSourceFiles(MavenProject mavenProject, Xml.@Nullable Document maven, List<Marker> projectProvenance, List<MavenScope> scopes,
-                List<NamedStyles> styles, ExecutionContext ctx) throws DependencyResolutionRequiredException, MojoExecutionException {
+                ExecutionContext ctx) throws DependencyResolutionRequiredException, MojoExecutionException {
         Stream<SourceFile> sourceFiles = Stream.empty();
         Set<Path> alreadyParsed = new HashSet<>();
 
@@ -203,7 +202,6 @@ public class MavenMojoProjectParser {
         }
 
         JavaParser.Builder<? extends JavaParser, ?> javaParserBuilder = JavaParser.fromJavaVersion()
-                .styles(styles)
                 .logCompilationWarningsAndErrors(false);
 
         // todo, add styles from autoDetect
