@@ -204,7 +204,6 @@ public class MavenMojoProjectParser {
         JavaParser.Builder<? extends JavaParser, ?> javaParserBuilder = JavaParser.fromJavaVersion()
                 .logCompilationWarningsAndErrors(false);
 
-        // todo, add styles from autoDetect
         KotlinParser.Builder kotlinParserBuilder = KotlinParser.builder();
 
         if (scopes.contains(MAIN)) {
