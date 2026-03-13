@@ -163,6 +163,10 @@
         </dependency>
         <dependency>
             <groupId>org.openrewrite</groupId>
+            <artifactId>rewrite-groovy</artifactId>
+        </dependency>
+        <dependency>
+            <groupId>org.openrewrite</groupId>
             <artifactId>rewrite-kotlin</artifactId>
         </dependency>
         <dependency>

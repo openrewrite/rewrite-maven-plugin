@@ -55,6 +55,7 @@ import org.openrewrite.jgit.treewalk.TreeWalk;
 import org.openrewrite.jgit.treewalk.WorkingTreeIterator;
 import org.openrewrite.jgit.treewalk.filter.PathFilter;
 import org.openrewrite.jgit.treewalk.filter.PathFilterGroup;
+import org.openrewrite.groovy.GroovyParser;
 import org.openrewrite.kotlin.KotlinParser;
 import org.openrewrite.marker.*;
 import org.openrewrite.marker.ci.BuildEnvironment;
@@ -208,12 +209,13 @@ public class MavenMojoProjectParser {
 
         // todo, add styles from autoDetect
         KotlinParser.Builder kotlinParserBuilder = KotlinParser.builder();
+        GroovyParser.Builder groovyParserBuilder = GroovyParser.builder();
 
         if (scopes.contains(MAIN)) {
-            sourceFiles = Stream.concat(sourceFiles, processMainSources(mavenProject, javaParserBuilder.clone(), kotlinParserBuilder.clone(), alreadyParsed, ctx));
+            sourceFiles = Stream.concat(sourceFiles, processMainSources(mavenProject, javaParserBuilder.clone(), kotlinParserBuilder.clone(), groovyParserBuilder.clone(), alreadyParsed, ctx));
         }
         if (scopes.contains(TEST)) {
-            sourceFiles = Stream.concat(sourceFiles, processTestSources(mavenProject, javaParserBuilder.clone(), kotlinParserBuilder.clone(), alreadyParsed, ctx));
+            sourceFiles = Stream.concat(sourceFiles, processTestSources(mavenProject, javaParserBuilder.clone(), kotlinParserBuilder.clone(), groovyParserBuilder.clone(), alreadyParsed, ctx));
         }
         Collection<PathMatcher> exclusionMatchers = exclusions.stream()
                 .map(pattern -> baseDir.getFileSystem().getPathMatcher("glob:" + pattern))
@@ -471,6 +473,7 @@ public class MavenMojoProjectParser {
             MavenProject mavenProject,
             JavaParser.Builder<? extends JavaParser, ?> javaParserBuilder,
             KotlinParser.Builder kotlinParserBuilder,
+            GroovyParser.Builder groovyParserBuilder,
             Set<Path> alreadyParsed,
             ExecutionContext ctx) throws DependencyResolutionRequiredException, MojoExecutionException {
 
@@ -484,6 +487,10 @@ public class MavenMojoProjectParser {
         List<Path> mainKotlinSources = listKotlinSources(mavenProject, "compile", mavenProject.getBuild().getSourceDirectory());
         alreadyParsed.addAll(mainKotlinSources);
 
+        // scan Groovy files
+        List<Path> mainGroovySources = listGroovySources(mavenProject, mavenProject.getExecutionProject().getCompileSourceRoots());
+        alreadyParsed.addAll(mainGroovySources);
+
         logInfo(mavenProject, "Parsing source files");
         List<Path> dependencies = mavenProject.getCompileClasspathElements().stream()
                 .distinct()
@@ -492,6 +499,7 @@ public class MavenMojoProjectParser {
         JavaTypeCache typeCache = new JavaTypeCache();
         javaParserBuilder.classpath(dependencies).typeCache(typeCache);
         kotlinParserBuilder.classpath(dependencies).typeCache(typeCache);
+        groovyParserBuilder.classpath(dependencies).typeCache(typeCache);
 
         if (!mainJavaSources.isEmpty()) {
             Stream<SourceFile> parsedJava = Stream.of((Supplier<JavaParser>) javaParserBuilder::build)
@@ -513,6 +521,14 @@ public class MavenMojoProjectParser {
                     });
             sourceFiles = Stream.concat(sourceFiles, parsedKotlin);
             logDebug(mavenProject, "Scanned " + mainKotlinSources.size() + " kotlin source files in main scope.");
+        }
+
+        if (!mainGroovySources.isEmpty()) {
+            Stream<SourceFile> parsedGroovy = Stream.of((Supplier<GroovyParser>) groovyParserBuilder::build)
+                    .map(Supplier::get)
+                    .flatMap(gp -> gp.parse(mainGroovySources, baseDir, ctx));
+            sourceFiles = Stream.concat(sourceFiles, parsedGroovy);
+            logDebug(mavenProject, "Scanned " + mainGroovySources.size() + " groovy source files in main scope.");
         }
 
         OmniParser omniParser = omniParser(alreadyParsed, mavenProject);
@@ -553,6 +569,7 @@ public class MavenMojoProjectParser {
             MavenProject mavenProject,
             JavaParser.Builder<? extends JavaParser, ?> javaParserBuilder,
             KotlinParser.Builder kotlinParserBuilder,
+            GroovyParser.Builder groovyParserBuilder,
             Set<Path> alreadyParsed,
             ExecutionContext ctx) throws DependencyResolutionRequiredException, MojoExecutionException {
 
@@ -566,6 +583,10 @@ public class MavenMojoProjectParser {
         List<Path> testKotlinSources = listKotlinSources(mavenProject, "test-compile", mavenProject.getBuild().getTestSourceDirectory());
         alreadyParsed.addAll(testKotlinSources);
 
+        // scan Groovy files
+        List<Path> testGroovySources = listGroovySources(mavenProject, mavenProject.getExecutionProject().getTestCompileSourceRoots());
+        alreadyParsed.addAll(testGroovySources);
+
         List<Path> testDependencies = mavenProject.getTestClasspathElements().stream()
                 .distinct()
                 .map(Paths::get)
@@ -573,6 +594,7 @@ public class MavenMojoProjectParser {
         JavaTypeCache typeCache = new JavaTypeCache();
         javaParserBuilder.classpath(testDependencies).typeCache(typeCache);
         kotlinParserBuilder.classpath(testDependencies).typeCache(typeCache);
+        groovyParserBuilder.classpath(testDependencies).typeCache(typeCache);
 
         if (!testJavaSources.isEmpty()) {
             Stream<SourceFile> parsedJava = Stream.of((Supplier<JavaParser>) javaParserBuilder::build)
@@ -594,6 +616,14 @@ public class MavenMojoProjectParser {
                     });
             sourceFiles = Stream.concat(sourceFiles, parsedKotlin);
             logDebug(mavenProject, "Scanned " + testKotlinSources.size() + " kotlin source files in test scope.");
+        }
+
+        if (!testGroovySources.isEmpty()) {
+            Stream<SourceFile> parsedGroovy = Stream.of((Supplier<GroovyParser>) groovyParserBuilder::build)
+                    .map(Supplier::get)
+                    .flatMap(gp -> gp.parse(testGroovySources, baseDir, ctx));
+            sourceFiles = Stream.concat(sourceFiles, parsedGroovy);
+            logDebug(mavenProject, "Scanned " + testGroovySources.size() + " groovy source files in test scope.");
         }
 
         OmniParser omniParser = omniParser(alreadyParsed, mavenProject);
@@ -929,6 +959,26 @@ public class MavenMojoProjectParser {
         }
 
         return listSources(mavenProject.getBasedir().toPath().resolve(fallbackSourceDirectory), ".kt");
+    }
+
+    private static List<Path> listGroovySources(MavenProject mavenProject, List<String> compileSourceRoots) throws MojoExecutionException {
+        List<Path> groovySources = new ArrayList<>();
+        for (String compileSourceRoot : compileSourceRoots) {
+            groovySources.addAll(listSources(mavenProject.getBasedir().toPath().resolve(compileSourceRoot), ".groovy"));
+        }
+        // Also check conventional Groovy source directories
+        Path basedir = mavenProject.getBasedir().toPath();
+        for (String compileSourceRoot : compileSourceRoots) {
+            Path javaRoot = basedir.resolve(compileSourceRoot);
+            // If the source root is src/main/java, also check src/main/groovy
+            if (javaRoot.endsWith("java")) {
+                Path groovyRoot = javaRoot.resolveSibling("groovy");
+                if (Files.exists(groovyRoot)) {
+                    groovySources.addAll(listSources(groovyRoot, ".groovy"));
+                }
+            }
+        }
+        return groovySources;
     }
 
     private static List<Path> listSources(Path sourceDirectory, String extension) throws MojoExecutionException {
