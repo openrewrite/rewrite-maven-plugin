@@ -971,10 +971,9 @@ public class MavenMojoProjectParser {
         for (String compileSourceRoot : compileSourceRoots) {
             Path javaRoot = basedir.resolve(compileSourceRoot);
             // If the source root is src/main/java, also check src/main/groovy
-            String rootStr = javaRoot.toString();
-            if (rootStr.endsWith("/java") || rootStr.endsWith(File.separator + "java")) {
-                Path groovyRoot = javaRoot.getParent().resolve("groovy");
-                if (Files.exists(groovyRoot) && !groovyRoot.equals(javaRoot)) {
+            if (javaRoot.endsWith("java")) {
+                Path groovyRoot = javaRoot.resolveSibling("groovy");
+                if (Files.exists(groovyRoot)) {
                     groovySources.addAll(listSources(groovyRoot, ".groovy"));
                 }
             }
