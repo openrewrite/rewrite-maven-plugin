@@ -196,11 +196,11 @@ public class MavenMojoProjectParser {
     public Stream<SourceFile> listSourceFiles(MavenProject mavenProject, Xml.@Nullable Document maven, List<Marker> projectProvenance, List<MavenScope> scopes,
                 List<NamedStyles> styles, ExecutionContext ctx) throws DependencyResolutionRequiredException, MojoExecutionException {
         Stream<SourceFile> sourceFiles = Stream.empty();
-        Set<Path> alreadyParsed = new HashSet<>();
+        Set<Path> parsedPaths = new HashSet<>();
 
         if (maven != null) {
             sourceFiles = Stream.of(maven);
-            alreadyParsed.add(baseDir.resolve(maven.getSourcePath()));
+            parsedPaths.add(baseDir.resolve(maven.getSourcePath()));
         }
 
         JavaParser.Builder<? extends JavaParser, ?> javaParserBuilder = JavaParser.fromJavaVersion()
@@ -211,11 +211,20 @@ public class MavenMojoProjectParser {
         KotlinParser.Builder kotlinParserBuilder = KotlinParser.builder();
         GroovyParser.Builder groovyParserBuilder = GroovyParser.builder();
 
+        // Pre-populate parsedPaths with all source paths from both scopes
+        // to prevent resource parsers from claiming cross-scope sources as PlainText
+        parsedPaths.addAll(listJavaSources(mavenProject, mavenProject.getExecutionProject().getCompileSourceRoots()));
+        parsedPaths.addAll(listKotlinSources(mavenProject, "compile", mavenProject.getBuild().getSourceDirectory()));
+        parsedPaths.addAll(listGroovySources(mavenProject, mavenProject.getExecutionProject().getCompileSourceRoots()));
+        parsedPaths.addAll(listJavaSources(mavenProject, mavenProject.getExecutionProject().getTestCompileSourceRoots()));
+        parsedPaths.addAll(listKotlinSources(mavenProject, "test-compile", mavenProject.getBuild().getTestSourceDirectory()));
+        parsedPaths.addAll(listGroovySources(mavenProject, mavenProject.getExecutionProject().getTestCompileSourceRoots()));
+
         if (scopes.contains(MAIN)) {
-            sourceFiles = Stream.concat(sourceFiles, processMainSources(mavenProject, javaParserBuilder.clone(), kotlinParserBuilder.clone(), groovyParserBuilder.clone(), alreadyParsed, ctx));
+            sourceFiles = Stream.concat(sourceFiles, processMainSources(mavenProject, javaParserBuilder.clone(), kotlinParserBuilder.clone(), groovyParserBuilder.clone(), parsedPaths, ctx));
         }
         if (scopes.contains(TEST)) {
-            sourceFiles = Stream.concat(sourceFiles, processTestSources(mavenProject, javaParserBuilder.clone(), kotlinParserBuilder.clone(), groovyParserBuilder.clone(), alreadyParsed, ctx));
+            sourceFiles = Stream.concat(sourceFiles, processTestSources(mavenProject, javaParserBuilder.clone(), kotlinParserBuilder.clone(), groovyParserBuilder.clone(), parsedPaths, ctx));
         }
         Collection<PathMatcher> exclusionMatchers = exclusions.stream()
                 .map(pattern -> baseDir.getFileSystem().getPathMatcher("glob:" + pattern))
@@ -227,10 +236,10 @@ public class MavenMojoProjectParser {
             return sourceFile;
         }).filter(Objects::nonNull);
 
-        Stream<SourceFile> mavenWrapperFiles = parseMavenWrapperFiles(mavenProject, exclusionMatchers, alreadyParsed, ctx);
+        Stream<SourceFile> mavenWrapperFiles = parseMavenWrapperFiles(mavenProject, exclusionMatchers, parsedPaths, ctx);
         sourceFiles = Stream.concat(sourceFiles, mavenWrapperFiles);
 
-        Stream<SourceFile> nonProjectResources = parseNonProjectResources(mavenProject, alreadyParsed, ctx);
+        Stream<SourceFile> nonProjectResources = parseNonProjectResources(mavenProject, parsedPaths, ctx);
         sourceFiles = Stream.concat(sourceFiles, nonProjectResources);
 
         return sourceFiles.map(addProvenance(projectProvenance))
@@ -474,22 +483,19 @@ public class MavenMojoProjectParser {
             JavaParser.Builder<? extends JavaParser, ?> javaParserBuilder,
             KotlinParser.Builder kotlinParserBuilder,
             GroovyParser.Builder groovyParserBuilder,
-            Set<Path> alreadyParsed,
+            Set<Path> parsedPaths,
             ExecutionContext ctx) throws DependencyResolutionRequiredException, MojoExecutionException {
 
         Stream<SourceFile> sourceFiles = Stream.of();
 
         // scan Java files
         Collection<Path> mainJavaSources = listJavaSources(mavenProject, mavenProject.getExecutionProject().getCompileSourceRoots());
-        alreadyParsed.addAll(mainJavaSources);
 
         // scan Kotlin files
         List<Path> mainKotlinSources = listKotlinSources(mavenProject, "compile", mavenProject.getBuild().getSourceDirectory());
-        alreadyParsed.addAll(mainKotlinSources);
 
         // scan Groovy files
         List<Path> mainGroovySources = listGroovySources(mavenProject, mavenProject.getExecutionProject().getCompileSourceRoots());
-        alreadyParsed.addAll(mainGroovySources);
 
         logInfo(mavenProject, "Parsing source files");
         List<Path> dependencies = mavenProject.getCompileClasspathElements().stream()
@@ -531,25 +537,25 @@ public class MavenMojoProjectParser {
             logDebug(mavenProject, "Scanned " + mainGroovySources.size() + " groovy source files in main scope.");
         }
 
-        OmniParser omniParser = omniParser(alreadyParsed, mavenProject);
+        OmniParser omniParser = omniParser(parsedPaths, mavenProject);
         for (Resource resource : mavenProject.getResources()) {
             Path resourcePath = mavenProject.getBasedir().toPath().resolve(resource.getDirectory());
-            if (Files.exists(resourcePath) && !alreadyParsed.contains(resourcePath)) {
+            if (Files.exists(resourcePath) && !parsedPaths.contains(resourcePath)) {
                 List<Path> accepted = omniParser.acceptedPaths(baseDir, resourcePath);
-                alreadyParsed.add(resourcePath);
+                parsedPaths.add(resourcePath);
                 sourceFiles = Stream.concat(sourceFiles, omniParser.parse(accepted, baseDir, ctx));
-                alreadyParsed.addAll(accepted);
+                parsedPaths.addAll(accepted);
             }
         }
 
         // Also parse webapp resources (e.g., web.xml) for WAR projects
         if ("war".equals(mavenProject.getPackaging())) {
             Path webappPath = mavenProject.getBasedir().toPath().resolve("src/main/webapp");
-            if (Files.exists(webappPath) && !alreadyParsed.contains(webappPath)) {
+            if (Files.exists(webappPath) && !parsedPaths.contains(webappPath)) {
                 List<Path> accepted = omniParser.acceptedPaths(baseDir, webappPath);
-                alreadyParsed.add(webappPath);
+                parsedPaths.add(webappPath);
                 sourceFiles = Stream.concat(sourceFiles, omniParser.parse(accepted, baseDir, ctx));
-                alreadyParsed.addAll(accepted);
+                parsedPaths.addAll(accepted);
             }
         }
 
@@ -570,22 +576,19 @@ public class MavenMojoProjectParser {
             JavaParser.Builder<? extends JavaParser, ?> javaParserBuilder,
             KotlinParser.Builder kotlinParserBuilder,
             GroovyParser.Builder groovyParserBuilder,
-            Set<Path> alreadyParsed,
+            Set<Path> parsedPaths,
             ExecutionContext ctx) throws DependencyResolutionRequiredException, MojoExecutionException {
 
         Stream<SourceFile> sourceFiles = Stream.of();
 
         // scan Java files
         Collection<Path> testJavaSources = listJavaSources(mavenProject, mavenProject.getExecutionProject().getTestCompileSourceRoots());
-        alreadyParsed.addAll(testJavaSources);
 
         // scan Kotlin files
         List<Path> testKotlinSources = listKotlinSources(mavenProject, "test-compile", mavenProject.getBuild().getTestSourceDirectory());
-        alreadyParsed.addAll(testKotlinSources);
 
         // scan Groovy files
         List<Path> testGroovySources = listGroovySources(mavenProject, mavenProject.getExecutionProject().getTestCompileSourceRoots());
-        alreadyParsed.addAll(testGroovySources);
 
         List<Path> testDependencies = mavenProject.getTestClasspathElements().stream()
                 .distinct()
@@ -626,14 +629,14 @@ public class MavenMojoProjectParser {
             logDebug(mavenProject, "Scanned " + testGroovySources.size() + " groovy source files in test scope.");
         }
 
-        OmniParser omniParser = omniParser(alreadyParsed, mavenProject);
+        OmniParser omniParser = omniParser(parsedPaths, mavenProject);
         for (Resource resource : mavenProject.getTestResources()) {
             Path resourcePath = mavenProject.getBasedir().toPath().resolve(resource.getDirectory());
-            if (Files.exists(resourcePath) && !alreadyParsed.contains(resourcePath)) {
+            if (Files.exists(resourcePath) && !parsedPaths.contains(resourcePath)) {
                 List<Path> accepted = omniParser.acceptedPaths(baseDir, resourcePath);
-                alreadyParsed.add(resourcePath);
+                parsedPaths.add(resourcePath);
                 sourceFiles = Stream.concat(sourceFiles, omniParser.parse(accepted, baseDir, ctx));
-                alreadyParsed.addAll(accepted);
+                parsedPaths.addAll(accepted);
             }
         }
 
@@ -1002,10 +1005,10 @@ public class MavenMojoProjectParser {
         }
     }
 
-    private Stream<SourceFile> parseMavenWrapperFiles(MavenProject mavenProject, Collection<PathMatcher> exclusions, Set<Path> alreadyParsed, ExecutionContext ctx) {
+    private Stream<SourceFile> parseMavenWrapperFiles(MavenProject mavenProject, Collection<PathMatcher> exclusions, Set<Path> parsedPaths, ExecutionContext ctx) {
         Stream<SourceFile> sourceFiles = Stream.empty();
         if (mavenProject.getParent() == null) {
-            OmniParser omniParser = omniParser(alreadyParsed, mavenProject);
+            OmniParser omniParser = omniParser(parsedPaths, mavenProject);
             List<Path> mavenWrapperFiles = Stream.of(
                             Paths.get(MVN_JVM_CONFIG),
                             Paths.get(MVN_MAVEN_CONFIG),
@@ -1023,17 +1026,17 @@ public class MavenMojoProjectParser {
         return sourceFiles;
     }
 
-    protected Stream<SourceFile> parseNonProjectResources(MavenProject mavenProject, Set<Path> alreadyParsed, ExecutionContext ctx) {
+    protected Stream<SourceFile> parseNonProjectResources(MavenProject mavenProject, Set<Path> parsedPaths, ExecutionContext ctx) {
         if (!parseAdditionalResources) {
             return Stream.empty();
         }
         //Collect any additional yaml/properties/xml files that are NOT already in a source set.
-        OmniParser omniParser = omniParser(alreadyParsed, mavenProject);
+        OmniParser omniParser = omniParser(parsedPaths, mavenProject);
         List<Path> accepted = omniParser.acceptedPaths(baseDir, mavenProject.getBasedir().toPath());
         return omniParser.parse(accepted, baseDir, ctx);
     }
 
-    private OmniParser omniParser(Set<Path> alreadyParsed, MavenProject mavenProject) {
+    private OmniParser omniParser(Set<Path> parsedPaths, MavenProject mavenProject) {
         return OmniParser.builder(
                         OmniParser.defaultResourceParsers(),
                         PlainTextParser.builder()
@@ -1042,7 +1045,7 @@ public class MavenMojoProjectParser {
                         QuarkParser.builder().build()
                 )
                 .exclusionMatchers(pathMatchers(baseDir, mergeExclusions(mavenProject)))
-                .exclusions(alreadyParsed)
+                .exclusions(parsedPaths)
                 .sizeThresholdMb(sizeThresholdMb)
                 .build();
     }
