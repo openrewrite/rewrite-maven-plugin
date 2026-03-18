@@ -90,6 +90,18 @@ class RewriteRunIT {
     }
 
     @MavenTest
+    void basedir_resource_no_plaintext_leak(MavenExecutionResult result) {
+        assertThat(result)
+          .isSuccessful()
+          .out()
+          .warn()
+          .contains(
+            "Changes have been made to %s by:".formatted(separatorsToSystem("project/src/main/java/sample/Main.java")),
+            "Changes have been made to %s by:".formatted(separatorsToSystem("project/src/test/java/sample/MainTest.java"))
+          );
+    }
+
+    @MavenTest
     void single_project(MavenExecutionResult result) {
         assertThat(result)
           .isSuccessful()
