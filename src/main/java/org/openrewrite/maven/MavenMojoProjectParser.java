@@ -211,6 +211,15 @@ public class MavenMojoProjectParser {
         KotlinParser.Builder kotlinParserBuilder = KotlinParser.builder();
         GroovyParser.Builder groovyParserBuilder = GroovyParser.builder();
 
+        // Pre-populate alreadyParsed with all source paths from both scopes
+        // to prevent resource parsers from claiming cross-scope sources as PlainText
+        alreadyParsed.addAll(listJavaSources(mavenProject, mavenProject.getExecutionProject().getCompileSourceRoots()));
+        alreadyParsed.addAll(listKotlinSources(mavenProject, "compile", mavenProject.getBuild().getSourceDirectory()));
+        alreadyParsed.addAll(listGroovySources(mavenProject, mavenProject.getExecutionProject().getCompileSourceRoots()));
+        alreadyParsed.addAll(listJavaSources(mavenProject, mavenProject.getExecutionProject().getTestCompileSourceRoots()));
+        alreadyParsed.addAll(listKotlinSources(mavenProject, "test-compile", mavenProject.getBuild().getTestSourceDirectory()));
+        alreadyParsed.addAll(listGroovySources(mavenProject, mavenProject.getExecutionProject().getTestCompileSourceRoots()));
+
         if (scopes.contains(MAIN)) {
             sourceFiles = Stream.concat(sourceFiles, processMainSources(mavenProject, javaParserBuilder.clone(), kotlinParserBuilder.clone(), groovyParserBuilder.clone(), alreadyParsed, ctx));
         }
@@ -531,12 +540,6 @@ public class MavenMojoProjectParser {
             logDebug(mavenProject, "Scanned " + mainGroovySources.size() + " groovy source files in main scope.");
         }
 
-        // Prevent resource parsers from claiming test sources as PlainText
-        // when a resource directory encompasses the project root
-        alreadyParsed.addAll(listJavaSources(mavenProject, mavenProject.getExecutionProject().getTestCompileSourceRoots()));
-        alreadyParsed.addAll(listKotlinSources(mavenProject, "test-compile", mavenProject.getBuild().getTestSourceDirectory()));
-        alreadyParsed.addAll(listGroovySources(mavenProject, mavenProject.getExecutionProject().getTestCompileSourceRoots()));
-
         OmniParser omniParser = omniParser(alreadyParsed, mavenProject);
         for (Resource resource : mavenProject.getResources()) {
             Path resourcePath = mavenProject.getBasedir().toPath().resolve(resource.getDirectory());
@@ -631,12 +634,6 @@ public class MavenMojoProjectParser {
             sourceFiles = Stream.concat(sourceFiles, parsedGroovy);
             logDebug(mavenProject, "Scanned " + testGroovySources.size() + " groovy source files in test scope.");
         }
-
-        // Prevent resource parsers from claiming main sources as PlainText
-        // when a resource directory encompasses the project root
-        alreadyParsed.addAll(listJavaSources(mavenProject, mavenProject.getExecutionProject().getCompileSourceRoots()));
-        alreadyParsed.addAll(listKotlinSources(mavenProject, "compile", mavenProject.getBuild().getSourceDirectory()));
-        alreadyParsed.addAll(listGroovySources(mavenProject, mavenProject.getExecutionProject().getCompileSourceRoots()));
 
         OmniParser omniParser = omniParser(alreadyParsed, mavenProject);
         for (Resource resource : mavenProject.getTestResources()) {
