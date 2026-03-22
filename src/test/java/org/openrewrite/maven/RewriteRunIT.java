@@ -234,15 +234,19 @@ class RewriteRunIT {
         }
 
         // Verify CSV contains expected structure and data rows
-        // CSV format: header row, description row, data rows
+        // CSV format: 3 comment lines (@name, @instanceName, @group), header row, data rows
         List<String> lines = Files.readAllLines(csvFile);
-        assertThat(lines)
-          .hasSizeGreaterThanOrEqualTo(4) // header + description + 2 data rows
+        // Filter out comment lines
+        List<String> dataLines = lines.stream()
+                .filter(l -> !l.startsWith("#"))
+                .collect(java.util.stream.Collectors.toList());
+        assertThat(dataLines)
+          .hasSizeGreaterThanOrEqualTo(3) // header + 2 data rows
           .first(as(STRING))
           .contains("Group", "Artifact"); // CSV header
 
-        // Get only the data rows (skip header and description rows)
-        assertThat(lines.subList(2, lines.size()))
+        // Get only the data rows (skip header)
+        assertThat(dataLines.subList(1, dataLines.size()))
           .hasSizeGreaterThanOrEqualTo(2)
           .anySatisfy(line -> assertThat(line).contains("com.google.guava", "guava"))
           .anySatisfy(line -> assertThat(line).contains("org.projectlombok", "lombok"));

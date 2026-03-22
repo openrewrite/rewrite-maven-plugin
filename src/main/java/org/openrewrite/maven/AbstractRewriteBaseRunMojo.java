@@ -245,14 +245,20 @@ public abstract class AbstractRewriteBaseRunMojo extends AbstractRewriteMojo {
     protected List<Result> runRecipe(Recipe recipe, LargeSourceSet sourceSet, ExecutionContext ctx) {
         getLog().info("Running recipe(s)...");
 
+        CsvDataTableStore csvDataTableStore = null;
         if (exportDatatables) {
             String timestamp = LocalDateTime.now().format(DateTimeFormatter.ofPattern("yyyy-MM-dd_HH-mm-ss-SSS"));
             Path datatableDirectoryPath = Paths.get("target", "rewrite", "datatables", timestamp);
             getLog().info(String.format("Printing available datatables to: %s", datatableDirectoryPath));
-            DataTableExecutionContextView.view(ctx).setDataTableStore(new CsvDataTableStore(datatableDirectoryPath));
+            csvDataTableStore = new CsvDataTableStore(datatableDirectoryPath);
+            DataTableExecutionContextView.view(ctx).setDataTableStore(csvDataTableStore);
         }
 
         RecipeRun recipeRun = recipe.run(sourceSet, ctx);
+
+        if (csvDataTableStore != null) {
+            csvDataTableStore.close();
+        }
 
         return recipeRun.getChangeset().getAllResults().stream().filter(source -> {
             // Remove ASTs originating from generated files
