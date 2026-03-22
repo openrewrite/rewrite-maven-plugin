@@ -223,7 +223,13 @@ class RewriteRunIT {
                 .findFirst()
                 .orElseThrow(() -> new AssertionError("No timestamped directory found in " + datatablesDir));
 
-            csvFile = timestampedDir.resolve("org.openrewrite.maven.table.DependenciesInUse.csv");
+            try (Stream<Path> csvFiles = Files.list(timestampedDir)) {
+                csvFile = csvFiles
+                    .filter(p -> p.getFileName().toString().startsWith("org.openrewrite.maven.table.DependenciesInUse") &&
+                                 p.getFileName().toString().endsWith(".csv"))
+                    .findFirst()
+                    .orElseThrow(() -> new AssertionError("No DependenciesInUse CSV file found in " + timestampedDir));
+            }
             assertThat(csvFile).exists().isRegularFile();
         }
 
