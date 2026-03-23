@@ -36,9 +36,11 @@ import org.apache.maven.settings.crypto.SettingsDecryptionResult;
 import org.codehaus.plexus.util.xml.Xpp3Dom;
 import org.jspecify.annotations.Nullable;
 import org.openrewrite.ExecutionContext;
+import org.openrewrite.HttpSenderExecutionContextView;
 import org.openrewrite.ParseExceptionResult;
 import org.openrewrite.PathUtils;
 import org.openrewrite.SourceFile;
+import org.openrewrite.ipc.http.HttpUrlConnectionSender;
 import org.openrewrite.groovy.GroovyParser;
 import org.openrewrite.internal.StringUtils;
 import org.openrewrite.java.JavaParser;
@@ -666,6 +668,7 @@ public class MavenMojoProjectParser {
         MavenExecutionContextView mavenExecutionContext = MavenExecutionContextView.view(ctx);
         mavenExecutionContext.setMavenSettings(settings);
         mavenExecutionContext.setResolutionListener(new MavenLoggingResolutionEventListener(logger));
+        configureProxy(settings, ctx);
 
         // The default pom cache is enabled as a two-layer cache L1 == in-memory and L2 == RocksDb
         // If the flag is set to false, only the default, in-memory cache is used.
@@ -864,7 +867,64 @@ public class MavenMojoProjectParser {
             );
         }).collect(toList()));
 
-        return new MavenSettings(mer.getLocalRepositoryPath().toString(), profiles, activeProfiles, mirrors, servers);
+        MavenSettings.Proxies proxies = new MavenSettings.Proxies();
+        proxies.setProxies(mer.getProxies().stream().map(p -> {
+            SettingsDecryptionRequest decryptionRequest = new DefaultSettingsDecryptionRequest();
+            decryptionRequest.setProxies(singletonList(p));
+            SettingsDecryptionResult decryptionResult = settingsDecrypter.decrypt(decryptionRequest);
+            org.apache.maven.settings.Proxy decryptedProxy = decryptionResult.getProxies().isEmpty() ? p : decryptionResult.getProxies().get(0);
+            return new MavenSettings.Proxy(
+                    p.getId(),
+                    p.isActive(),
+                    p.getProtocol(),
+                    p.getHost(),
+                    p.getPort(),
+                    p.getUsername(),
+                    decryptedProxy.getPassword(),
+                    p.getNonProxyHosts()
+            );
+        }).collect(toList()));
+
+        return new MavenSettings(mer.getLocalRepositoryPath().toString(), profiles, activeProfiles, mirrors, servers, proxies);
+    }
+
+    private void configureProxy(MavenSettings settings, ExecutionContext ctx) {
+        if (settings.getProxies() == null || settings.getProxies().getProxies().isEmpty()) {
+            return;
+        }
+        // Use the first active proxy
+        MavenSettings.Proxy activeProxy = settings.getProxies().getProxies().stream()
+                .filter(p -> p.getActive() == null || p.getActive())
+                .findFirst()
+                .orElse(null);
+        if (activeProxy == null) {
+            return;
+        }
+
+        java.net.Proxy proxy = new java.net.Proxy(
+                java.net.Proxy.Type.HTTP,
+                new java.net.InetSocketAddress(activeProxy.getHost(), activeProxy.getPort())
+        );
+
+        if (activeProxy.getUsername() != null && !activeProxy.getUsername().isEmpty()) {
+            // Set up proxy authentication
+            java.net.Authenticator.setDefault(new java.net.Authenticator() {
+                @Override
+                protected java.net.PasswordAuthentication getPasswordAuthentication() {
+                    if (getRequestorType() == RequestorType.PROXY) {
+                        return new java.net.PasswordAuthentication(
+                                activeProxy.getUsername(),
+                                activeProxy.getPassword() != null ? activeProxy.getPassword().toCharArray() : new char[0]
+                        );
+                    }
+                    return null;
+                }
+            });
+        }
+
+        HttpSenderExecutionContextView.view(ctx).setHttpSender(
+                new HttpUrlConnectionSender(java.time.Duration.ofSeconds(1), java.time.Duration.ofSeconds(10), proxy)
+        );
     }
 
     private static @Nullable RawRepositories buildRawRepositories(@Nullable List<Repository> repositoriesToMap) {
