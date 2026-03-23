@@ -907,7 +907,6 @@ public class MavenMojoProjectParser {
         );
 
         if (activeProxy.getUsername() != null && !activeProxy.getUsername().isEmpty()) {
-            // Set up proxy authentication
             java.net.Authenticator.setDefault(new java.net.Authenticator() {
                 @Override
                 protected java.net.PasswordAuthentication getPasswordAuthentication() {
@@ -922,9 +921,30 @@ public class MavenMojoProjectParser {
             });
         }
 
-        HttpSenderExecutionContextView.view(ctx).setHttpSender(
-                new HttpUrlConnectionSender(java.time.Duration.ofSeconds(1), java.time.Duration.ofSeconds(10), proxy)
-        );
+        HttpUrlConnectionSender proxiedSender = new HttpUrlConnectionSender(
+                java.time.Duration.ofSeconds(1), java.time.Duration.ofSeconds(10), proxy);
+        HttpUrlConnectionSender directSender = new HttpUrlConnectionSender(
+                java.time.Duration.ofSeconds(1), java.time.Duration.ofSeconds(10));
+
+        String nonProxyHosts = activeProxy.getNonProxyHosts();
+        if (nonProxyHosts == null || nonProxyHosts.isEmpty()) {
+            HttpSenderExecutionContextView.view(ctx).setHttpSender(proxiedSender);
+        } else {
+            // Parse nonProxyHosts patterns (pipe-delimited, * wildcards) into a regex
+            String regex = Arrays.stream(nonProxyHosts.split("\\|"))
+                    .map(String::trim)
+                    .filter(s -> !s.isEmpty())
+                    .map(pattern -> pattern.replace(".", "\\.").replace("*", ".*"))
+                    .collect(java.util.stream.Collectors.joining("|"));
+            java.util.regex.Pattern nonProxyPattern = java.util.regex.Pattern.compile(regex);
+            HttpSenderExecutionContextView.view(ctx).setHttpSender(request -> {
+                String host = request.getUrl().getHost();
+                if (nonProxyPattern.matcher(host).matches()) {
+                    return directSender.send(request);
+                }
+                return proxiedSender.send(request);
+            });
+        }
     }
 
     private static @Nullable RawRepositories buildRawRepositories(@Nullable List<Repository> repositoriesToMap) {
