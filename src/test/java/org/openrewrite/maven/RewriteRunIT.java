@@ -30,6 +30,7 @@ import java.util.List;
 import java.util.stream.Stream;
 
 import static com.soebes.itf.extension.assertj.MavenITAssertions.assertThat;
+import static java.util.stream.Collectors.toList;
 import static org.assertj.core.api.Assertions.as;
 import static org.assertj.core.api.InstanceOfAssertFactories.STRING;
 import static org.openrewrite.PathUtils.separatorsToSystem;
@@ -239,7 +240,7 @@ class RewriteRunIT {
         // Filter out comment lines
         List<String> dataLines = lines.stream()
                 .filter(l -> !l.startsWith("#"))
-                .collect(java.util.stream.Collectors.toList());
+                .collect(toList());
         assertThat(dataLines)
           .hasSizeGreaterThanOrEqualTo(3) // header + 2 data rows
           .first(as(STRING))
