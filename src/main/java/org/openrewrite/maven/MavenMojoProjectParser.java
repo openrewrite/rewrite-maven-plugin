@@ -36,9 +36,11 @@ import org.apache.maven.settings.crypto.SettingsDecryptionResult;
 import org.codehaus.plexus.util.xml.Xpp3Dom;
 import org.jspecify.annotations.Nullable;
 import org.openrewrite.ExecutionContext;
+import org.openrewrite.HttpSenderExecutionContextView;
 import org.openrewrite.ParseExceptionResult;
 import org.openrewrite.PathUtils;
 import org.openrewrite.SourceFile;
+import org.openrewrite.ipc.http.HttpUrlConnectionSender;
 import org.openrewrite.groovy.GroovyParser;
 import org.openrewrite.internal.StringUtils;
 import org.openrewrite.java.JavaParser;
@@ -78,15 +80,21 @@ import java.io.File;
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.UncheckedIOException;
+import java.net.Authenticator;
+import java.net.InetSocketAddress;
+import java.net.PasswordAuthentication;
 import java.nio.charset.Charset;
 import java.nio.charset.StandardCharsets;
 import java.nio.file.*;
 import java.nio.file.attribute.BasicFileAttributes;
+import java.time.Duration;
 import java.util.*;
 import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.function.Function;
 import java.util.function.Supplier;
 import java.util.function.UnaryOperator;
+import java.util.regex.Pattern;
+import java.util.stream.Collectors;
 import java.util.stream.Stream;
 
 import static java.util.Collections.emptyList;
@@ -666,6 +674,7 @@ public class MavenMojoProjectParser {
         MavenExecutionContextView mavenExecutionContext = MavenExecutionContextView.view(ctx);
         mavenExecutionContext.setMavenSettings(settings);
         mavenExecutionContext.setResolutionListener(new MavenLoggingResolutionEventListener(logger));
+        configureProxy(settings, ctx);
 
         // The default pom cache is enabled as a two-layer cache L1 == in-memory and L2 == RocksDb
         // If the flag is set to false, only the default, in-memory cache is used.
@@ -864,7 +873,84 @@ public class MavenMojoProjectParser {
             );
         }).collect(toList()));
 
-        return new MavenSettings(mer.getLocalRepositoryPath().toString(), profiles, activeProfiles, mirrors, servers);
+        MavenSettings.Proxies proxies = new MavenSettings.Proxies();
+        proxies.setProxies(mer.getProxies().stream().map(p -> {
+            SettingsDecryptionRequest decryptionRequest = new DefaultSettingsDecryptionRequest();
+            decryptionRequest.setProxies(singletonList(p));
+            SettingsDecryptionResult decryptionResult = settingsDecrypter.decrypt(decryptionRequest);
+            org.apache.maven.settings.Proxy decryptedProxy = decryptionResult.getProxies().isEmpty() ? p : decryptionResult.getProxies().get(0);
+            return new MavenSettings.Proxy(
+                    p.getId(),
+                    p.isActive(),
+                    p.getProtocol(),
+                    p.getHost(),
+                    p.getPort(),
+                    p.getUsername(),
+                    decryptedProxy.getPassword(),
+                    p.getNonProxyHosts()
+            );
+        }).collect(toList()));
+
+        return new MavenSettings(mer.getLocalRepositoryPath().toString(), profiles, activeProfiles, mirrors, servers, proxies);
+    }
+
+    private void configureProxy(MavenSettings settings, ExecutionContext ctx) {
+        if (settings.getProxies() == null || settings.getProxies().getProxies().isEmpty()) {
+            return;
+        }
+        // Use the first active proxy
+        MavenSettings.Proxy activeProxy = settings.getProxies().getProxies().stream()
+                .filter(p -> p.getActive() == null || p.getActive())
+                .findFirst()
+                .orElse(null);
+        if (activeProxy == null) {
+            return;
+        }
+
+        java.net.Proxy proxy = new java.net.Proxy(
+                java.net.Proxy.Type.HTTP,
+                new InetSocketAddress(activeProxy.getHost(), activeProxy.getPort())
+        );
+
+        if (activeProxy.getUsername() != null && !activeProxy.getUsername().isEmpty()) {
+            Authenticator.setDefault(new Authenticator() {
+                @Override
+                protected PasswordAuthentication getPasswordAuthentication() {
+                    if (getRequestorType() == RequestorType.PROXY) {
+                        return new PasswordAuthentication(
+                                activeProxy.getUsername(),
+                                activeProxy.getPassword() != null ? activeProxy.getPassword().toCharArray() : new char[0]
+                        );
+                    }
+                    return null;
+                }
+            });
+        }
+
+        HttpUrlConnectionSender proxiedSender = new HttpUrlConnectionSender(
+                Duration.ofSeconds(1), Duration.ofSeconds(10), proxy);
+        HttpUrlConnectionSender directSender = new HttpUrlConnectionSender(
+                Duration.ofSeconds(1), Duration.ofSeconds(10));
+
+        String nonProxyHosts = activeProxy.getNonProxyHosts();
+        if (nonProxyHosts == null || nonProxyHosts.isEmpty()) {
+            HttpSenderExecutionContextView.view(ctx).setHttpSender(proxiedSender);
+        } else {
+            // Parse nonProxyHosts patterns (pipe-delimited, * wildcards) into a regex
+            String regex = Arrays.stream(nonProxyHosts.split("\\|"))
+                    .map(String::trim)
+                    .filter(s -> !s.isEmpty())
+                    .map(pattern -> pattern.replace(".", "\\.").replace("*", ".*"))
+                    .collect(Collectors.joining("|"));
+            Pattern nonProxyPattern = Pattern.compile(regex);
+            HttpSenderExecutionContextView.view(ctx).setHttpSender(request -> {
+                String host = request.getUrl().getHost();
+                if (nonProxyPattern.matcher(host).matches()) {
+                    return directSender.send(request);
+                }
+                return proxiedSender.send(request);
+            });
+        }
     }
 
     private static @Nullable RawRepositories buildRawRepositories(@Nullable List<Repository> repositoriesToMap) {
