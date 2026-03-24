@@ -80,15 +80,21 @@ import java.io.File;
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.UncheckedIOException;
+import java.net.Authenticator;
+import java.net.InetSocketAddress;
+import java.net.PasswordAuthentication;
 import java.nio.charset.Charset;
 import java.nio.charset.StandardCharsets;
 import java.nio.file.*;
 import java.nio.file.attribute.BasicFileAttributes;
+import java.time.Duration;
 import java.util.*;
 import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.function.Function;
 import java.util.function.Supplier;
 import java.util.function.UnaryOperator;
+import java.util.regex.Pattern;
+import java.util.stream.Collectors;
 import java.util.stream.Stream;
 
 import static java.util.Collections.emptyList;
@@ -668,7 +674,7 @@ public class MavenMojoProjectParser {
         MavenExecutionContextView mavenExecutionContext = MavenExecutionContextView.view(ctx);
         mavenExecutionContext.setMavenSettings(settings);
         mavenExecutionContext.setResolutionListener(new MavenLoggingResolutionEventListener(logger));
-        configureProxy(settings, ctx);
+        configureProxy(ctx);
 
         // The default pom cache is enabled as a two-layer cache L1 == in-memory and L2 == RocksDb
         // If the flag is set to false, only the default, in-memory cache is used.
@@ -867,53 +873,45 @@ public class MavenMojoProjectParser {
             );
         }).collect(toList()));
 
-        MavenSettings.Proxies proxies = new MavenSettings.Proxies();
-        proxies.setProxies(mer.getProxies().stream().map(p -> {
-            SettingsDecryptionRequest decryptionRequest = new DefaultSettingsDecryptionRequest();
-            decryptionRequest.setProxies(singletonList(p));
-            SettingsDecryptionResult decryptionResult = settingsDecrypter.decrypt(decryptionRequest);
-            org.apache.maven.settings.Proxy decryptedProxy = decryptionResult.getProxies().isEmpty() ? p : decryptionResult.getProxies().get(0);
-            return new MavenSettings.Proxy(
-                    p.getId(),
-                    p.isActive(),
-                    p.getProtocol(),
-                    p.getHost(),
-                    p.getPort(),
-                    p.getUsername(),
-                    decryptedProxy.getPassword(),
-                    p.getNonProxyHosts()
-            );
-        }).collect(toList()));
-
-        return new MavenSettings(mer.getLocalRepositoryPath().toString(), profiles, activeProfiles, mirrors, servers, proxies);
+        return new MavenSettings(mer.getLocalRepositoryPath().toString(), profiles, activeProfiles, mirrors, servers);
     }
 
-    private void configureProxy(MavenSettings settings, ExecutionContext ctx) {
-        if (settings.getProxies() == null || settings.getProxies().getProxies().isEmpty()) {
+    private void configureProxy(ExecutionContext ctx) {
+        MavenExecutionRequest mer = mavenSession.getRequest();
+        List<org.apache.maven.settings.Proxy> mavenProxies = mer.getProxies();
+        if (mavenProxies == null || mavenProxies.isEmpty()) {
             return;
         }
         // Use the first active proxy
-        MavenSettings.Proxy activeProxy = settings.getProxies().getProxies().stream()
-                .filter(p -> p.getActive() == null || p.getActive())
+        org.apache.maven.settings.Proxy activeProxy = mavenProxies.stream()
+                .filter(org.apache.maven.settings.Proxy::isActive)
                 .findFirst()
                 .orElse(null);
         if (activeProxy == null) {
             return;
         }
 
+        // Decrypt proxy password
+        SettingsDecryptionRequest decryptionRequest = new DefaultSettingsDecryptionRequest();
+        decryptionRequest.setProxies(singletonList(activeProxy));
+        SettingsDecryptionResult decryptionResult = settingsDecrypter.decrypt(decryptionRequest);
+        org.apache.maven.settings.Proxy decryptedProxy = decryptionResult.getProxies().isEmpty() ? activeProxy : decryptionResult.getProxies().get(0);
+
         java.net.Proxy proxy = new java.net.Proxy(
                 java.net.Proxy.Type.HTTP,
-                new java.net.InetSocketAddress(activeProxy.getHost(), activeProxy.getPort())
+                new InetSocketAddress(activeProxy.getHost(), activeProxy.getPort())
         );
 
-        if (activeProxy.getUsername() != null && !activeProxy.getUsername().isEmpty()) {
-            java.net.Authenticator.setDefault(new java.net.Authenticator() {
+        String username = activeProxy.getUsername();
+        if (username != null && !username.isEmpty()) {
+            String password = decryptedProxy.getPassword();
+            Authenticator.setDefault(new Authenticator() {
                 @Override
-                protected java.net.PasswordAuthentication getPasswordAuthentication() {
+                protected PasswordAuthentication getPasswordAuthentication() {
                     if (getRequestorType() == RequestorType.PROXY) {
-                        return new java.net.PasswordAuthentication(
-                                activeProxy.getUsername(),
-                                activeProxy.getPassword() != null ? activeProxy.getPassword().toCharArray() : new char[0]
+                        return new PasswordAuthentication(
+                                username,
+                                password != null ? password.toCharArray() : new char[0]
                         );
                     }
                     return null;
@@ -922,9 +920,9 @@ public class MavenMojoProjectParser {
         }
 
         HttpUrlConnectionSender proxiedSender = new HttpUrlConnectionSender(
-                java.time.Duration.ofSeconds(1), java.time.Duration.ofSeconds(10), proxy);
+                Duration.ofSeconds(1), Duration.ofSeconds(10), proxy);
         HttpUrlConnectionSender directSender = new HttpUrlConnectionSender(
-                java.time.Duration.ofSeconds(1), java.time.Duration.ofSeconds(10));
+                Duration.ofSeconds(1), Duration.ofSeconds(10));
 
         String nonProxyHosts = activeProxy.getNonProxyHosts();
         if (nonProxyHosts == null || nonProxyHosts.isEmpty()) {
@@ -935,8 +933,8 @@ public class MavenMojoProjectParser {
                     .map(String::trim)
                     .filter(s -> !s.isEmpty())
                     .map(pattern -> pattern.replace(".", "\\.").replace("*", ".*"))
-                    .collect(java.util.stream.Collectors.joining("|"));
-            java.util.regex.Pattern nonProxyPattern = java.util.regex.Pattern.compile(regex);
+                    .collect(Collectors.joining("|"));
+            Pattern nonProxyPattern = Pattern.compile(regex);
             HttpSenderExecutionContextView.view(ctx).setHttpSender(request -> {
                 String host = request.getUrl().getHost();
                 if (nonProxyPattern.matcher(host).matches()) {
