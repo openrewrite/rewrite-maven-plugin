@@ -674,7 +674,7 @@ public class MavenMojoProjectParser {
         MavenExecutionContextView mavenExecutionContext = MavenExecutionContextView.view(ctx);
         mavenExecutionContext.setMavenSettings(settings);
         mavenExecutionContext.setResolutionListener(new MavenLoggingResolutionEventListener(logger));
-        configureProxy(ctx);
+        configureProxy(settings, ctx);
 
         // The default pom cache is enabled as a two-layer cache L1 == in-memory and L2 == RocksDb
         // If the flag is set to false, only the default, in-memory cache is used.
@@ -873,45 +873,53 @@ public class MavenMojoProjectParser {
             );
         }).collect(toList()));
 
-        return new MavenSettings(mer.getLocalRepositoryPath().toString(), profiles, activeProfiles, mirrors, servers);
+        MavenSettings.Proxies proxies = new MavenSettings.Proxies();
+        proxies.setProxies(mer.getProxies().stream().map(p -> {
+            SettingsDecryptionRequest decryptionRequest = new DefaultSettingsDecryptionRequest();
+            decryptionRequest.setProxies(singletonList(p));
+            SettingsDecryptionResult decryptionResult = settingsDecrypter.decrypt(decryptionRequest);
+            org.apache.maven.settings.Proxy decryptedProxy = decryptionResult.getProxies().isEmpty() ? p : decryptionResult.getProxies().get(0);
+            return new MavenSettings.Proxy(
+                    p.getId(),
+                    p.isActive(),
+                    p.getProtocol(),
+                    p.getHost(),
+                    p.getPort(),
+                    p.getUsername(),
+                    decryptedProxy.getPassword(),
+                    p.getNonProxyHosts()
+            );
+        }).collect(toList()));
+
+        return new MavenSettings(mer.getLocalRepositoryPath().toString(), profiles, activeProfiles, mirrors, servers, proxies);
     }
 
-    private void configureProxy(ExecutionContext ctx) {
-        MavenExecutionRequest mer = mavenSession.getRequest();
-        List<org.apache.maven.settings.Proxy> mavenProxies = mer.getProxies();
-        if (mavenProxies == null || mavenProxies.isEmpty()) {
+    private void configureProxy(MavenSettings settings, ExecutionContext ctx) {
+        if (settings.getProxies() == null || settings.getProxies().getProxies().isEmpty()) {
             return;
         }
         // Use the first active proxy
-        org.apache.maven.settings.Proxy activeProxy = mavenProxies.stream()
-                .filter(org.apache.maven.settings.Proxy::isActive)
+        MavenSettings.Proxy activeProxy = settings.getProxies().getProxies().stream()
+                .filter(p -> p.getActive() == null || p.getActive())
                 .findFirst()
                 .orElse(null);
         if (activeProxy == null) {
             return;
         }
 
-        // Decrypt proxy password
-        SettingsDecryptionRequest decryptionRequest = new DefaultSettingsDecryptionRequest();
-        decryptionRequest.setProxies(singletonList(activeProxy));
-        SettingsDecryptionResult decryptionResult = settingsDecrypter.decrypt(decryptionRequest);
-        org.apache.maven.settings.Proxy decryptedProxy = decryptionResult.getProxies().isEmpty() ? activeProxy : decryptionResult.getProxies().get(0);
-
         java.net.Proxy proxy = new java.net.Proxy(
                 java.net.Proxy.Type.HTTP,
                 new InetSocketAddress(activeProxy.getHost(), activeProxy.getPort())
         );
 
-        String username = activeProxy.getUsername();
-        if (username != null && !username.isEmpty()) {
-            String password = decryptedProxy.getPassword();
+        if (activeProxy.getUsername() != null && !activeProxy.getUsername().isEmpty()) {
             Authenticator.setDefault(new Authenticator() {
                 @Override
                 protected PasswordAuthentication getPasswordAuthentication() {
                     if (getRequestorType() == RequestorType.PROXY) {
                         return new PasswordAuthentication(
-                                username,
-                                password != null ? password.toCharArray() : new char[0]
+                                activeProxy.getUsername(),
+                                activeProxy.getPassword() != null ? activeProxy.getPassword().toCharArray() : new char[0]
                         );
                     }
                     return null;
