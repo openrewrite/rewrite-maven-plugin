@@ -40,9 +40,9 @@ import org.openrewrite.HttpSenderExecutionContextView;
 import org.openrewrite.ParseExceptionResult;
 import org.openrewrite.PathUtils;
 import org.openrewrite.SourceFile;
-import org.openrewrite.ipc.http.HttpUrlConnectionSender;
 import org.openrewrite.groovy.GroovyParser;
 import org.openrewrite.internal.StringUtils;
+import org.openrewrite.ipc.http.HttpUrlConnectionSender;
 import org.openrewrite.java.JavaParser;
 import org.openrewrite.java.internal.JavaTypeCache;
 import org.openrewrite.java.marker.JavaProject;
@@ -94,13 +94,13 @@ import java.util.function.Function;
 import java.util.function.Supplier;
 import java.util.function.UnaryOperator;
 import java.util.regex.Pattern;
-import java.util.stream.Collectors;
 import java.util.stream.Stream;
 
 import static java.util.Collections.emptyList;
 import static java.util.Collections.emptyMap;
 import static java.util.Collections.singletonList;
 import static java.util.Collections.singletonMap;
+import static java.util.stream.Collectors.joining;
 import static java.util.stream.Collectors.toList;
 import static java.util.stream.Collectors.toMap;
 import static java.util.stream.Collectors.toSet;
@@ -941,7 +941,7 @@ public class MavenMojoProjectParser {
                     .map(String::trim)
                     .filter(s -> !s.isEmpty())
                     .map(pattern -> pattern.replace(".", "\\.").replace("*", ".*"))
-                    .collect(Collectors.joining("|"));
+                    .collect(joining("|"));
             Pattern nonProxyPattern = Pattern.compile(regex);
             HttpSenderExecutionContextView.view(ctx).setHttpSender(request -> {
                 String host = request.getUrl().getHost();
