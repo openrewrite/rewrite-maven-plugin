@@ -237,8 +237,8 @@ public abstract class AbstractRewriteBaseRunMojo extends AbstractRewriteMojo {
         //Parse and collect source files from each project in the maven session.
         MavenMojoProjectParser projectParser = new MavenMojoProjectParser(getLog(), repositoryRoot, pomCacheEnabled, pomCacheDirectory, runtime, skipMavenParsing, getExclusions(), getPlainTextMasks(), sizeThresholdMb, mavenSession, settingsDecrypter, runPerSubmodule, true);
 
-        Stream<SourceFile> sourceFiles = projectParser.listSourceFiles(project, styles, ctx);
-        List<SourceFile> sourceFileList = sourcesWithAutoDetectedStyles(sourceFiles);
+        Stream<SourceFile> sourceFiles = projectParser.listSourceFiles(project, ctx);
+        List<SourceFile> sourceFileList = sourcesWithAutoDetectedStyles(sourceFiles, styles);
         return new InMemoryLargeSourceSet(sourceFileList);
     }
 
@@ -269,7 +269,7 @@ public abstract class AbstractRewriteBaseRunMojo extends AbstractRewriteMojo {
         }).collect(toList());
     }
 
-    private List<SourceFile> sourcesWithAutoDetectedStyles(Stream<SourceFile> sourceFiles) {
+    private List<SourceFile> sourcesWithAutoDetectedStyles(Stream<SourceFile> sourceFiles, List<NamedStyles> configuredStyles) {
         org.openrewrite.java.style.Autodetect.Detector javaDetector = org.openrewrite.java.style.Autodetect.detector();
         org.openrewrite.kotlin.style.Autodetect.Detector kotlinDetector = org.openrewrite.kotlin.style.Autodetect.detector();
         org.openrewrite.xml.style.Autodetect.Detector xmlDetector = org.openrewrite.xml.style.Autodetect.detector();
@@ -290,15 +290,20 @@ public abstract class AbstractRewriteBaseRunMojo extends AbstractRewriteMojo {
         stylesByType.put(K.CompilationUnit.class, kotlinDetector.build());
         stylesByType.put(Xml.Document.class, xmlDetector.build());
 
-        return ListUtils.map(sourceFileList, applyAutodetectedStyle(stylesByType));
+        return ListUtils.map(sourceFileList, applyStyles(stylesByType, configuredStyles));
     }
 
-    private UnaryOperator<SourceFile> applyAutodetectedStyle(Map<Class<? extends Tree>, NamedStyles> stylesByType) {
+    private UnaryOperator<SourceFile> applyStyles(Map<Class<? extends Tree>, NamedStyles> stylesByType, List<NamedStyles> configuredStyles) {
         return before -> {
+            // Apply auto-detected styles first
             for (Map.Entry<Class<? extends Tree>, NamedStyles> styleTypeEntry : stylesByType.entrySet()) {
                 if (styleTypeEntry.getKey().isAssignableFrom(before.getClass())) {
                     before = before.withMarkers(before.getMarkers().add(styleTypeEntry.getValue()));
                 }
+            }
+            // Apply configured styles last so they take precedence with "last wins" semantics
+            for (NamedStyles configuredStyle : configuredStyles) {
+                before = before.withMarkers(before.getMarkers().add(configuredStyle));
             }
             return before;
         };
