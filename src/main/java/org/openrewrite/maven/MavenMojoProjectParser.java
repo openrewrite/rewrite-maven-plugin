@@ -173,6 +173,10 @@ public class MavenMojoProjectParser {
         this.parseAdditionalResources = parseAdditionalResources;
     }
 
+    protected JavaTypeCache createTypeCache() {
+        return new JavaTypeCache();
+    }
+
     public Stream<SourceFile> listSourceFiles(MavenProject mavenProject, List<NamedStyles> styles,
                                               ExecutionContext ctx) throws DependencyResolutionRequiredException, MojoExecutionException, MojoFailureException {
         if (runPerSubmodule) {
@@ -510,7 +514,7 @@ public class MavenMojoProjectParser {
                 .distinct()
                 .map(Paths::get)
                 .collect(toList());
-        JavaTypeCache typeCache = new JavaTypeCache();
+        JavaTypeCache typeCache = createTypeCache();
         javaParserBuilder.classpath(dependencies).typeCache(typeCache);
         kotlinParserBuilder.classpath(dependencies).typeCache(typeCache);
         groovyParserBuilder.classpath(dependencies).typeCache(typeCache);
@@ -602,7 +606,7 @@ public class MavenMojoProjectParser {
                 .distinct()
                 .map(Paths::get)
                 .collect(toList());
-        JavaTypeCache typeCache = new JavaTypeCache();
+        JavaTypeCache typeCache = createTypeCache();
         javaParserBuilder.classpath(testDependencies).typeCache(typeCache);
         kotlinParserBuilder.classpath(testDependencies).typeCache(typeCache);
         groovyParserBuilder.classpath(testDependencies).typeCache(typeCache);
