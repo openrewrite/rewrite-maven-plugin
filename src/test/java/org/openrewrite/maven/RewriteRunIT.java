@@ -244,7 +244,7 @@ class RewriteRunIT {
         assertThat(dataLines)
           .hasSizeGreaterThanOrEqualTo(3) // header + 2 data rows
           .first(as(STRING))
-          .contains("Group", "Artifact"); // CSV header
+          .contains("groupId", "artifactId"); // CSV header
 
         // Get only the data rows (skip header)
         assertThat(dataLines.subList(1, dataLines.size()))
