@@ -348,7 +348,10 @@ public abstract class AbstractRewriteBaseRunMojo extends AbstractRewriteMojo {
                 } else if (result.getBefore() != null && result.getAfter() != null && !result.getBefore().getSourcePath().equals(result.getAfter().getSourcePath())) {
                     moved.add(result);
                 } else {
-                    if (!result.diff(Paths.get(""), new ResultsContainer.FencedMarkerPrinter(), true).isEmpty()) {
+                    FencedMarkerPrinter markerPrinter = new FencedMarkerPrinter();
+                    String beforePrint = result.getBefore().printAll(new PrintOutputCapture<>(0, markerPrinter));
+                    String afterPrint = result.getAfter().printAll(new PrintOutputCapture<>(0, markerPrinter));
+                    if (!beforePrint.equals(afterPrint)) {
                         refactoredInPlace.add(result);
                     }
                 }
