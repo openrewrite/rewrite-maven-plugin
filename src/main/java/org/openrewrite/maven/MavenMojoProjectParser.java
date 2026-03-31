@@ -239,7 +239,7 @@ public class MavenMojoProjectParser {
                 .map(pattern -> baseDir.getFileSystem().getPathMatcher("glob:" + pattern))
                 .collect(toList());
         sourceFiles = sourceFiles.map(sourceFile -> {
-            if (isExcluded(exclusionMatchers, sourceFile.getSourcePath())) {
+            if (isExcluded(repository, exclusionMatchers, sourceFile.getSourcePath())) {
                 return null;
             }
             return sourceFile;
@@ -256,7 +256,7 @@ public class MavenMojoProjectParser {
                 .map(this::logParseErrors);
     }
 
-    private boolean isExcluded(Collection<PathMatcher> exclusionMatchers, Path path) {
+    static boolean isExcluded(org.openrewrite.jgit.lib.@Nullable Repository repository, Collection<PathMatcher> exclusionMatchers, Path path) {
         for (PathMatcher excluded : exclusionMatchers) {
             if (excluded.matches(path)) {
                 return true;
@@ -274,11 +274,7 @@ public class MavenMojoProjectParser {
         }
 
         if (repository != null) {
-            String repoRelativePath = separatorsToUnix(path.toString());
-            if (repoRelativePath.startsWith("/")) {
-                repoRelativePath = repoRelativePath.substring(1);
-            }
-            return GitIgnore.isIgnoredAndUntracked(repository, repoRelativePath);
+            return GitIgnore.isIgnoredAndUntracked(repository, separatorsToUnix(path.toString()));
         }
         return false;
     }
@@ -1092,7 +1088,7 @@ public class MavenMojoProjectParser {
                             MavenWrapper.WRAPPER_SCRIPT_LOCATION)
                     .map(Path::toAbsolutePath)
                     .filter(Files::exists)
-                    .filter(it -> !isExcluded(exclusions, it))
+                    .filter(it -> !isExcluded(repository, exclusions, it))
                     .filter(omniParser::accept)
                     .collect(toList());
             sourceFiles = omniParser.parse(mavenWrapperFiles, baseDir, ctx);

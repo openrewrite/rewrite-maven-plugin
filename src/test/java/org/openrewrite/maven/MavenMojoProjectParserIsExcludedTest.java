@@ -20,8 +20,6 @@ import org.junit.jupiter.api.io.TempDir;
 import org.openrewrite.jgit.api.Git;
 import org.openrewrite.jgit.lib.Repository;
 
-import java.lang.reflect.Field;
-import java.lang.reflect.Method;
 import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
 import java.nio.file.Path;
@@ -53,7 +51,7 @@ class MavenMojoProjectParserIsExcludedTest {
             git.add().addFilepattern(".gitignore").call();
             git.commit().setMessage("initial").call();
 
-            assertThat(callIsExcluded(repo, Paths.get("generated.txt")))
+            assertThat(MavenMojoProjectParser.isExcluded(repo, Collections.emptyList(), Paths.get("generated.txt")))
                     .as("untracked gitignored file should be excluded")
                     .isTrue();
         }
@@ -72,7 +70,7 @@ class MavenMojoProjectParserIsExcludedTest {
             git.add().addFilepattern(".gitignore").call();
             git.commit().setMessage("add gitignore").call();
 
-            assertThat(callIsExcluded(repo, Paths.get("tracked-ignored.txt")))
+            assertThat(MavenMojoProjectParser.isExcluded(repo, Collections.emptyList(), Paths.get("tracked-ignored.txt")))
                     .as("tracked gitignored file should NOT be excluded")
                     .isFalse();
         }
@@ -89,7 +87,7 @@ class MavenMojoProjectParserIsExcludedTest {
             git.add().addFilepattern(".gitignore").call();
             git.commit().setMessage("initial").call();
 
-            assertThat(callIsExcluded(repo, Paths.get("target/output.txt")))
+            assertThat(MavenMojoProjectParser.isExcluded(repo, Collections.emptyList(), Paths.get("target/output.txt")))
                     .as("untracked file in gitignored directory should be excluded")
                     .isTrue();
         }
@@ -108,40 +106,10 @@ class MavenMojoProjectParserIsExcludedTest {
             git.add().addFilepattern(".gitignore").call();
             git.commit().setMessage("add gitignore").call();
 
-            assertThat(callIsExcluded(repo, Paths.get("target/output.txt")))
+            assertThat(MavenMojoProjectParser.isExcluded(repo, Collections.emptyList(), Paths.get("target/output.txt")))
                     .as("tracked file in gitignored directory should NOT be excluded")
                     .isFalse();
         }
-    }
-
-    /**
-     * Invoke the private {@code isExcluded} method via reflection, creating a
-     * minimal {@link MavenMojoProjectParser} instance with only the
-     * {@code repository} field set.
-     */
-    @SuppressWarnings("unchecked")
-    private static boolean callIsExcluded(Repository repo, Path path) throws Exception {
-        // Allocate instance without calling the constructor
-        sun.misc.Unsafe unsafe = getUnsafe();
-        MavenMojoProjectParser parser =
-                (MavenMojoProjectParser) unsafe.allocateInstance(MavenMojoProjectParser.class);
-
-        // Set the repository field
-        Field repoField = MavenMojoProjectParser.class.getDeclaredField("repository");
-        repoField.setAccessible(true);
-        repoField.set(parser, repo);
-
-        // Invoke isExcluded(Collection<PathMatcher>, Path)
-        Method isExcluded = MavenMojoProjectParser.class.getDeclaredMethod(
-                "isExcluded", Collection.class, Path.class);
-        isExcluded.setAccessible(true);
-        return (boolean) isExcluded.invoke(parser, Collections.<PathMatcher>emptyList(), path);
-    }
-
-    private static sun.misc.Unsafe getUnsafe() throws Exception {
-        Field f = sun.misc.Unsafe.class.getDeclaredField("theUnsafe");
-        f.setAccessible(true);
-        return (sun.misc.Unsafe) f.get(null);
     }
 
     private static void writeFile(Path path, String content) throws Exception {
