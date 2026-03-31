@@ -17,7 +17,6 @@ package org.openrewrite.maven;
 
 import com.soebes.itf.jupiter.extension.*;
 import com.soebes.itf.jupiter.maven.MavenExecutionResult;
-import org.junit.jupiter.api.Disabled;
 import org.junit.jupiter.api.condition.DisabledOnOs;
 import org.junit.jupiter.api.condition.EnabledForJreRange;
 import org.junit.jupiter.api.condition.JRE;
@@ -166,7 +165,6 @@ class RewriteRunIT {
           .contains("    org.openrewrite.java.AddCommentToMethod: {comment='{\"test\":{\"some\":\"yeah\"}}', methodPattern=sample.SomeClass doTheThing(..)}");
     }
 
-    @Disabled("We should implement a simpler test to make sure that regular markers don't get added to source files")
     @MavenTest
     void java_upgrade_project(MavenExecutionResult result) {
         assertThat(result)
