@@ -21,6 +21,7 @@ import org.openrewrite.jgit.api.Git;
 import org.openrewrite.jgit.lib.Repository;
 
 import java.nio.charset.StandardCharsets;
+import java.nio.file.FileSystems;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.PathMatcher;
@@ -110,6 +111,61 @@ class MavenMojoProjectParserIsExcludedTest {
                     .as("tracked file in gitignored directory should NOT be excluded")
                     .isFalse();
         }
+    }
+
+    @Test
+    void exclusionMatcherMatchesDirectly() {
+        Collection<PathMatcher> matchers = Collections.singletonList(
+                FileSystems.getDefault().getPathMatcher("glob:**/secret.properties"));
+
+        assertThat(MavenMojoProjectParser.isExcluded(null, matchers, Paths.get("config/secret.properties")))
+                .as("path matching exclusion pattern should be excluded")
+                .isTrue();
+    }
+
+    @Test
+    void exclusionMatcherDoesNotMatchUnrelatedPath() {
+        Collection<PathMatcher> matchers = Collections.singletonList(
+                FileSystems.getDefault().getPathMatcher("glob:**/secret.properties"));
+
+        assertThat(MavenMojoProjectParser.isExcluded(null, matchers, Paths.get("config/application.properties")))
+                .as("path not matching exclusion pattern should not be excluded")
+                .isFalse();
+    }
+
+    @Test
+    void exclusionMatcherMatchesRootFileViaPrefixedSlash() {
+        // PathMatcher won't match "pom.xml" against "**/pom.xml" without a leading slash;
+        // isExcluded handles this by re-checking with a "/" prefix for relative paths
+        Collection<PathMatcher> matchers = Collections.singletonList(
+                FileSystems.getDefault().getPathMatcher("glob:**/pom.xml"));
+
+        assertThat(MavenMojoProjectParser.isExcluded(null, matchers, Paths.get("pom.xml")))
+                .as("root-level file should match **/pom.xml via leading-slash prefixing")
+                .isTrue();
+    }
+
+    @Test
+    void exclusionMatcherMatchesRootFileWithLeadingSlash() {
+        // When the path already has a leading slash, it should match directly
+        // without needing the prefixing logic
+        Collection<PathMatcher> matchers = Collections.singletonList(
+                FileSystems.getDefault().getPathMatcher("glob:**/pom.xml"));
+
+        assertThat(MavenMojoProjectParser.isExcluded(null, matchers, Paths.get("/pom.xml")))
+                .as("root-level file with leading slash should match **/pom.xml directly")
+                .isTrue();
+    }
+
+    @Test
+    void exclusionMatcherMatchesSubdirFileWithoutPrefixing() {
+        // A file in a subdirectory should match directly without needing the "/" prefix path
+        Collection<PathMatcher> matchers = Collections.singletonList(
+                FileSystems.getDefault().getPathMatcher("glob:**/pom.xml"));
+
+        assertThat(MavenMojoProjectParser.isExcluded(null, matchers, Paths.get("module/pom.xml")))
+                .as("subdirectory file should match **/pom.xml directly")
+                .isTrue();
     }
 
     private static void writeFile(Path path, String content) throws Exception {
