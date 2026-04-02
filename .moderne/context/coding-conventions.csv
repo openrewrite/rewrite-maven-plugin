@@ -1,0 +1,29 @@
+Convention type,Pattern,Example,Frequency,Scope
+imports,Static imports from java.util,java.util.Collections.emptyList,,project-wide
+imports,Static imports from java.util.stream,java.util.stream.Collectors.joining,,project-wide
+naming,Abstract prefix for abstract classes,AbstractRewriteBaseRunMojo,,project-wide
+comments,Methods have Javadoc documentation,repositoryRoot,,project-wide
+naming,update* method naming pattern,updateOption,,project-wide
+naming,convert* method naming pattern,convertOptionValue,,project-wide
+naming,load* method naming pattern,loadSourceSet,,project-wide
+naming,get* method naming pattern,getFirstException,,project-wide
+naming,is* method naming pattern,isNotEmpty,,project-wide
+comments,Classes have Javadoc documentation,FencedMarkerPrinter,,project-wide
+naming,format* method naming pattern,formatDuration,,project-wide
+naming,Config suffix for classes,Config,,project-wide
+naming,create* method naming pattern,createArtifact,,project-wide
+imports,Static imports from org.openrewrite.java.style,org.openrewrite.java.style.CheckstyleConfigLoader.loadCheckstyleConfig,,project-wide
+naming,UPPER_SNAKE_CASE for constants,CHECKSTYLE_DOCTYPE,,project-wide
+naming,has* method naming pattern,hasState,,project-wide
+imports,Static imports from io.micrometer.core.instrument.util,io.micrometer.core.instrument.util.DoubleFormat.decimalOrNan,,project-wide
+imports,Static imports from org.openrewrite,org.openrewrite.PathUtils.separatorsToUnix,,project-wide
+imports,Static imports from org.openrewrite.maven.MavenMojoProjectParser,org.openrewrite.maven.MavenMojoProjectParser.MavenScope.MAIN,,project-wide
+imports,Static imports from org.openrewrite.tree,org.openrewrite.tree.ParsingExecutionContextView.view,,project-wide
+naming,process* method naming pattern,processMainSources,,project-wide
+naming,parse* method naming pattern,parseMaven,,project-wide
+naming,build* method naming pattern,buildSettings,,project-wide
+naming,Builder suffix for classes,MavenPomCacheBuilder,,project-wide
+imports,Static imports from java.nio.file,java.nio.file.Files.exists,,project-wide
+imports,Static imports from org.assertj.core.api,org.assertj.core.api.Assertions.assertThat,,project-wide
+naming,Test suffix for classes,AbstractRewriteMojoTest,,project-wide
+imports,Static imports from com.soebes.itf.extension.assertj,com.soebes.itf.extension.assertj.MavenITAssertions.assertThat,,project-wide

@@ -1,0 +1,2 @@
+Source path,Class name,Method name,Issue type,Severity,Language,Evidence
+src/test/java/org/openrewrite/maven/BasicIT.java,org.openrewrite.maven.BasicIT,null_check_profile_activation,skipped without reason,medium,java,@Disabled without reason on null_check_profile_activation(). Skipped tests without documented reasons accumulate silently. Add a reason: @Disabled("reason").

@@ -11,3 +11,7 @@ pom.xml.versionsBackup
 .settings
 .vscode/
 .mvn/.develocity/
+
+# Moderne CLI
+.moderne/*
+!.moderne/context/
