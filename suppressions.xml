@@ -1,3 +1,8 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <suppressions xmlns="https://jeremylong.github.io/DependencyCheck/dependency-suppression.1.3.xsd">
+    <!-- False positive: 3.6.1 contains the Zip Slip fix but CVE lists <4.0.3 as affected -->
+    <suppress until="2026-05-08Z">
+        <packageUrl regex="true">^pkg:maven/org\.codehaus\.plexus/plexus\-utils@.*$</packageUrl>
+        <vulnerabilityName>CVE-2025-67030</vulnerabilityName>
+    </suppress>
 </suppressions>

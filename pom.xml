@@ -114,6 +114,12 @@
                 <scope>import</scope>
                 <type>pom</type>
             </dependency>
+            <!-- Pin plexus-utils to fix GHSA-6fmv-xxpf-w3cw -->
+            <dependency>
+                <groupId>org.codehaus.plexus</groupId>
+                <artifactId>plexus-utils</artifactId>
+                <version>3.6.1</version>
+            </dependency>
             <!-- Transitive through Plexus, but with provided scope -->
             <dependency>
                 <groupId>org.apache.maven</groupId>
@@ -186,11 +192,6 @@
             <groupId>org.codehaus.plexus</groupId>
             <artifactId>plexus-xml</artifactId>
             <version>4.1.1</version>
-        </dependency>
-        <dependency>
-            <groupId>org.codehaus.plexus</groupId>
-            <artifactId>plexus-utils</artifactId>
-            <version>3.6.1</version>
         </dependency>
         <dependency>
             <groupId>io.micrometer</groupId>
