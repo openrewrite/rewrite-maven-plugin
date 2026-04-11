@@ -107,7 +107,20 @@ public abstract class AbstractRewriteMojo extends ConfigurableRewriteMojo {
     }
 
     protected Environment environment(@Nullable ClassLoader recipeClassLoader) throws MojoExecutionException {
-        @Nullable Properties propertiesToResolve = resolvePropertiesInYaml ? project.getProperties() : null;
+        @Nullable Properties propertiesToResolve;
+        if (resolvePropertiesInYaml) {
+            Properties userProperties = mavenSession.getUserProperties();
+            if (userProperties.isEmpty()) {
+                propertiesToResolve = project.getProperties();
+            } else {
+                propertiesToResolve = new Properties(project.getProperties());
+                for (Map.Entry<Object, Object> entry : userProperties.entrySet()) {
+                    propertiesToResolve.put(entry.getKey(), entry.getValue());
+                }
+            }
+        } else {
+            propertiesToResolve = null;
+        }
         Environment.Builder env = Environment.builder(propertiesToResolve);
         if (recipeClassLoader == null) {
             env.scanRuntimeClasspath()

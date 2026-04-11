@@ -15,19 +15,64 @@
  */
 package org.openrewrite.maven;
 
+import org.apache.maven.execution.DefaultMavenExecutionRequest;
+import org.apache.maven.execution.DefaultMavenExecutionResult;
+import org.apache.maven.execution.MavenSession;
 import org.apache.maven.project.MavenProject;
+import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.io.TempDir;
 import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.ValueSource;
+import org.openrewrite.Recipe;
+import org.openrewrite.config.Environment;
 
 import java.io.File;
 import java.io.InputStream;
 import java.nio.file.Files;
 import java.nio.file.Path;
+import java.util.Collection;
+import java.util.Properties;
 
 import static org.assertj.core.api.Assertions.assertThat;
 
 class AbstractRewriteMojoTest {
+
+    @Test
+    void resolvePropertiesInYamlUsesUserProperties(@TempDir Path temp) throws Exception {
+        DefaultMavenExecutionRequest request = new DefaultMavenExecutionRequest();
+        Properties userProps = new Properties();
+        userProps.setProperty("myValue", "resolvedValue");
+        request.setUserProperties(userProps);
+        MavenSession session = new MavenSession(null, null, request, new DefaultMavenExecutionResult());
+
+        String yaml = "type: specs.openrewrite.org/v1beta/recipe\n" +
+                "name: test.UserPropRecipe\n" +
+                "displayName: \"${myValue}\"\n" +
+                "recipeList: []\n";
+        Files.writeString(temp.resolve("rewrite.yml"), yaml);
+
+        AbstractRewriteMojo mojo = new AbstractRewriteMojo() {
+            {
+                configLocation = "rewrite.yml";
+                resolvePropertiesInYaml = true;
+                project = new MavenProject();
+                project.setFile(new File(temp.toFile(), "pom.xml"));
+                mavenSession = session;
+            }
+
+            @Override
+            public void execute() {
+            }
+        };
+
+        Environment env = mojo.environment(null);
+        Collection<Recipe> recipes = env.listRecipes();
+        Recipe recipe = recipes.stream()
+                .filter(r -> "test.UserPropRecipe".equals(r.getName()))
+                .findFirst()
+                .orElseThrow(() -> new AssertionError("Recipe not found"));
+        assertThat(recipe.getDisplayName()).isEqualTo("resolvedValue");
+    }
 
     @ParameterizedTest
     @ValueSource(strings = {"rewrite.yml"})
