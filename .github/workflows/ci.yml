@@ -40,6 +40,12 @@ jobs:
           server-password: SONATYPE_PASSWORD
           gpg-private-key: ${{ secrets.OSSRH_SIGNING_KEY }}
           gpg-passphrase: SONATYPE_SIGNING_PASSWORD
+      - name: validate-develocity-access-key
+        run: |
+          if [ -n "$DEVELOCITY_ACCESS_KEY" ] && ! echo "$DEVELOCITY_ACCESS_KEY" | grep -q '='; then
+            echo "DEVELOCITY_ACCESS_KEY is malformed (missing server-host= prefix), unsetting"
+            echo "DEVELOCITY_ACCESS_KEY=" >> $GITHUB_ENV
+          fi
       - name: build
         run: ./mvnw --show-version --no-transfer-progress --update-snapshots clean verify --file=pom.xml --fail-at-end --batch-mode -Dstyle.color=always
       - name: publish-snapshots
