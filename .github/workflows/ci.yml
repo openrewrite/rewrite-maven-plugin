@@ -40,6 +40,12 @@ jobs:
           server-password: SONATYPE_PASSWORD
           gpg-private-key: ${{ secrets.OSSRH_SIGNING_KEY }}
           gpg-passphrase: SONATYPE_SIGNING_PASSWORD
+      - name: validate-develocity-access-key
+        run: |
+          if [ -n "$DEVELOCITY_ACCESS_KEY" ] && ! echo "$DEVELOCITY_ACCESS_KEY" | grep -q '='; then
+            echo "DEVELOCITY_ACCESS_KEY is malformed (missing server-host= prefix), unsetting"
+            echo "DEVELOCITY_ACCESS_KEY=" >> $GITHUB_ENV
+          fi
       - name: build
         run: ./mvnw --show-version --no-transfer-progress --update-snapshots clean verify --file=pom.xml --fail-at-end --batch-mode -Dstyle.color=always
       - name: publish-snapshots
@@ -50,3 +56,14 @@ jobs:
           SONATYPE_USERNAME: ${{ secrets.SONATYPE_USERNAME }}
           SONATYPE_PASSWORD: ${{ secrets.SONATYPE_TOKEN }}
           SONATYPE_SIGNING_PASSWORD: ${{ secrets.OSSRH_SIGNING_PASSWORD }}
+      - name: slack-notification
+        if: failure() && github.event_name == 'schedule' && (github.repository_owner == 'openrewrite' || github.repository_owner == 'moderneinc')
+        uses: rtCamp/action-slack-notify@e31e87e03dd19038e411e38ae27cbad084a90661
+        continue-on-error: true
+        env:
+          SLACK_WEBHOOK: ${{ secrets.OPS_GITHUB_ACTIONS_WEBHOOK }}
+          MSG_MINIMAL: true
+          SLACK_MESSAGE: ${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}
+          SLACK_USERNAME: ${{ github.repository }} CI failure
+          SLACK_COLOR: failure
+          SLACK_FOOTER: ''
