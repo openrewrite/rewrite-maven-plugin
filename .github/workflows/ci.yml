@@ -56,3 +56,14 @@ jobs:
           SONATYPE_USERNAME: ${{ secrets.SONATYPE_USERNAME }}
           SONATYPE_PASSWORD: ${{ secrets.SONATYPE_TOKEN }}
           SONATYPE_SIGNING_PASSWORD: ${{ secrets.OSSRH_SIGNING_PASSWORD }}
+      - name: slack-notification
+        if: failure() && github.event_name == 'schedule' && (github.repository_owner == 'openrewrite' || github.repository_owner == 'moderneinc')
+        uses: rtCamp/action-slack-notify@e31e87e03dd19038e411e38ae27cbad084a90661
+        continue-on-error: true
+        env:
+          SLACK_WEBHOOK: ${{ secrets.OPS_GITHUB_ACTIONS_WEBHOOK }}
+          MSG_MINIMAL: true
+          SLACK_MESSAGE: ${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}
+          SLACK_USERNAME: ${{ github.repository }} CI failure
+          SLACK_COLOR: failure
+          SLACK_FOOTER: ''
