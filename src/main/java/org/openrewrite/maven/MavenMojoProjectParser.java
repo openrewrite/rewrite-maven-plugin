@@ -220,8 +220,8 @@ public class MavenMojoProjectParser {
         KotlinParser.Builder kotlinParserBuilder = KotlinParser.builder();
         GroovyParser.Builder groovyParserBuilder = GroovyParser.builder();
 
-        // Pre-populate parsedPaths with all source paths from both scopes
-        // to prevent resource parsers from claiming cross-scope sources as PlainText
+        // Pre-populate parsedPaths with all source paths from both scopes (including generated sources)
+        // to prevent resource parsers from claiming these as PlainText
         parsedPaths.addAll(listJavaSources(mavenProject, mavenProject.getExecutionProject().getCompileSourceRoots()));
         parsedPaths.addAll(listKotlinSources(mavenProject, "compile", mavenProject.getBuild().getSourceDirectory()));
         parsedPaths.addAll(listGroovySources(mavenProject, mavenProject.getExecutionProject().getCompileSourceRoots()));
@@ -238,12 +238,9 @@ public class MavenMojoProjectParser {
         Collection<PathMatcher> exclusionMatchers = exclusions.stream()
                 .map(pattern -> baseDir.getFileSystem().getPathMatcher("glob:" + pattern))
                 .collect(toList());
-        sourceFiles = sourceFiles.map(sourceFile -> {
-            if (isExcluded(repository, exclusionMatchers, sourceFile.getSourcePath())) {
-                return null;
-            }
-            return sourceFile;
-        }).filter(Objects::nonNull);
+        Path buildDirectory = baseDir.relativize(Paths.get(mavenProject.getBuild().getDirectory()));
+        sourceFiles = sourceFiles
+                .filter(sourceFile -> !sourceFile.getSourcePath().startsWith(buildDirectory) && !isExcluded(repository, exclusionMatchers, sourceFile.getSourcePath()));
 
         Stream<SourceFile> mavenWrapperFiles = parseMavenWrapperFiles(mavenProject, exclusionMatchers, parsedPaths, ctx);
         sourceFiles = Stream.concat(sourceFiles, mavenWrapperFiles);
@@ -480,14 +477,18 @@ public class MavenMojoProjectParser {
 
         Stream<SourceFile> sourceFiles = Stream.of();
 
+        // Skip generated source roots under the build directory; their compiled classes are
+        // already on the classpath via getCompileClasspathElements() and available for type attribution.
+        List<String> sourceRoots = filterGeneratedSourceRoots(mavenProject, mavenProject.getExecutionProject().getCompileSourceRoots());
+
         // scan Java files
-        Collection<Path> mainJavaSources = listJavaSources(mavenProject, mavenProject.getExecutionProject().getCompileSourceRoots());
+        Collection<Path> mainJavaSources = listJavaSources(mavenProject, sourceRoots);
 
         // scan Kotlin files
         List<Path> mainKotlinSources = listKotlinSources(mavenProject, "compile", mavenProject.getBuild().getSourceDirectory());
 
         // scan Groovy files
-        List<Path> mainGroovySources = listGroovySources(mavenProject, mavenProject.getExecutionProject().getCompileSourceRoots());
+        List<Path> mainGroovySources = listGroovySources(mavenProject, sourceRoots);
 
         logInfo(mavenProject, "Parsing source files");
         List<Path> dependencies = mavenProject.getCompileClasspathElements().stream()
@@ -555,11 +556,7 @@ public class MavenMojoProjectParser {
         mainProjectProvenance.add(JavaSourceSet.build("main", dependencies));
         mainProjectProvenance.add(getSrcMainJavaVersion(mavenProject));
 
-        //Filter out any generated source files from the returned list, as we do not want to apply the recipe to the
-        //generated files.
-        Path buildDirectory = baseDir.relativize(Paths.get(mavenProject.getBuild().getDirectory()));
         return sourceFiles
-                .filter(s -> !s.getSourcePath().startsWith(buildDirectory))
                 .map(addProvenance(mainProjectProvenance));
     }
 
@@ -573,14 +570,18 @@ public class MavenMojoProjectParser {
 
         Stream<SourceFile> sourceFiles = Stream.of();
 
+        // Skip generated source roots under the build directory; their compiled classes are
+        // already on the classpath via getTestClasspathElements() and available for type attribution.
+        List<String> testSourceRoots = filterGeneratedSourceRoots(mavenProject, mavenProject.getExecutionProject().getTestCompileSourceRoots());
+
         // scan Java files
-        Collection<Path> testJavaSources = listJavaSources(mavenProject, mavenProject.getExecutionProject().getTestCompileSourceRoots());
+        Collection<Path> testJavaSources = listJavaSources(mavenProject, testSourceRoots);
 
         // scan Kotlin files
         List<Path> testKotlinSources = listKotlinSources(mavenProject, "test-compile", mavenProject.getBuild().getTestSourceDirectory());
 
         // scan Groovy files
-        List<Path> testGroovySources = listGroovySources(mavenProject, mavenProject.getExecutionProject().getTestCompileSourceRoots());
+        List<Path> testGroovySources = listGroovySources(mavenProject, testSourceRoots);
 
         List<Path> testDependencies = mavenProject.getTestClasspathElements().stream()
                 .distinct()
@@ -636,11 +637,7 @@ public class MavenMojoProjectParser {
         testProjectProvenance.add(JavaSourceSet.build("test", testDependencies));
         testProjectProvenance.add(getSrcTestJavaVersion(mavenProject));
 
-        //Filter out any generated source files from the returned list, as we do not want to apply the recipe to the
-        //generated files.
-        Path buildDirectory = baseDir.relativize(Paths.get(mavenProject.getBuild().getDirectory()));
         return sourceFiles
-                .filter(s -> !s.getSourcePath().startsWith(buildDirectory))
                 .map(addProvenance(testProjectProvenance));
     }
 
@@ -1001,6 +998,13 @@ public class MavenMojoProjectParser {
                 throw new UncheckedIOException(e);
             }
         };
+    }
+
+    private static List<String> filterGeneratedSourceRoots(MavenProject mavenProject, List<String> sourceRoots) {
+        Path buildDirectory = Paths.get(mavenProject.getBuild().getDirectory());
+        return sourceRoots.stream()
+                .filter(root -> !Paths.get(root).startsWith(buildDirectory))
+                .collect(toList());
     }
 
     private static Collection<Path> listJavaSources(MavenProject mavenProject, List<String> compileSourceRoots) throws MojoExecutionException {
