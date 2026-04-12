@@ -240,13 +240,13 @@ public class MavenMojoProjectParser {
                 .collect(toList());
         Path buildDirectory = baseDir.relativize(Paths.get(mavenProject.getBuild().getDirectory()));
         sourceFiles = sourceFiles.map(sourceFile -> {
-            if (isExcluded(repository, exclusionMatchers, buildDirectory, sourceFile.getSourcePath())) {
+            if (sourceFile.getSourcePath().startsWith(buildDirectory) || isExcluded(repository, exclusionMatchers, sourceFile.getSourcePath())) {
                 return null;
             }
             return sourceFile;
         }).filter(Objects::nonNull);
 
-        Stream<SourceFile> mavenWrapperFiles = parseMavenWrapperFiles(mavenProject, exclusionMatchers, buildDirectory, parsedPaths, ctx);
+        Stream<SourceFile> mavenWrapperFiles = parseMavenWrapperFiles(mavenProject, exclusionMatchers, parsedPaths, ctx);
         sourceFiles = Stream.concat(sourceFiles, mavenWrapperFiles);
 
         Stream<SourceFile> nonProjectResources = parseNonProjectResources(mavenProject, parsedPaths, ctx);
@@ -257,10 +257,7 @@ public class MavenMojoProjectParser {
                 .map(this::logParseErrors);
     }
 
-    static boolean isExcluded(org.openrewrite.jgit.lib.@Nullable Repository repository, Collection<PathMatcher> exclusionMatchers, Path buildDirectory, Path path) {
-        if (path.startsWith(buildDirectory)) {
-            return true;
-        }
+    static boolean isExcluded(org.openrewrite.jgit.lib.@Nullable Repository repository, Collection<PathMatcher> exclusionMatchers, Path path) {
         for (PathMatcher excluded : exclusionMatchers) {
             if (excluded.matches(path)) {
                 return true;
@@ -1086,7 +1083,7 @@ public class MavenMojoProjectParser {
         }
     }
 
-    private Stream<SourceFile> parseMavenWrapperFiles(MavenProject mavenProject, Collection<PathMatcher> exclusions, Path buildDirectory, Set<Path> parsedPaths, ExecutionContext ctx) {
+    private Stream<SourceFile> parseMavenWrapperFiles(MavenProject mavenProject, Collection<PathMatcher> exclusions, Set<Path> parsedPaths, ExecutionContext ctx) {
         Stream<SourceFile> sourceFiles = Stream.empty();
         if (mavenProject.getParent() == null) {
             OmniParser omniParser = omniParser(parsedPaths, mavenProject);
@@ -1099,7 +1096,7 @@ public class MavenMojoProjectParser {
                             MavenWrapper.WRAPPER_SCRIPT_LOCATION)
                     .map(Path::toAbsolutePath)
                     .filter(Files::exists)
-                    .filter(it -> !isExcluded(repository, exclusions, buildDirectory, it))
+                    .filter(it -> !isExcluded(repository, exclusions, it))
                     .filter(omniParser::accept)
                     .collect(toList());
             sourceFiles = omniParser.parse(mavenWrapperFiles, baseDir, ctx);
