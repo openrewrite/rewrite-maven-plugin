@@ -239,12 +239,8 @@ public class MavenMojoProjectParser {
                 .map(pattern -> baseDir.getFileSystem().getPathMatcher("glob:" + pattern))
                 .collect(toList());
         Path buildDirectory = baseDir.relativize(Paths.get(mavenProject.getBuild().getDirectory()));
-        sourceFiles = sourceFiles.map(sourceFile -> {
-            if (sourceFile.getSourcePath().startsWith(buildDirectory) || isExcluded(repository, exclusionMatchers, sourceFile.getSourcePath())) {
-                return null;
-            }
-            return sourceFile;
-        }).filter(Objects::nonNull);
+        sourceFiles = sourceFiles
+                .filter(sourceFile -> !sourceFile.getSourcePath().startsWith(buildDirectory) && !isExcluded(repository, exclusionMatchers, sourceFile.getSourcePath()));
 
         Stream<SourceFile> mavenWrapperFiles = parseMavenWrapperFiles(mavenProject, exclusionMatchers, parsedPaths, ctx);
         sourceFiles = Stream.concat(sourceFiles, mavenWrapperFiles);
