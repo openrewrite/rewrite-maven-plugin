@@ -52,7 +52,7 @@ class MavenMojoProjectParserIsExcludedTest {
             git.add().addFilepattern(".gitignore").call();
             git.commit().setMessage("initial").call();
 
-            assertThat(MavenMojoProjectParser.isExcluded(repo, emptyList(), Path.of("generated.txt")))
+            assertThat(MavenMojoProjectParser.isExcluded(repo, emptyList(), Path.of("target"), Path.of("generated.txt")))
                     .as("untracked gitignored file should be excluded")
                     .isTrue();
         }
@@ -71,7 +71,7 @@ class MavenMojoProjectParserIsExcludedTest {
             git.add().addFilepattern(".gitignore").call();
             git.commit().setMessage("add gitignore").call();
 
-            assertThat(MavenMojoProjectParser.isExcluded(repo, emptyList(), Path.of("tracked-ignored.txt")))
+            assertThat(MavenMojoProjectParser.isExcluded(repo, emptyList(), Path.of("target"), Path.of("tracked-ignored.txt")))
                     .as("tracked gitignored file should NOT be excluded")
                     .isFalse();
         }
@@ -88,7 +88,7 @@ class MavenMojoProjectParserIsExcludedTest {
             git.add().addFilepattern(".gitignore").call();
             git.commit().setMessage("initial").call();
 
-            assertThat(MavenMojoProjectParser.isExcluded(repo, emptyList(), Path.of("target/output.txt")))
+            assertThat(MavenMojoProjectParser.isExcluded(repo, emptyList(), Path.of("build"), Path.of("target/output.txt")))
                     .as("untracked file in gitignored directory should be excluded")
                     .isTrue();
         }
@@ -107,7 +107,7 @@ class MavenMojoProjectParserIsExcludedTest {
             git.add().addFilepattern(".gitignore").call();
             git.commit().setMessage("add gitignore").call();
 
-            assertThat(MavenMojoProjectParser.isExcluded(repo, emptyList(), Path.of("target/output.txt")))
+            assertThat(MavenMojoProjectParser.isExcluded(repo, emptyList(), Path.of("build"), Path.of("target/output.txt")))
                     .as("tracked file in gitignored directory should NOT be excluded")
                     .isFalse();
         }
@@ -118,7 +118,7 @@ class MavenMojoProjectParserIsExcludedTest {
         Collection<PathMatcher> matchers = singletonList(
                 FileSystems.getDefault().getPathMatcher("glob:**/secret.properties"));
 
-        assertThat(MavenMojoProjectParser.isExcluded(null, matchers, Path.of("config/secret.properties")))
+        assertThat(MavenMojoProjectParser.isExcluded(null, matchers, Path.of("target"), Path.of("config/secret.properties")))
                 .as("path matching exclusion pattern should be excluded")
                 .isTrue();
     }
@@ -128,7 +128,7 @@ class MavenMojoProjectParserIsExcludedTest {
         Collection<PathMatcher> matchers = singletonList(
                 FileSystems.getDefault().getPathMatcher("glob:**/secret.properties"));
 
-        assertThat(MavenMojoProjectParser.isExcluded(null, matchers, Path.of("config/application.properties")))
+        assertThat(MavenMojoProjectParser.isExcluded(null, matchers, Path.of("target"), Path.of("config/application.properties")))
                 .as("path not matching exclusion pattern should not be excluded")
                 .isFalse();
     }
@@ -140,7 +140,7 @@ class MavenMojoProjectParserIsExcludedTest {
         Collection<PathMatcher> matchers = singletonList(
                 FileSystems.getDefault().getPathMatcher("glob:**/pom.xml"));
 
-        assertThat(MavenMojoProjectParser.isExcluded(null, matchers, Path.of("pom.xml")))
+        assertThat(MavenMojoProjectParser.isExcluded(null, matchers, Path.of("target"), Path.of("pom.xml")))
                 .as("root-level file should match **/pom.xml via leading-slash prefixing")
                 .isTrue();
     }
@@ -152,7 +152,7 @@ class MavenMojoProjectParserIsExcludedTest {
         Collection<PathMatcher> matchers = singletonList(
                 FileSystems.getDefault().getPathMatcher("glob:**/pom.xml"));
 
-        assertThat(MavenMojoProjectParser.isExcluded(null, matchers, Path.of("/pom.xml")))
+        assertThat(MavenMojoProjectParser.isExcluded(null, matchers, Path.of("target"), Path.of("/pom.xml")))
                 .as("root-level file with leading slash should match **/pom.xml directly")
                 .isTrue();
     }
@@ -163,9 +163,23 @@ class MavenMojoProjectParserIsExcludedTest {
         Collection<PathMatcher> matchers = singletonList(
                 FileSystems.getDefault().getPathMatcher("glob:**/pom.xml"));
 
-        assertThat(MavenMojoProjectParser.isExcluded(null, matchers, Path.of("module/pom.xml")))
+        assertThat(MavenMojoProjectParser.isExcluded(null, matchers, Path.of("target"), Path.of("module/pom.xml")))
                 .as("subdirectory file should match **/pom.xml directly")
                 .isTrue();
+    }
+
+    @Test
+    void fileInBuildDirectoryIsExcluded() {
+        assertThat(MavenMojoProjectParser.isExcluded(null, emptyList(), Path.of("target"), Path.of("target/generated-sources/annotations/Foo.java")))
+                .as("file under build directory should be excluded")
+                .isTrue();
+    }
+
+    @Test
+    void fileOutsideBuildDirectoryIsNotExcluded() {
+        assertThat(MavenMojoProjectParser.isExcluded(null, emptyList(), Path.of("target"), Path.of("src/main/java/Foo.java")))
+                .as("file outside build directory should not be excluded")
+                .isFalse();
     }
 
     private static void writeFile(Path path, String content) throws Exception {

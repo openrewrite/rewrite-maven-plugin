@@ -238,14 +238,15 @@ public class MavenMojoProjectParser {
         Collection<PathMatcher> exclusionMatchers = exclusions.stream()
                 .map(pattern -> baseDir.getFileSystem().getPathMatcher("glob:" + pattern))
                 .collect(toList());
+        Path buildDirectory = baseDir.relativize(Paths.get(mavenProject.getBuild().getDirectory()));
         sourceFiles = sourceFiles.map(sourceFile -> {
-            if (isExcluded(repository, exclusionMatchers, sourceFile.getSourcePath())) {
+            if (isExcluded(repository, exclusionMatchers, buildDirectory, sourceFile.getSourcePath())) {
                 return null;
             }
             return sourceFile;
         }).filter(Objects::nonNull);
 
-        Stream<SourceFile> mavenWrapperFiles = parseMavenWrapperFiles(mavenProject, exclusionMatchers, parsedPaths, ctx);
+        Stream<SourceFile> mavenWrapperFiles = parseMavenWrapperFiles(mavenProject, exclusionMatchers, buildDirectory, parsedPaths, ctx);
         sourceFiles = Stream.concat(sourceFiles, mavenWrapperFiles);
 
         Stream<SourceFile> nonProjectResources = parseNonProjectResources(mavenProject, parsedPaths, ctx);
@@ -256,7 +257,10 @@ public class MavenMojoProjectParser {
                 .map(this::logParseErrors);
     }
 
-    static boolean isExcluded(org.openrewrite.jgit.lib.@Nullable Repository repository, Collection<PathMatcher> exclusionMatchers, Path path) {
+    static boolean isExcluded(org.openrewrite.jgit.lib.@Nullable Repository repository, Collection<PathMatcher> exclusionMatchers, Path buildDirectory, Path path) {
+        if (path.startsWith(buildDirectory)) {
+            return true;
+        }
         for (PathMatcher excluded : exclusionMatchers) {
             if (excluded.matches(path)) {
                 return true;
@@ -559,11 +563,7 @@ public class MavenMojoProjectParser {
         mainProjectProvenance.add(JavaSourceSet.build("main", dependencies));
         mainProjectProvenance.add(getSrcMainJavaVersion(mavenProject));
 
-        //Filter out any generated source files from the returned list, as we do not want to apply the recipe to the
-        //generated files.
-        Path buildDirectory = baseDir.relativize(Paths.get(mavenProject.getBuild().getDirectory()));
         return sourceFiles
-                .filter(s -> !s.getSourcePath().startsWith(buildDirectory))
                 .map(addProvenance(mainProjectProvenance));
     }
 
@@ -644,11 +644,7 @@ public class MavenMojoProjectParser {
         testProjectProvenance.add(JavaSourceSet.build("test", testDependencies));
         testProjectProvenance.add(getSrcTestJavaVersion(mavenProject));
 
-        //Filter out any generated source files from the returned list, as we do not want to apply the recipe to the
-        //generated files.
-        Path buildDirectory = baseDir.relativize(Paths.get(mavenProject.getBuild().getDirectory()));
         return sourceFiles
-                .filter(s -> !s.getSourcePath().startsWith(buildDirectory))
                 .map(addProvenance(testProjectProvenance));
     }
 
@@ -1090,7 +1086,7 @@ public class MavenMojoProjectParser {
         }
     }
 
-    private Stream<SourceFile> parseMavenWrapperFiles(MavenProject mavenProject, Collection<PathMatcher> exclusions, Set<Path> parsedPaths, ExecutionContext ctx) {
+    private Stream<SourceFile> parseMavenWrapperFiles(MavenProject mavenProject, Collection<PathMatcher> exclusions, Path buildDirectory, Set<Path> parsedPaths, ExecutionContext ctx) {
         Stream<SourceFile> sourceFiles = Stream.empty();
         if (mavenProject.getParent() == null) {
             OmniParser omniParser = omniParser(parsedPaths, mavenProject);
@@ -1103,7 +1099,7 @@ public class MavenMojoProjectParser {
                             MavenWrapper.WRAPPER_SCRIPT_LOCATION)
                     .map(Path::toAbsolutePath)
                     .filter(Files::exists)
-                    .filter(it -> !isExcluded(repository, exclusions, it))
+                    .filter(it -> !isExcluded(repository, exclusions, buildDirectory, it))
                     .filter(omniParser::accept)
                     .collect(toList());
             sourceFiles = omniParser.parse(mavenWrapperFiles, baseDir, ctx);
