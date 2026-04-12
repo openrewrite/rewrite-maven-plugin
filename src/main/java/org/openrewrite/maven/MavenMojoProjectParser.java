@@ -220,16 +220,14 @@ public class MavenMojoProjectParser {
         KotlinParser.Builder kotlinParserBuilder = KotlinParser.builder();
         GroovyParser.Builder groovyParserBuilder = GroovyParser.builder();
 
-        // Pre-populate parsedPaths with all source paths from both scopes
-        // to prevent resource parsers from claiming cross-scope sources as PlainText
-        List<String> mainSourceRoots = filterGeneratedSourceRoots(mavenProject, mavenProject.getExecutionProject().getCompileSourceRoots());
-        List<String> testSourceRoots = filterGeneratedSourceRoots(mavenProject, mavenProject.getExecutionProject().getTestCompileSourceRoots());
-        parsedPaths.addAll(listJavaSources(mavenProject, mainSourceRoots));
+        // Pre-populate parsedPaths with all source paths from both scopes (including generated sources)
+        // to prevent resource parsers from claiming these as PlainText
+        parsedPaths.addAll(listJavaSources(mavenProject, mavenProject.getExecutionProject().getCompileSourceRoots()));
         parsedPaths.addAll(listKotlinSources(mavenProject, "compile", mavenProject.getBuild().getSourceDirectory()));
-        parsedPaths.addAll(listGroovySources(mavenProject, mainSourceRoots));
-        parsedPaths.addAll(listJavaSources(mavenProject, testSourceRoots));
+        parsedPaths.addAll(listGroovySources(mavenProject, mavenProject.getExecutionProject().getCompileSourceRoots()));
+        parsedPaths.addAll(listJavaSources(mavenProject, mavenProject.getExecutionProject().getTestCompileSourceRoots()));
         parsedPaths.addAll(listKotlinSources(mavenProject, "test-compile", mavenProject.getBuild().getTestSourceDirectory()));
-        parsedPaths.addAll(listGroovySources(mavenProject, testSourceRoots));
+        parsedPaths.addAll(listGroovySources(mavenProject, mavenProject.getExecutionProject().getTestCompileSourceRoots()));
 
         if (scopes.contains(MAIN)) {
             sourceFiles = Stream.concat(sourceFiles, processMainSources(mavenProject, javaParserBuilder.clone(), kotlinParserBuilder.clone(), groovyParserBuilder.clone(), parsedPaths, ctx));
