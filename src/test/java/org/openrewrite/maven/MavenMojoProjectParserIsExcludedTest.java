@@ -168,7 +168,6 @@ class MavenMojoProjectParserIsExcludedTest {
                 .isTrue();
     }
 
-
     private static void writeFile(Path path, String content) throws Exception {
         Files.createDirectories(path.getParent());
         Files.write(path, content.getBytes(StandardCharsets.UTF_8));
