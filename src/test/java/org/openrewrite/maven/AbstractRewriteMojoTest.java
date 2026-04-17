@@ -45,10 +45,12 @@ class AbstractRewriteMojoTest {
         request.setUserProperties(userProps);
         MavenSession session = new MavenSession(null, null, request, new DefaultMavenExecutionResult());
 
-        String yaml = "type: specs.openrewrite.org/v1beta/recipe\n" +
-                "name: test.UserPropRecipe\n" +
-                "displayName: \"${myValue}\"\n" +
-                "recipeList: []\n";
+        String yaml = """
+                type: specs.openrewrite.org/v1beta/recipe
+                name: test.UserPropRecipe
+                displayName: "${myValue}"
+                recipeList: []
+                """;
         Files.writeString(temp.resolve("rewrite.yml"), yaml);
 
         AbstractRewriteMojo mojo = new AbstractRewriteMojo() {
