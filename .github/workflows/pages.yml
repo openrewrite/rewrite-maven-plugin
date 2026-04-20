@@ -40,7 +40,7 @@ jobs:
       - name: site
         run: ./mvnw --show-version --no-transfer-progress --update-snapshots clean site --file=pom.xml --fail-at-end --batch-mode -Dstyle.color=always -Ddependency-check.skip=true
       - uses: actions/configure-pages@v6
-      - uses: actions/upload-pages-artifact@v4
+      - uses: actions/upload-pages-artifact@v5
         with:
           path: target/site
       - uses: actions/deploy-pages@v5
