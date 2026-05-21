@@ -10,7 +10,7 @@
     <name>KotlinIT#basic_kotlin_project</name>
 
     <properties>
-        <kotlin.version>1.9.10</kotlin.version>
+        <kotlin.version>2.3.21</kotlin.version>
         <jdk.version>17</jdk.version>
         <java.version>${jdk.version}</java.version>
         <maven.compiler.source>${jdk.version}</maven.compiler.source>
