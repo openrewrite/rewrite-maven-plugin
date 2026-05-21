@@ -17,6 +17,7 @@ package org.openrewrite.maven;
 
 import com.soebes.itf.jupiter.extension.*;
 import com.soebes.itf.jupiter.maven.MavenExecutionResult;
+import org.junit.jupiter.api.condition.DisabledForJreRange;
 import org.junit.jupiter.api.condition.DisabledOnOs;
 import org.junit.jupiter.api.condition.EnabledForJreRange;
 import org.junit.jupiter.api.condition.JRE;
@@ -34,6 +35,8 @@ import static org.assertj.core.api.Assertions.as;
 import static org.assertj.core.api.InstanceOfAssertFactories.STRING;
 import static org.openrewrite.PathUtils.separatorsToSystem;
 
+// TODO Re-enable on Java 26 once the upstream rewrite-java-next parser no longer hangs in child Maven invocations.
+@DisabledForJreRange(min = JRE.JAVA_26)
 @MavenGoal("${project.groupId}:${project.artifactId}:${project.version}:run")
 @GitJupiterExtension
 @MavenJupiterExtension
