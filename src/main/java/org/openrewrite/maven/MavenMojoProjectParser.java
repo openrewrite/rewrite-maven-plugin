@@ -363,36 +363,30 @@ public class MavenMojoProjectParser {
         String sourceCompatibility = null;
         String targetCompatibility = null;
 
-        Plugin compilerPlugin = mavenProject.getPlugin(MAVEN_COMPILER_PLUGIN);
+        Plugin compilerPlugin = getCompilerPlugin(mavenProject);
         if (compilerPlugin != null && compilerPlugin.getConfiguration() instanceof Xpp3Dom) {
             Xpp3Dom dom = (Xpp3Dom) compilerPlugin.getConfiguration();
-            Xpp3Dom release = dom.getChild("release");
-            if (release != null && StringUtils.isNotEmpty(release.getValue()) && !release.getValue().contains("${")) {
-                sourceCompatibility = release.getValue();
-                targetCompatibility = release.getValue();
+            String release = compatibilityValue(dom.getChild("release"));
+            if (release != null) {
+                sourceCompatibility = release;
+                targetCompatibility = release;
             } else {
-                Xpp3Dom source = dom.getChild("source");
-                if (source != null && StringUtils.isNotEmpty(source.getValue()) && !source.getValue().contains("${")) {
-                    sourceCompatibility = source.getValue();
-                }
-                Xpp3Dom target = dom.getChild("target");
-                if (target != null && StringUtils.isNotEmpty(target.getValue()) && !target.getValue().contains("${")) {
-                    targetCompatibility = target.getValue();
-                }
+                sourceCompatibility = compatibilityValue(dom.getChild("source"));
+                targetCompatibility = compatibilityValue(dom.getChild("target"));
             }
         }
 
         if (sourceCompatibility == null || targetCompatibility == null) {
-            String propertiesReleaseCompatibility = (String) mavenProject.getProperties().get("maven.compiler.release");
+            String propertiesReleaseCompatibility = compatibilityProperty(mavenProject, "maven.compiler.release");
             if (propertiesReleaseCompatibility != null) {
                 sourceCompatibility = propertiesReleaseCompatibility;
                 targetCompatibility = propertiesReleaseCompatibility;
             } else {
-                String propertiesSourceCompatibility = (String) mavenProject.getProperties().get("maven.compiler.source");
+                String propertiesSourceCompatibility = compatibilityProperty(mavenProject, "maven.compiler.source");
                 if (sourceCompatibility == null && propertiesSourceCompatibility != null) {
                     sourceCompatibility = propertiesSourceCompatibility;
                 }
-                String propertiesTargetCompatibility = (String) mavenProject.getProperties().get("maven.compiler.target");
+                String propertiesTargetCompatibility = compatibilityProperty(mavenProject, "maven.compiler.target");
                 if (targetCompatibility == null && propertiesTargetCompatibility != null) {
                     targetCompatibility = propertiesTargetCompatibility;
                 }
@@ -406,36 +400,30 @@ public class MavenMojoProjectParser {
         String sourceCompatibility = null;
         String targetCompatibility = null;
 
-        Plugin compilerPlugin = mavenProject.getPlugin(MAVEN_COMPILER_PLUGIN);
+        Plugin compilerPlugin = getCompilerPlugin(mavenProject);
         if (compilerPlugin != null && compilerPlugin.getConfiguration() instanceof Xpp3Dom) {
             Xpp3Dom dom = (Xpp3Dom) compilerPlugin.getConfiguration();
-            Xpp3Dom release = dom.getChild("testRelease");
-            if (release != null && StringUtils.isNotEmpty(release.getValue()) && !release.getValue().contains("${")) {
-                sourceCompatibility = release.getValue();
-                targetCompatibility = release.getValue();
+            String release = compatibilityValue(dom.getChild("testRelease"));
+            if (release != null) {
+                sourceCompatibility = release;
+                targetCompatibility = release;
             } else {
-                Xpp3Dom source = dom.getChild("testSource");
-                if (source != null && StringUtils.isNotEmpty(source.getValue()) && !source.getValue().contains("${")) {
-                    sourceCompatibility = source.getValue();
-                }
-                Xpp3Dom target = dom.getChild("testTarget");
-                if (target != null && StringUtils.isNotEmpty(target.getValue()) && !target.getValue().contains("${")) {
-                    targetCompatibility = target.getValue();
-                }
+                sourceCompatibility = compatibilityValue(dom.getChild("testSource"));
+                targetCompatibility = compatibilityValue(dom.getChild("testTarget"));
             }
         }
 
         if (sourceCompatibility == null || targetCompatibility == null) {
-            String propertiesReleaseCompatibility = (String) mavenProject.getProperties().get("maven.compiler.testRelease");
+            String propertiesReleaseCompatibility = compatibilityProperty(mavenProject, "maven.compiler.testRelease");
             if (propertiesReleaseCompatibility != null) {
                 sourceCompatibility = propertiesReleaseCompatibility;
                 targetCompatibility = propertiesReleaseCompatibility;
             } else {
-                String propertiesSourceCompatibility = (String) mavenProject.getProperties().get("maven.compiler.testSource");
+                String propertiesSourceCompatibility = compatibilityProperty(mavenProject, "maven.compiler.testSource");
                 if (sourceCompatibility == null && propertiesSourceCompatibility != null) {
                     sourceCompatibility = propertiesSourceCompatibility;
                 }
-                String propertiesTargetCompatibility = (String) mavenProject.getProperties().get("maven.compiler.testTarget");
+                String propertiesTargetCompatibility = compatibilityProperty(mavenProject, "maven.compiler.testTarget");
                 if (targetCompatibility == null && propertiesTargetCompatibility != null) {
                     targetCompatibility = propertiesTargetCompatibility;
                 }
@@ -453,6 +441,31 @@ public class MavenMojoProjectParser {
         }
 
         return getJavaVersionMarker(sourceCompatibility, targetCompatibility);
+    }
+
+    private static @Nullable Plugin getCompilerPlugin(MavenProject mavenProject) {
+        return Optional.ofNullable(mavenProject.getPlugin(MAVEN_COMPILER_PLUGIN))
+                .orElseGet(() -> {
+                    PluginManagement pluginManagement = mavenProject.getPluginManagement();
+                    return pluginManagement != null ? pluginManagement.getPluginsAsMap().get(MAVEN_COMPILER_PLUGIN) : null;
+                });
+    }
+
+    private static @Nullable String compatibilityValue(@Nullable Xpp3Dom node) {
+        return node == null ? null : validCompatibility(node.getValue());
+    }
+
+    private static @Nullable String compatibilityProperty(MavenProject mavenProject, String key) {
+        return validCompatibility((String) mavenProject.getProperties().get(key));
+    }
+
+    /**
+     * A usable Java compatibility level: non-empty and not an unresolved {@code ${...}} property
+     * placeholder. Returning {@code null} for unusable values keeps them from reaching the
+     * {@link JavaVersion} marker, where they would parse to a {@code -1} major version.
+     */
+    private static @Nullable String validCompatibility(@Nullable String value) {
+        return value != null && StringUtils.isNotEmpty(value) && !value.contains("${") ? value : null;
     }
 
     private static JavaVersion getJavaVersionMarker(@Nullable String sourceCompatibility, @Nullable String targetCompatibility) {

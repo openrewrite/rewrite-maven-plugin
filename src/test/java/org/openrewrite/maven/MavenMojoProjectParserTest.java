@@ -17,6 +17,7 @@ package org.openrewrite.maven;
 
 import org.apache.maven.model.Build;
 import org.apache.maven.model.Plugin;
+import org.apache.maven.model.PluginManagement;
 import org.apache.maven.project.MavenProject;
 import org.codehaus.plexus.util.xml.Xpp3Dom;
 import org.junit.jupiter.api.DisplayName;
@@ -39,6 +40,55 @@ class MavenMojoProjectParserTest {
         JavaVersion marker = MavenMojoProjectParser.getSrcTestJavaVersion(new MavenProject());
         assertThat(marker.getSourceCompatibility()).isEqualTo(System.getProperty("java.specification.version"));
         assertThat(marker.getTargetCompatibility()).isEqualTo(System.getProperty("java.specification.version"));
+    }
+
+    @DisplayName("Unresolved maven.compiler property placeholder falls back to java.specification.version")
+    @Test
+    void unresolvedCompilerPropertyPlaceholderFallsBackToRuntime() {
+        MavenProject mavenProject = new MavenProject();
+        mavenProject.getProperties().setProperty("maven.compiler.source", "${java.version}");
+        mavenProject.getProperties().setProperty("maven.compiler.target", "${java.version}");
+
+        JavaVersion marker = MavenMojoProjectParser.getSrcTestJavaVersion(mavenProject);
+        assertThat(marker.getMajorVersion()).isNotEqualTo(-1);
+        assertThat(marker.getSourceCompatibility()).isEqualTo(System.getProperty("java.specification.version"));
+        assertThat(marker.getTargetCompatibility()).isEqualTo(System.getProperty("java.specification.version"));
+    }
+
+    @DisplayName("Empty maven.compiler property falls back to java.specification.version")
+    @Test
+    void emptyCompilerPropertyFallsBackToRuntime() {
+        MavenProject mavenProject = new MavenProject();
+        mavenProject.getProperties().setProperty("maven.compiler.release", "");
+
+        JavaVersion marker = MavenMojoProjectParser.getSrcTestJavaVersion(mavenProject);
+        assertThat(marker.getMajorVersion()).isNotEqualTo(-1);
+        assertThat(marker.getSourceCompatibility()).isEqualTo(System.getProperty("java.specification.version"));
+    }
+
+    @DisplayName("Java version is read from pluginManagement compiler plugin configuration")
+    @Test
+    void javaVersionReadFromPluginManagement() {
+        MavenProject mavenProject = new MavenProject();
+
+        Plugin compilerPlugin = new Plugin();
+        compilerPlugin.setGroupId("org.apache.maven.plugins");
+        compilerPlugin.setArtifactId("maven-compiler-plugin");
+        Xpp3Dom configuration = new Xpp3Dom("configuration");
+        Xpp3Dom release = new Xpp3Dom("release");
+        release.setValue("17");
+        configuration.addChild(release);
+        compilerPlugin.setConfiguration(configuration);
+
+        PluginManagement pluginManagement = new PluginManagement();
+        pluginManagement.addPlugin(compilerPlugin);
+        Build build = new Build();
+        build.setPluginManagement(pluginManagement);
+        mavenProject.setBuild(build);
+
+        JavaVersion marker = MavenMojoProjectParser.getSrcTestJavaVersion(mavenProject);
+        assertThat(marker.getSourceCompatibility()).isEqualTo("17");
+        assertThat(marker.getTargetCompatibility()).isEqualTo("17");
     }
 
     @DisplayName("getCharset should resolve encoding from property placeholder")
