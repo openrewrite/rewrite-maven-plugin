@@ -58,7 +58,6 @@ import org.openrewrite.jgit.treewalk.filter.PathFilter;
 import org.openrewrite.kotlin.KotlinParser;
 import org.openrewrite.marker.*;
 import org.openrewrite.marker.ci.BuildEnvironment;
-import org.openrewrite.maven.cache.InMemoryMavenPomCache;
 import org.openrewrite.maven.cache.MavenPomCache;
 import org.openrewrite.maven.internal.MavenXmlMapper;
 import org.openrewrite.maven.internal.RawPom;
@@ -806,9 +805,6 @@ public class MavenMojoProjectParser {
     private static MavenPomCache getPomCache(@Nullable String pomCacheDirectory, Log logger) {
         if (POM_CACHE == null) {
             POM_CACHE = new MavenPomCacheBuilder(logger).build(pomCacheDirectory);
-        }
-        if (POM_CACHE == null) {
-            POM_CACHE = new InMemoryMavenPomCache();
         }
         return POM_CACHE;
     }
