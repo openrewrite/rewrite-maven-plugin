@@ -92,6 +92,8 @@ class BasicIT {
                 .isSuccessful()
                 .out()
                 .warn()
+                // Ignore warning logged on Mac OS X; https://github.com/openrewrite/rewrite-maven-plugin/issues/506
+                .filteredOn(warn -> !"Unable to initialize RocksdbMavenPomCache, falling back to InMemoryMavenPomCache".equals(warn))
                 .isEmpty();
         assertThat(result).out().info().contains("Running recipe(s)...");
     }

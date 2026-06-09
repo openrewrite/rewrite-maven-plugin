@@ -22,6 +22,7 @@ import org.openrewrite.maven.cache.InMemoryMavenPomCache;
 import org.openrewrite.maven.cache.MavenPomCache;
 import org.openrewrite.maven.cache.RocksdbMavenPomCache;
 
+import java.nio.file.Path;
 import java.nio.file.Paths;
 
 public class MavenPomCacheBuilder {
@@ -31,20 +32,16 @@ public class MavenPomCacheBuilder {
         this.logger = logger;
     }
 
-    public @Nullable MavenPomCache build(@Nullable String pomCacheDirectory) {
+    public MavenPomCache build(@Nullable String pomCacheDirectory) {
         if (isJvm64Bit()) {
             try {
-                if (pomCacheDirectory == null) {
-                    //Default directory in the RocksdbMavenPomCache is ".rewrite-cache"
-                    return new CompositeMavenPomCache(
-                      new InMemoryMavenPomCache(),
-                      new RocksdbMavenPomCache(Paths.get(System.getProperty("user.home")))
-                    );
-                }
-                return new CompositeMavenPomCache(
-                  new InMemoryMavenPomCache(),
-                  new RocksdbMavenPomCache(Paths.get(pomCacheDirectory))
-                );
+                //Default directory in the RocksdbMavenPomCache is ".rewrite-cache"
+                Path workspace = Paths.get(pomCacheDirectory == null ? System.getProperty("user.home") : pomCacheDirectory);
+                // Construct the Rocksdb cache before the InMemory one: if Rocksdb fails, the next line never runs,
+                // so the only InMemoryMavenPomCache created is the fallback below. That keeps its metrics registered
+                // exactly once on the global registry, avoiding duplicate-gauge warnings.
+                RocksdbMavenPomCache rocksdb = new RocksdbMavenPomCache(workspace);
+                return new CompositeMavenPomCache(new InMemoryMavenPomCache(), rocksdb);
             } catch (Throwable e) {
                 logger.warn("Unable to initialize RocksdbMavenPomCache, falling back to InMemoryMavenPomCache");
                 logger.debug(e);
@@ -53,7 +50,7 @@ public class MavenPomCacheBuilder {
             logger.warn("RocksdbMavenPomCache is not supported on 32-bit JVM. falling back to InMemoryMavenPomCache");
         }
 
-        return null;
+        return new InMemoryMavenPomCache();
     }
 
     private static boolean isJvm64Bit() {
