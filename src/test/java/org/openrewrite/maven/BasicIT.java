@@ -75,7 +75,7 @@ class BasicIT {
     @MavenOption(value = MavenCLIOptions.SETTINGS, parameter = "settings-user.xml")
     @MavenProfile("example_profile_id")
     @MavenTest
-    @SystemProperty(value = "REPOSITORY_URL", content = "https://maven-eu.nuxeo.org/nexus/content/repositories/public/")
+    @SystemProperty(value = "REPOSITORY_URL", content = "https://packages.nuxeo.com/repository/maven-public/")
     void resolves_settings(MavenExecutionResult result) {
         assertThat(result)
                 .isSuccessful()
