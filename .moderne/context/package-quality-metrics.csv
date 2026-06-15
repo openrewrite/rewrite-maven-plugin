@@ -1,0 +1,3 @@
+Package name,Afferent coupling (Ca),Efferent coupling (Ce),Instability,Abstractness,Distance from main sequence,In cycle,Cycle members
+org.openrewrite.maven.jupiter.extension,0,0,0.0,0.0,1.0,false,
+org.openrewrite.maven,0,0,0.0,0.075,0.925,false,

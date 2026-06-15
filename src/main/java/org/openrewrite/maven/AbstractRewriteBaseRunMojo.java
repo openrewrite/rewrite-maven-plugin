@@ -244,13 +244,20 @@ public abstract class AbstractRewriteBaseRunMojo extends AbstractRewriteMojo {
 
     protected List<Result> runRecipe(Recipe recipe, LargeSourceSet sourceSet, ExecutionContext ctx) {
         getLog().info("Running recipe(s)...");
-        RecipeRun recipeRun = recipe.run(sourceSet, ctx);
 
+        CsvDataTableStore csvDataTableStore = null;
         if (exportDatatables) {
             String timestamp = LocalDateTime.now().format(DateTimeFormatter.ofPattern("yyyy-MM-dd_HH-mm-ss-SSS"));
             Path datatableDirectoryPath = Paths.get("target", "rewrite", "datatables", timestamp);
             getLog().info(String.format("Printing available datatables to: %s", datatableDirectoryPath));
-            recipeRun.exportDatatablesToCsv(datatableDirectoryPath, ctx);
+            csvDataTableStore = new CsvDataTableStore(datatableDirectoryPath);
+            DataTableExecutionContextView.view(ctx).setDataTableStore(csvDataTableStore);
+        }
+
+        RecipeRun recipeRun = recipe.run(sourceSet, ctx);
+
+        if (csvDataTableStore != null) {
+            csvDataTableStore.close();
         }
 
         return recipeRun.getChangeset().getAllResults().stream().filter(source -> {
@@ -346,7 +353,10 @@ public abstract class AbstractRewriteBaseRunMojo extends AbstractRewriteMojo {
                 } else if (result.getBefore() != null && result.getAfter() != null && !result.getBefore().getSourcePath().equals(result.getAfter().getSourcePath())) {
                     moved.add(result);
                 } else {
-                    if (!result.diff(Paths.get(""), new ResultsContainer.FencedMarkerPrinter(), true).isEmpty()) {
+                    FencedMarkerPrinter markerPrinter = new FencedMarkerPrinter();
+                    String beforePrint = result.getBefore().printAll(new PrintOutputCapture<>(0, markerPrinter));
+                    String afterPrint = result.getAfter().printAll(new PrintOutputCapture<>(0, markerPrinter));
+                    if (!beforePrint.equals(afterPrint)) {
                         refactoredInPlace.add(result);
                     }
                 }

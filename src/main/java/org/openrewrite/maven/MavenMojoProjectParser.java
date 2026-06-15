@@ -36,29 +36,28 @@ import org.apache.maven.settings.crypto.SettingsDecryptionResult;
 import org.codehaus.plexus.util.xml.Xpp3Dom;
 import org.jspecify.annotations.Nullable;
 import org.openrewrite.ExecutionContext;
+import org.openrewrite.HttpSenderExecutionContextView;
 import org.openrewrite.ParseExceptionResult;
 import org.openrewrite.PathUtils;
 import org.openrewrite.SourceFile;
+import org.openrewrite.groovy.GroovyParser;
+import org.openrewrite.internal.GitIgnore;
 import org.openrewrite.internal.StringUtils;
+import org.openrewrite.ipc.http.HttpUrlConnectionSender;
 import org.openrewrite.java.JavaParser;
 import org.openrewrite.java.internal.JavaTypeCache;
 import org.openrewrite.java.marker.JavaProject;
 import org.openrewrite.java.marker.JavaSourceSet;
 import org.openrewrite.java.marker.JavaVersion;
 import org.openrewrite.jgit.api.Git;
-import org.openrewrite.jgit.lib.FileMode;
 import org.openrewrite.jgit.lib.ObjectId;
 import org.openrewrite.jgit.revwalk.RevCommit;
 import org.openrewrite.jgit.revwalk.RevWalk;
-import org.openrewrite.jgit.treewalk.FileTreeIterator;
 import org.openrewrite.jgit.treewalk.TreeWalk;
-import org.openrewrite.jgit.treewalk.WorkingTreeIterator;
 import org.openrewrite.jgit.treewalk.filter.PathFilter;
-import org.openrewrite.jgit.treewalk.filter.PathFilterGroup;
 import org.openrewrite.kotlin.KotlinParser;
 import org.openrewrite.marker.*;
 import org.openrewrite.marker.ci.BuildEnvironment;
-import org.openrewrite.maven.cache.InMemoryMavenPomCache;
 import org.openrewrite.maven.cache.MavenPomCache;
 import org.openrewrite.maven.internal.MavenXmlMapper;
 import org.openrewrite.maven.internal.RawPom;
@@ -76,21 +75,27 @@ import java.io.File;
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.UncheckedIOException;
+import java.net.Authenticator;
+import java.net.InetSocketAddress;
+import java.net.PasswordAuthentication;
 import java.nio.charset.Charset;
 import java.nio.charset.StandardCharsets;
 import java.nio.file.*;
 import java.nio.file.attribute.BasicFileAttributes;
+import java.time.Duration;
 import java.util.*;
 import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.function.Function;
 import java.util.function.Supplier;
 import java.util.function.UnaryOperator;
+import java.util.regex.Pattern;
 import java.util.stream.Stream;
 
 import static java.util.Collections.emptyList;
 import static java.util.Collections.emptyMap;
 import static java.util.Collections.singletonList;
 import static java.util.Collections.singletonMap;
+import static java.util.stream.Collectors.joining;
 import static java.util.stream.Collectors.toList;
 import static java.util.stream.Collectors.toMap;
 import static java.util.stream.Collectors.toSet;
@@ -163,6 +168,10 @@ public class MavenMojoProjectParser {
         this.parseAdditionalResources = parseAdditionalResources;
     }
 
+    protected JavaTypeCache createTypeCache() {
+        return new JavaTypeCache();
+    }
+
     public Stream<SourceFile> listSourceFiles(MavenProject mavenProject,
                                               ExecutionContext ctx) throws DependencyResolutionRequiredException, MojoExecutionException, MojoFailureException {
         if (runPerSubmodule) {
@@ -194,38 +203,45 @@ public class MavenMojoProjectParser {
     public Stream<SourceFile> listSourceFiles(MavenProject mavenProject, Xml.@Nullable Document maven, List<Marker> projectProvenance, List<MavenScope> scopes,
                 ExecutionContext ctx) throws DependencyResolutionRequiredException, MojoExecutionException {
         Stream<SourceFile> sourceFiles = Stream.empty();
-        Set<Path> alreadyParsed = new HashSet<>();
+        Set<Path> parsedPaths = new HashSet<>();
 
         if (maven != null) {
             sourceFiles = Stream.of(maven);
-            alreadyParsed.add(baseDir.resolve(maven.getSourcePath()));
+            parsedPaths.add(baseDir.resolve(maven.getSourcePath()));
         }
 
         JavaParser.Builder<? extends JavaParser, ?> javaParserBuilder = JavaParser.fromJavaVersion()
                 .logCompilationWarningsAndErrors(false);
 
         KotlinParser.Builder kotlinParserBuilder = KotlinParser.builder();
+        GroovyParser.Builder groovyParserBuilder = GroovyParser.builder();
+
+        // Pre-populate parsedPaths with all source paths from both scopes (including generated sources)
+        // to prevent resource parsers from claiming these as PlainText
+        parsedPaths.addAll(listJavaSources(mavenProject, mavenProject.getExecutionProject().getCompileSourceRoots()));
+        parsedPaths.addAll(listKotlinSources(mavenProject, "compile", mavenProject.getBuild().getSourceDirectory()));
+        parsedPaths.addAll(listGroovySources(mavenProject, mavenProject.getExecutionProject().getCompileSourceRoots()));
+        parsedPaths.addAll(listJavaSources(mavenProject, mavenProject.getExecutionProject().getTestCompileSourceRoots()));
+        parsedPaths.addAll(listKotlinSources(mavenProject, "test-compile", mavenProject.getBuild().getTestSourceDirectory()));
+        parsedPaths.addAll(listGroovySources(mavenProject, mavenProject.getExecutionProject().getTestCompileSourceRoots()));
 
         if (scopes.contains(MAIN)) {
-            sourceFiles = Stream.concat(sourceFiles, processMainSources(mavenProject, javaParserBuilder.clone(), kotlinParserBuilder.clone(), alreadyParsed, ctx));
+            sourceFiles = Stream.concat(sourceFiles, processMainSources(mavenProject, javaParserBuilder.clone(), kotlinParserBuilder.clone(), groovyParserBuilder.clone(), parsedPaths, ctx));
         }
         if (scopes.contains(TEST)) {
-            sourceFiles = Stream.concat(sourceFiles, processTestSources(mavenProject, javaParserBuilder.clone(), kotlinParserBuilder.clone(), alreadyParsed, ctx));
+            sourceFiles = Stream.concat(sourceFiles, processTestSources(mavenProject, javaParserBuilder.clone(), kotlinParserBuilder.clone(), groovyParserBuilder.clone(), parsedPaths, ctx));
         }
         Collection<PathMatcher> exclusionMatchers = exclusions.stream()
                 .map(pattern -> baseDir.getFileSystem().getPathMatcher("glob:" + pattern))
                 .collect(toList());
-        sourceFiles = sourceFiles.map(sourceFile -> {
-            if (isExcluded(exclusionMatchers, sourceFile.getSourcePath())) {
-                return null;
-            }
-            return sourceFile;
-        }).filter(Objects::nonNull);
+        Path buildDirectory = baseDir.relativize(Paths.get(mavenProject.getBuild().getDirectory()));
+        sourceFiles = sourceFiles
+                .filter(sourceFile -> !sourceFile.getSourcePath().startsWith(buildDirectory) && !isExcluded(repository, exclusionMatchers, sourceFile.getSourcePath()));
 
-        Stream<SourceFile> mavenWrapperFiles = parseMavenWrapperFiles(mavenProject, exclusionMatchers, alreadyParsed, ctx);
+        Stream<SourceFile> mavenWrapperFiles = parseMavenWrapperFiles(mavenProject, exclusionMatchers, parsedPaths, ctx);
         sourceFiles = Stream.concat(sourceFiles, mavenWrapperFiles);
 
-        Stream<SourceFile> nonProjectResources = parseNonProjectResources(mavenProject, alreadyParsed, ctx);
+        Stream<SourceFile> nonProjectResources = parseNonProjectResources(mavenProject, parsedPaths, ctx);
         sourceFiles = Stream.concat(sourceFiles, nonProjectResources);
 
         return sourceFiles.map(addProvenance(projectProvenance))
@@ -233,42 +249,25 @@ public class MavenMojoProjectParser {
                 .map(this::logParseErrors);
     }
 
-    private boolean isExcluded(Collection<PathMatcher> exclusionMatchers, Path path) {
+    static boolean isExcluded(org.openrewrite.jgit.lib.@Nullable Repository repository, Collection<PathMatcher> exclusionMatchers, Path path) {
         for (PathMatcher excluded : exclusionMatchers) {
             if (excluded.matches(path)) {
                 return true;
             }
         }
-        // PathMather will not evaluate the path "pom.xml" to be matched by the pattern "**/pom.xml"
+        // PathMatcher will not evaluate the path "pom.xml" to be matched by the pattern "**/pom.xml"
         // This is counter-intuitive for most users and would otherwise require separate exclusions for files at the root and files in subdirectories
         if (!path.isAbsolute() && !path.startsWith(File.separator)) {
-            return isExcluded(exclusionMatchers, Paths.get("/" + path));
+            Path prefixed = Paths.get("/" + path);
+            for (PathMatcher excluded : exclusionMatchers) {
+                if (excluded.matches(prefixed)) {
+                    return true;
+                }
+            }
         }
 
         if (repository != null) {
-            String repoRelativePath = separatorsToUnix(path.toString());
-            if (repoRelativePath.isEmpty() && "/".equals(repoRelativePath)) {
-                return false;
-            }
-
-            try (TreeWalk walk = new TreeWalk(repository)) {
-                walk.addTree(new FileTreeIterator(repository));
-                walk.setFilter(PathFilterGroup.createFromStrings(repoRelativePath));
-                while (walk.next()) {
-                    WorkingTreeIterator workingTreeIterator = walk.getTree(0, WorkingTreeIterator.class);
-                    if (walk.getPathString().equals(repoRelativePath)) {
-                        return workingTreeIterator.isEntryIgnored();
-                    }
-                    if (workingTreeIterator.getEntryFileMode().equals(FileMode.TREE)) {
-                        if (workingTreeIterator.isEntryIgnored()) {
-                            return true;
-                        }
-                        walk.enterSubtree();
-                    }
-                }
-            } catch (IOException e) {
-                throw new UncheckedIOException(e);
-            }
+            return GitIgnore.isIgnoredAndUntracked(repository, separatorsToUnix(path.toString()));
         }
         return false;
     }
@@ -360,36 +359,30 @@ public class MavenMojoProjectParser {
         String sourceCompatibility = null;
         String targetCompatibility = null;
 
-        Plugin compilerPlugin = mavenProject.getPlugin(MAVEN_COMPILER_PLUGIN);
+        Plugin compilerPlugin = getCompilerPlugin(mavenProject);
         if (compilerPlugin != null && compilerPlugin.getConfiguration() instanceof Xpp3Dom) {
             Xpp3Dom dom = (Xpp3Dom) compilerPlugin.getConfiguration();
-            Xpp3Dom release = dom.getChild("release");
-            if (release != null && StringUtils.isNotEmpty(release.getValue()) && !release.getValue().contains("${")) {
-                sourceCompatibility = release.getValue();
-                targetCompatibility = release.getValue();
+            String release = compatibilityValue(dom.getChild("release"));
+            if (release != null) {
+                sourceCompatibility = release;
+                targetCompatibility = release;
             } else {
-                Xpp3Dom source = dom.getChild("source");
-                if (source != null && StringUtils.isNotEmpty(source.getValue()) && !source.getValue().contains("${")) {
-                    sourceCompatibility = source.getValue();
-                }
-                Xpp3Dom target = dom.getChild("target");
-                if (target != null && StringUtils.isNotEmpty(target.getValue()) && !target.getValue().contains("${")) {
-                    targetCompatibility = target.getValue();
-                }
+                sourceCompatibility = compatibilityValue(dom.getChild("source"));
+                targetCompatibility = compatibilityValue(dom.getChild("target"));
             }
         }
 
         if (sourceCompatibility == null || targetCompatibility == null) {
-            String propertiesReleaseCompatibility = (String) mavenProject.getProperties().get("maven.compiler.release");
+            String propertiesReleaseCompatibility = compatibilityProperty(mavenProject, "maven.compiler.release");
             if (propertiesReleaseCompatibility != null) {
                 sourceCompatibility = propertiesReleaseCompatibility;
                 targetCompatibility = propertiesReleaseCompatibility;
             } else {
-                String propertiesSourceCompatibility = (String) mavenProject.getProperties().get("maven.compiler.source");
+                String propertiesSourceCompatibility = compatibilityProperty(mavenProject, "maven.compiler.source");
                 if (sourceCompatibility == null && propertiesSourceCompatibility != null) {
                     sourceCompatibility = propertiesSourceCompatibility;
                 }
-                String propertiesTargetCompatibility = (String) mavenProject.getProperties().get("maven.compiler.target");
+                String propertiesTargetCompatibility = compatibilityProperty(mavenProject, "maven.compiler.target");
                 if (targetCompatibility == null && propertiesTargetCompatibility != null) {
                     targetCompatibility = propertiesTargetCompatibility;
                 }
@@ -403,36 +396,30 @@ public class MavenMojoProjectParser {
         String sourceCompatibility = null;
         String targetCompatibility = null;
 
-        Plugin compilerPlugin = mavenProject.getPlugin(MAVEN_COMPILER_PLUGIN);
+        Plugin compilerPlugin = getCompilerPlugin(mavenProject);
         if (compilerPlugin != null && compilerPlugin.getConfiguration() instanceof Xpp3Dom) {
             Xpp3Dom dom = (Xpp3Dom) compilerPlugin.getConfiguration();
-            Xpp3Dom release = dom.getChild("testRelease");
-            if (release != null && StringUtils.isNotEmpty(release.getValue()) && !release.getValue().contains("${")) {
-                sourceCompatibility = release.getValue();
-                targetCompatibility = release.getValue();
+            String release = compatibilityValue(dom.getChild("testRelease"));
+            if (release != null) {
+                sourceCompatibility = release;
+                targetCompatibility = release;
             } else {
-                Xpp3Dom source = dom.getChild("testSource");
-                if (source != null && StringUtils.isNotEmpty(source.getValue()) && !source.getValue().contains("${")) {
-                    sourceCompatibility = source.getValue();
-                }
-                Xpp3Dom target = dom.getChild("testTarget");
-                if (target != null && StringUtils.isNotEmpty(target.getValue()) && !target.getValue().contains("${")) {
-                    targetCompatibility = target.getValue();
-                }
+                sourceCompatibility = compatibilityValue(dom.getChild("testSource"));
+                targetCompatibility = compatibilityValue(dom.getChild("testTarget"));
             }
         }
 
         if (sourceCompatibility == null || targetCompatibility == null) {
-            String propertiesReleaseCompatibility = (String) mavenProject.getProperties().get("maven.compiler.testRelease");
+            String propertiesReleaseCompatibility = compatibilityProperty(mavenProject, "maven.compiler.testRelease");
             if (propertiesReleaseCompatibility != null) {
                 sourceCompatibility = propertiesReleaseCompatibility;
                 targetCompatibility = propertiesReleaseCompatibility;
             } else {
-                String propertiesSourceCompatibility = (String) mavenProject.getProperties().get("maven.compiler.testSource");
+                String propertiesSourceCompatibility = compatibilityProperty(mavenProject, "maven.compiler.testSource");
                 if (sourceCompatibility == null && propertiesSourceCompatibility != null) {
                     sourceCompatibility = propertiesSourceCompatibility;
                 }
-                String propertiesTargetCompatibility = (String) mavenProject.getProperties().get("maven.compiler.testTarget");
+                String propertiesTargetCompatibility = compatibilityProperty(mavenProject, "maven.compiler.testTarget");
                 if (targetCompatibility == null && propertiesTargetCompatibility != null) {
                     targetCompatibility = propertiesTargetCompatibility;
                 }
@@ -452,6 +439,31 @@ public class MavenMojoProjectParser {
         return getJavaVersionMarker(sourceCompatibility, targetCompatibility);
     }
 
+    private static @Nullable Plugin getCompilerPlugin(MavenProject mavenProject) {
+        return Optional.ofNullable(mavenProject.getPlugin(MAVEN_COMPILER_PLUGIN))
+                .orElseGet(() -> {
+                    PluginManagement pluginManagement = mavenProject.getPluginManagement();
+                    return pluginManagement != null ? pluginManagement.getPluginsAsMap().get(MAVEN_COMPILER_PLUGIN) : null;
+                });
+    }
+
+    private static @Nullable String compatibilityValue(@Nullable Xpp3Dom node) {
+        return node == null ? null : validCompatibility(node.getValue());
+    }
+
+    private static @Nullable String compatibilityProperty(MavenProject mavenProject, String key) {
+        return validCompatibility((String) mavenProject.getProperties().get(key));
+    }
+
+    /**
+     * A usable Java compatibility level: non-empty and not an unresolved {@code ${...}} property
+     * placeholder. Returning {@code null} for unusable values keeps them from reaching the
+     * {@link JavaVersion} marker, where they would parse to a {@code -1} major version.
+     */
+    private static @Nullable String validCompatibility(@Nullable String value) {
+        return value != null && StringUtils.isNotEmpty(value) && !value.contains("${") ? value : null;
+    }
+
     private static JavaVersion getJavaVersionMarker(@Nullable String sourceCompatibility, @Nullable String targetCompatibility) {
         String javaRuntimeVersion = System.getProperty("java.specification.version");
         String javaVendor = System.getProperty("java.vm.vendor");
@@ -468,27 +480,34 @@ public class MavenMojoProjectParser {
             MavenProject mavenProject,
             JavaParser.Builder<? extends JavaParser, ?> javaParserBuilder,
             KotlinParser.Builder kotlinParserBuilder,
-            Set<Path> alreadyParsed,
+            GroovyParser.Builder groovyParserBuilder,
+            Set<Path> parsedPaths,
             ExecutionContext ctx) throws DependencyResolutionRequiredException, MojoExecutionException {
 
         Stream<SourceFile> sourceFiles = Stream.of();
 
+        // Skip generated source roots under the build directory; their compiled classes are
+        // already on the classpath via getCompileClasspathElements() and available for type attribution.
+        List<String> sourceRoots = filterGeneratedSourceRoots(mavenProject, mavenProject.getExecutionProject().getCompileSourceRoots());
+
         // scan Java files
-        Collection<Path> mainJavaSources = listJavaSources(mavenProject, mavenProject.getExecutionProject().getCompileSourceRoots());
-        alreadyParsed.addAll(mainJavaSources);
+        Collection<Path> mainJavaSources = listJavaSources(mavenProject, sourceRoots);
 
         // scan Kotlin files
         List<Path> mainKotlinSources = listKotlinSources(mavenProject, "compile", mavenProject.getBuild().getSourceDirectory());
-        alreadyParsed.addAll(mainKotlinSources);
+
+        // scan Groovy files
+        List<Path> mainGroovySources = listGroovySources(mavenProject, sourceRoots);
 
         logInfo(mavenProject, "Parsing source files");
         List<Path> dependencies = mavenProject.getCompileClasspathElements().stream()
                 .distinct()
                 .map(Paths::get)
                 .collect(toList());
-        JavaTypeCache typeCache = new JavaTypeCache();
+        JavaTypeCache typeCache = createTypeCache();
         javaParserBuilder.classpath(dependencies).typeCache(typeCache);
         kotlinParserBuilder.classpath(dependencies).typeCache(typeCache);
+        groovyParserBuilder.classpath(dependencies).typeCache(typeCache);
 
         if (!mainJavaSources.isEmpty()) {
             Stream<SourceFile> parsedJava = Stream.of((Supplier<JavaParser>) javaParserBuilder::build)
@@ -512,25 +531,33 @@ public class MavenMojoProjectParser {
             logDebug(mavenProject, "Scanned " + mainKotlinSources.size() + " kotlin source files in main scope.");
         }
 
-        OmniParser omniParser = omniParser(alreadyParsed, mavenProject);
+        if (!mainGroovySources.isEmpty()) {
+            Stream<SourceFile> parsedGroovy = Stream.of((Supplier<GroovyParser>) groovyParserBuilder::build)
+                    .map(Supplier::get)
+                    .flatMap(gp -> gp.parse(mainGroovySources, baseDir, ctx));
+            sourceFiles = Stream.concat(sourceFiles, parsedGroovy);
+            logDebug(mavenProject, "Scanned " + mainGroovySources.size() + " groovy source files in main scope.");
+        }
+
+        OmniParser omniParser = omniParser(parsedPaths, mavenProject);
         for (Resource resource : mavenProject.getResources()) {
             Path resourcePath = mavenProject.getBasedir().toPath().resolve(resource.getDirectory());
-            if (Files.exists(resourcePath) && !alreadyParsed.contains(resourcePath)) {
+            if (Files.exists(resourcePath) && !parsedPaths.contains(resourcePath)) {
                 List<Path> accepted = omniParser.acceptedPaths(baseDir, resourcePath);
-                alreadyParsed.add(resourcePath);
+                parsedPaths.add(resourcePath);
                 sourceFiles = Stream.concat(sourceFiles, omniParser.parse(accepted, baseDir, ctx));
-                alreadyParsed.addAll(accepted);
+                parsedPaths.addAll(accepted);
             }
         }
 
         // Also parse webapp resources (e.g., web.xml) for WAR projects
         if ("war".equals(mavenProject.getPackaging())) {
             Path webappPath = mavenProject.getBasedir().toPath().resolve("src/main/webapp");
-            if (Files.exists(webappPath) && !alreadyParsed.contains(webappPath)) {
+            if (Files.exists(webappPath) && !parsedPaths.contains(webappPath)) {
                 List<Path> accepted = omniParser.acceptedPaths(baseDir, webappPath);
-                alreadyParsed.add(webappPath);
+                parsedPaths.add(webappPath);
                 sourceFiles = Stream.concat(sourceFiles, omniParser.parse(accepted, baseDir, ctx));
-                alreadyParsed.addAll(accepted);
+                parsedPaths.addAll(accepted);
             }
         }
 
@@ -538,11 +565,7 @@ public class MavenMojoProjectParser {
         mainProjectProvenance.add(JavaSourceSet.build("main", dependencies));
         mainProjectProvenance.add(getSrcMainJavaVersion(mavenProject));
 
-        //Filter out any generated source files from the returned list, as we do not want to apply the recipe to the
-        //generated files.
-        Path buildDirectory = baseDir.relativize(Paths.get(mavenProject.getBuild().getDirectory()));
         return sourceFiles
-                .filter(s -> !s.getSourcePath().startsWith(buildDirectory))
                 .map(addProvenance(mainProjectProvenance));
     }
 
@@ -550,26 +573,33 @@ public class MavenMojoProjectParser {
             MavenProject mavenProject,
             JavaParser.Builder<? extends JavaParser, ?> javaParserBuilder,
             KotlinParser.Builder kotlinParserBuilder,
-            Set<Path> alreadyParsed,
+            GroovyParser.Builder groovyParserBuilder,
+            Set<Path> parsedPaths,
             ExecutionContext ctx) throws DependencyResolutionRequiredException, MojoExecutionException {
 
         Stream<SourceFile> sourceFiles = Stream.of();
 
+        // Skip generated source roots under the build directory; their compiled classes are
+        // already on the classpath via getTestClasspathElements() and available for type attribution.
+        List<String> testSourceRoots = filterGeneratedSourceRoots(mavenProject, mavenProject.getExecutionProject().getTestCompileSourceRoots());
+
         // scan Java files
-        Collection<Path> testJavaSources = listJavaSources(mavenProject, mavenProject.getExecutionProject().getTestCompileSourceRoots());
-        alreadyParsed.addAll(testJavaSources);
+        Collection<Path> testJavaSources = listJavaSources(mavenProject, testSourceRoots);
 
         // scan Kotlin files
         List<Path> testKotlinSources = listKotlinSources(mavenProject, "test-compile", mavenProject.getBuild().getTestSourceDirectory());
-        alreadyParsed.addAll(testKotlinSources);
+
+        // scan Groovy files
+        List<Path> testGroovySources = listGroovySources(mavenProject, testSourceRoots);
 
         List<Path> testDependencies = mavenProject.getTestClasspathElements().stream()
                 .distinct()
                 .map(Paths::get)
                 .collect(toList());
-        JavaTypeCache typeCache = new JavaTypeCache();
+        JavaTypeCache typeCache = createTypeCache();
         javaParserBuilder.classpath(testDependencies).typeCache(typeCache);
         kotlinParserBuilder.classpath(testDependencies).typeCache(typeCache);
+        groovyParserBuilder.classpath(testDependencies).typeCache(typeCache);
 
         if (!testJavaSources.isEmpty()) {
             Stream<SourceFile> parsedJava = Stream.of((Supplier<JavaParser>) javaParserBuilder::build)
@@ -593,14 +623,22 @@ public class MavenMojoProjectParser {
             logDebug(mavenProject, "Scanned " + testKotlinSources.size() + " kotlin source files in test scope.");
         }
 
-        OmniParser omniParser = omniParser(alreadyParsed, mavenProject);
+        if (!testGroovySources.isEmpty()) {
+            Stream<SourceFile> parsedGroovy = Stream.of((Supplier<GroovyParser>) groovyParserBuilder::build)
+                    .map(Supplier::get)
+                    .flatMap(gp -> gp.parse(testGroovySources, baseDir, ctx));
+            sourceFiles = Stream.concat(sourceFiles, parsedGroovy);
+            logDebug(mavenProject, "Scanned " + testGroovySources.size() + " groovy source files in test scope.");
+        }
+
+        OmniParser omniParser = omniParser(parsedPaths, mavenProject);
         for (Resource resource : mavenProject.getTestResources()) {
             Path resourcePath = mavenProject.getBasedir().toPath().resolve(resource.getDirectory());
-            if (Files.exists(resourcePath) && !alreadyParsed.contains(resourcePath)) {
+            if (Files.exists(resourcePath) && !parsedPaths.contains(resourcePath)) {
                 List<Path> accepted = omniParser.acceptedPaths(baseDir, resourcePath);
-                alreadyParsed.add(resourcePath);
+                parsedPaths.add(resourcePath);
                 sourceFiles = Stream.concat(sourceFiles, omniParser.parse(accepted, baseDir, ctx));
-                alreadyParsed.addAll(accepted);
+                parsedPaths.addAll(accepted);
             }
         }
 
@@ -608,11 +646,7 @@ public class MavenMojoProjectParser {
         testProjectProvenance.add(JavaSourceSet.build("test", testDependencies));
         testProjectProvenance.add(getSrcTestJavaVersion(mavenProject));
 
-        //Filter out any generated source files from the returned list, as we do not want to apply the recipe to the
-        //generated files.
-        Path buildDirectory = baseDir.relativize(Paths.get(mavenProject.getBuild().getDirectory()));
         return sourceFiles
-                .filter(s -> !s.getSourcePath().startsWith(buildDirectory))
                 .map(addProvenance(testProjectProvenance));
     }
 
@@ -630,6 +664,7 @@ public class MavenMojoProjectParser {
         MavenExecutionContextView mavenExecutionContext = MavenExecutionContextView.view(ctx);
         mavenExecutionContext.setMavenSettings(settings);
         mavenExecutionContext.setResolutionListener(new MavenLoggingResolutionEventListener(logger));
+        configureProxy(settings, ctx);
 
         // The default pom cache is enabled as a two-layer cache L1 == in-memory and L2 == RocksDb
         // If the flag is set to false, only the default, in-memory cache is used.
@@ -768,9 +803,6 @@ public class MavenMojoProjectParser {
         if (POM_CACHE == null) {
             POM_CACHE = new MavenPomCacheBuilder(logger).build(pomCacheDirectory);
         }
-        if (POM_CACHE == null) {
-            POM_CACHE = new InMemoryMavenPomCache();
-        }
         return POM_CACHE;
     }
 
@@ -828,7 +860,84 @@ public class MavenMojoProjectParser {
             );
         }).collect(toList()));
 
-        return new MavenSettings(mer.getLocalRepositoryPath().toString(), profiles, activeProfiles, mirrors, servers);
+        MavenSettings.Proxies proxies = new MavenSettings.Proxies();
+        proxies.setProxies(mer.getProxies().stream().map(p -> {
+            SettingsDecryptionRequest decryptionRequest = new DefaultSettingsDecryptionRequest();
+            decryptionRequest.setProxies(singletonList(p));
+            SettingsDecryptionResult decryptionResult = settingsDecrypter.decrypt(decryptionRequest);
+            org.apache.maven.settings.Proxy decryptedProxy = decryptionResult.getProxies().isEmpty() ? p : decryptionResult.getProxies().get(0);
+            return new MavenSettings.Proxy(
+                    p.getId(),
+                    p.isActive(),
+                    p.getProtocol(),
+                    p.getHost(),
+                    p.getPort(),
+                    p.getUsername(),
+                    decryptedProxy.getPassword(),
+                    p.getNonProxyHosts()
+            );
+        }).collect(toList()));
+
+        return new MavenSettings(mer.getLocalRepositoryPath().toString(), profiles, activeProfiles, mirrors, servers, proxies);
+    }
+
+    private void configureProxy(MavenSettings settings, ExecutionContext ctx) {
+        if (settings.getProxies() == null || settings.getProxies().getProxies().isEmpty()) {
+            return;
+        }
+        // Use the first active proxy
+        MavenSettings.Proxy activeProxy = settings.getProxies().getProxies().stream()
+                .filter(p -> p.getActive() == null || p.getActive())
+                .findFirst()
+                .orElse(null);
+        if (activeProxy == null) {
+            return;
+        }
+
+        java.net.Proxy proxy = new java.net.Proxy(
+                java.net.Proxy.Type.HTTP,
+                new InetSocketAddress(activeProxy.getHost(), activeProxy.getPort())
+        );
+
+        if (activeProxy.getUsername() != null && !activeProxy.getUsername().isEmpty()) {
+            Authenticator.setDefault(new Authenticator() {
+                @Override
+                protected PasswordAuthentication getPasswordAuthentication() {
+                    if (getRequestorType() == RequestorType.PROXY) {
+                        return new PasswordAuthentication(
+                                activeProxy.getUsername(),
+                                activeProxy.getPassword() != null ? activeProxy.getPassword().toCharArray() : new char[0]
+                        );
+                    }
+                    return null;
+                }
+            });
+        }
+
+        HttpUrlConnectionSender proxiedSender = new HttpUrlConnectionSender(
+                Duration.ofSeconds(1), Duration.ofSeconds(10), proxy);
+        HttpUrlConnectionSender directSender = new HttpUrlConnectionSender(
+                Duration.ofSeconds(1), Duration.ofSeconds(10));
+
+        String nonProxyHosts = activeProxy.getNonProxyHosts();
+        if (nonProxyHosts == null || nonProxyHosts.isEmpty()) {
+            HttpSenderExecutionContextView.view(ctx).setHttpSender(proxiedSender);
+        } else {
+            // Parse nonProxyHosts patterns (pipe-delimited, * wildcards) into a regex
+            String regex = Arrays.stream(nonProxyHosts.split("\\|"))
+                    .map(String::trim)
+                    .filter(s -> !s.isEmpty())
+                    .map(pattern -> pattern.replace(".", "\\.").replace("*", ".*"))
+                    .collect(joining("|"));
+            Pattern nonProxyPattern = Pattern.compile(regex);
+            HttpSenderExecutionContextView.view(ctx).setHttpSender(request -> {
+                String host = request.getUrl().getHost();
+                if (nonProxyPattern.matcher(host).matches()) {
+                    return directSender.send(request);
+                }
+                return proxiedSender.send(request);
+            });
+        }
     }
 
     private static @Nullable RawRepositories buildRawRepositories(@Nullable List<Repository> repositoriesToMap) {
@@ -897,6 +1006,13 @@ public class MavenMojoProjectParser {
         };
     }
 
+    private static List<String> filterGeneratedSourceRoots(MavenProject mavenProject, List<String> sourceRoots) {
+        Path buildDirectory = Paths.get(mavenProject.getBuild().getDirectory());
+        return sourceRoots.stream()
+                .filter(root -> !Paths.get(root).startsWith(buildDirectory))
+                .collect(toList());
+    }
+
     private static Collection<Path> listJavaSources(MavenProject mavenProject, List<String> compileSourceRoots) throws MojoExecutionException {
         Set<Path> javaSources = new LinkedHashSet<>();
         for (String compileSourceRoot : compileSourceRoots) {
@@ -928,6 +1044,26 @@ public class MavenMojoProjectParser {
         return listSources(mavenProject.getBasedir().toPath().resolve(fallbackSourceDirectory), ".kt");
     }
 
+    private static List<Path> listGroovySources(MavenProject mavenProject, List<String> compileSourceRoots) throws MojoExecutionException {
+        List<Path> groovySources = new ArrayList<>();
+        for (String compileSourceRoot : compileSourceRoots) {
+            groovySources.addAll(listSources(mavenProject.getBasedir().toPath().resolve(compileSourceRoot), ".groovy"));
+        }
+        // Also check conventional Groovy source directories
+        Path basedir = mavenProject.getBasedir().toPath();
+        for (String compileSourceRoot : compileSourceRoots) {
+            Path javaRoot = basedir.resolve(compileSourceRoot);
+            // If the source root is src/main/java, also check src/main/groovy
+            if (javaRoot.endsWith("java")) {
+                Path groovyRoot = javaRoot.resolveSibling("groovy");
+                if (Files.exists(groovyRoot)) {
+                    groovySources.addAll(listSources(groovyRoot, ".groovy"));
+                }
+            }
+        }
+        return groovySources;
+    }
+
     private static List<Path> listSources(Path sourceDirectory, String extension) throws MojoExecutionException {
         if (!Files.exists(sourceDirectory)) {
             return emptyList();
@@ -949,10 +1085,10 @@ public class MavenMojoProjectParser {
         }
     }
 
-    private Stream<SourceFile> parseMavenWrapperFiles(MavenProject mavenProject, Collection<PathMatcher> exclusions, Set<Path> alreadyParsed, ExecutionContext ctx) {
+    private Stream<SourceFile> parseMavenWrapperFiles(MavenProject mavenProject, Collection<PathMatcher> exclusions, Set<Path> parsedPaths, ExecutionContext ctx) {
         Stream<SourceFile> sourceFiles = Stream.empty();
         if (mavenProject.getParent() == null) {
-            OmniParser omniParser = omniParser(alreadyParsed, mavenProject);
+            OmniParser omniParser = omniParser(parsedPaths, mavenProject);
             List<Path> mavenWrapperFiles = Stream.of(
                             Paths.get(MVN_JVM_CONFIG),
                             Paths.get(MVN_MAVEN_CONFIG),
@@ -962,7 +1098,7 @@ public class MavenMojoProjectParser {
                             MavenWrapper.WRAPPER_SCRIPT_LOCATION)
                     .map(Path::toAbsolutePath)
                     .filter(Files::exists)
-                    .filter(it -> !isExcluded(exclusions, it))
+                    .filter(it -> !isExcluded(repository, exclusions, it))
                     .filter(omniParser::accept)
                     .collect(toList());
             sourceFiles = omniParser.parse(mavenWrapperFiles, baseDir, ctx);
@@ -970,17 +1106,17 @@ public class MavenMojoProjectParser {
         return sourceFiles;
     }
 
-    protected Stream<SourceFile> parseNonProjectResources(MavenProject mavenProject, Set<Path> alreadyParsed, ExecutionContext ctx) {
+    protected Stream<SourceFile> parseNonProjectResources(MavenProject mavenProject, Set<Path> parsedPaths, ExecutionContext ctx) {
         if (!parseAdditionalResources) {
             return Stream.empty();
         }
         //Collect any additional yaml/properties/xml files that are NOT already in a source set.
-        OmniParser omniParser = omniParser(alreadyParsed, mavenProject);
+        OmniParser omniParser = omniParser(parsedPaths, mavenProject);
         List<Path> accepted = omniParser.acceptedPaths(baseDir, mavenProject.getBasedir().toPath());
         return omniParser.parse(accepted, baseDir, ctx);
     }
 
-    private OmniParser omniParser(Set<Path> alreadyParsed, MavenProject mavenProject) {
+    private OmniParser omniParser(Set<Path> parsedPaths, MavenProject mavenProject) {
         return OmniParser.builder(
                         OmniParser.defaultResourceParsers(),
                         PlainTextParser.builder()
@@ -989,7 +1125,7 @@ public class MavenMojoProjectParser {
                         QuarkParser.builder().build()
                 )
                 .exclusionMatchers(pathMatchers(baseDir, mergeExclusions(mavenProject)))
-                .exclusions(alreadyParsed)
+                .exclusions(parsedPaths)
                 .sizeThresholdMb(sizeThresholdMb)
                 .build();
     }

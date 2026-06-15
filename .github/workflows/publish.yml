@@ -2,7 +2,12 @@
 name: publish
 
 on:
-  workflow_dispatch: {}
+  workflow_dispatch:
+    inputs:
+      version:
+        description: 'Project version to set before releasing (e.g. 6.33.0-SNAPSHOT). Leave empty to release the current version.'
+        required: false
+        type: string
 
 jobs:
   release:
@@ -27,6 +32,10 @@ jobs:
         run: |
           git config user.email "team@moderne.io"
           git config user.name "team-moderne[bot]"
+
+      - name: set-project-version
+        if: ${{ inputs.version != '' }}
+        run: ./mvnw versions:set -DnewVersion=${{ inputs.version }} -DgenerateBackupFiles=false
 
       - name: bump-rewrite-properties-to-releases
         run: |

@@ -4,7 +4,7 @@
 
     <groupId>org.openrewrite.maven</groupId>
     <artifactId>rewrite-maven-plugin</artifactId>
-    <version>6.31.0-SNAPSHOT</version>
+    <version>6.42.0-SNAPSHOT</version>
     <packaging>maven-plugin</packaging>
 
     <name>rewrite-maven-plugin</name>
@@ -62,8 +62,8 @@
 
     <properties>
         <!-- Pinned versions, as RELEASE would make it into the published pom.xml  -->
-        <rewrite.version>8.75.0-SNAPSHOT</rewrite.version>
-        <rewrite-polyglot.version>2.10.0-SNAPSHOT</rewrite-polyglot.version>
+        <rewrite.version>8.85.0-SNAPSHOT</rewrite.version>
+        <rewrite-polyglot.version>2.11.0-SNAPSHOT</rewrite-polyglot.version>
 
         <!-- using 'ssh' url scheme by default, which assumes a human is performing git operations leveraging an ssh key -->
         <developerConnectionUrl>scm:git:ssh://git@github.com/openrewrite/rewrite-maven-plugin.git
@@ -76,10 +76,10 @@
         <maven.compiler.testRelease>17</maven.compiler.testRelease>
 
         <!-- dependencies and plugins -->
-        <jackson-bom.version>2.17.3</jackson-bom.version>
+        <jackson-bom.version>2.21.3</jackson-bom.version>
         <rocksdbjni.version>8.8.1</rocksdbjni.version>
         <itf-maven.version>0.13.1</itf-maven.version>
-        <maven-dependencies.version>3.9.12</maven-dependencies.version>
+        <maven-dependencies.version>3.9.16</maven-dependencies.version>
         <maven-release-plugin.version>3.3.1</maven-release-plugin.version>
         <maven-plugin-tools.version>3.15.2</maven-plugin-tools.version>
     </properties>
@@ -96,7 +96,7 @@
             <dependency>
                 <groupId>org.junit</groupId>
                 <artifactId>junit-bom</artifactId>
-                <version>6.0.3</version>
+                <version>6.1.0</version>
                 <scope>import</scope>
                 <type>pom</type>
             </dependency>
@@ -113,6 +113,12 @@
                 <version>${rewrite.version}</version>
                 <scope>import</scope>
                 <type>pom</type>
+            </dependency>
+            <!-- Pin plexus-utils to fix GHSA-6fmv-xxpf-w3cw -->
+            <dependency>
+                <groupId>org.codehaus.plexus</groupId>
+                <artifactId>plexus-utils</artifactId>
+                <version>3.6.1</version>
             </dependency>
             <!-- Transitive through Plexus, but with provided scope -->
             <dependency>
@@ -163,6 +169,10 @@
         </dependency>
         <dependency>
             <groupId>org.openrewrite</groupId>
+            <artifactId>rewrite-groovy</artifactId>
+        </dependency>
+        <dependency>
+            <groupId>org.openrewrite</groupId>
             <artifactId>rewrite-kotlin</artifactId>
         </dependency>
         <dependency>
@@ -186,7 +196,7 @@
         <dependency>
             <groupId>io.micrometer</groupId>
             <artifactId>micrometer-core</artifactId>
-            <version>1.16.3</version>
+            <version>1.16.5</version>
         </dependency>
         <dependency>
             <groupId>org.rocksdb</groupId>
@@ -300,7 +310,7 @@
             <plugin>
                 <groupId>org.apache.maven.plugins</groupId>
                 <artifactId>maven-enforcer-plugin</artifactId>
-                <version>3.6.2</version>
+                <version>3.6.3</version>
                 <configuration>
                     <rules>
                         <requireJavaVersion>
@@ -348,7 +358,7 @@
             <plugin>
                 <groupId>org.apache.maven.plugins</groupId>
                 <artifactId>maven-failsafe-plugin</artifactId>
-                <version>3.5.5</version>
+                <version>3.5.6</version>
                 <executions>
                     <execution>
                         <goals>
@@ -372,7 +382,7 @@
                     <dependency>
                         <groupId>org.ow2.asm</groupId>
                         <artifactId>asm</artifactId>
-                        <version>9.9.1</version>
+                        <version>9.10.1</version>
                     </dependency>
                 </dependencies>
                 <executions>
@@ -497,15 +507,10 @@
                     </execution>
                 </executions>
             </plugin>
-        </plugins>
-    </build>
-
-    <reporting>
-        <plugins>
             <plugin>
                 <groupId>org.owasp</groupId>
                 <artifactId>dependency-check-maven</artifactId>
-                <version>12.2.0</version>
+                <version>12.2.2</version>
                 <configuration>
                     <nvdApiKey>${env.NVD_API_KEY}</nvdApiKey>
                     <failBuildOnCVSS>9</failBuildOnCVSS>
@@ -514,14 +519,12 @@
                     </suppressionFiles>
                     <retireJsAnalyzerEnabled>false</retireJsAnalyzerEnabled>
                 </configuration>
-                <reportSets>
-                    <reportSet>
-                        <reports>
-                            <report>aggregate</report>
-                        </reports>
-                    </reportSet>
-                </reportSets>
             </plugin>
+        </plugins>
+    </build>
+
+    <reporting>
+        <plugins>
             <plugin>
                 <groupId>org.apache.maven.plugins</groupId>
                 <artifactId>maven-plugin-report-plugin</artifactId>

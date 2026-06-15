@@ -17,7 +17,6 @@ package org.openrewrite.maven;
 
 import com.soebes.itf.jupiter.extension.*;
 import com.soebes.itf.jupiter.maven.MavenExecutionResult;
-import org.junit.jupiter.api.Disabled;
 import org.junit.jupiter.api.condition.DisabledOnOs;
 import org.junit.jupiter.api.condition.EnabledForJreRange;
 import org.junit.jupiter.api.condition.JRE;
@@ -30,6 +29,7 @@ import java.util.List;
 import java.util.stream.Stream;
 
 import static com.soebes.itf.extension.assertj.MavenITAssertions.assertThat;
+import static java.util.stream.Collectors.toList;
 import static org.assertj.core.api.Assertions.as;
 import static org.assertj.core.api.InstanceOfAssertFactories.STRING;
 import static org.openrewrite.PathUtils.separatorsToSystem;
@@ -87,6 +87,18 @@ class RewriteRunIT {
           .warn()
           .contains("Changes have been made to project/src/main/java/sample/MainClass.java by:")
           .contains("Changes have been made to project/src/additional-main/java/sample/AdditionalMainClass.java by:");
+    }
+
+    @MavenTest
+    void basedir_resource_no_plaintext_leak(MavenExecutionResult result) {
+        assertThat(result)
+          .isSuccessful()
+          .out()
+          .warn()
+          .contains(
+            "Changes have been made to %s by:".formatted(separatorsToSystem("project/src/main/java/sample/Main.java")),
+            "Changes have been made to %s by:".formatted(separatorsToSystem("project/src/test/java/sample/MainTest.java"))
+          );
     }
 
     @MavenTest
@@ -153,7 +165,6 @@ class RewriteRunIT {
           .contains("    org.openrewrite.java.AddCommentToMethod: {comment='{\"test\":{\"some\":\"yeah\"}}', methodPattern=sample.SomeClass doTheThing(..)}");
     }
 
-    @Disabled("We should implement a simpler test to make sure that regular markers don't get added to source files")
     @MavenTest
     void java_upgrade_project(MavenExecutionResult result) {
         assertThat(result)
@@ -211,20 +222,30 @@ class RewriteRunIT {
                 .findFirst()
                 .orElseThrow(() -> new AssertionError("No timestamped directory found in " + datatablesDir));
 
-            csvFile = timestampedDir.resolve("org.openrewrite.maven.table.DependenciesInUse.csv");
+            try (Stream<Path> csvFiles = Files.list(timestampedDir)) {
+                csvFile = csvFiles
+                    .filter(p -> p.getFileName().toString().startsWith("org.openrewrite.maven.table.DependenciesInUse") &&
+                                 p.getFileName().toString().endsWith(".csv"))
+                    .findFirst()
+                    .orElseThrow(() -> new AssertionError("No DependenciesInUse CSV file found in " + timestampedDir));
+            }
             assertThat(csvFile).exists().isRegularFile();
         }
 
         // Verify CSV contains expected structure and data rows
-        // CSV format: header row, description row, data rows
+        // CSV format: 3 comment lines (@name, @instanceName, @group), header row, data rows
         List<String> lines = Files.readAllLines(csvFile);
-        assertThat(lines)
-          .hasSizeGreaterThanOrEqualTo(4) // header + description + 2 data rows
+        // Filter out comment lines
+        List<String> dataLines = lines.stream()
+                .filter(l -> !l.startsWith("#"))
+                .collect(toList());
+        assertThat(dataLines)
+          .hasSizeGreaterThanOrEqualTo(3) // header + 2 data rows
           .first(as(STRING))
-          .contains("Group", "Artifact"); // CSV header
+          .contains("groupId", "artifactId"); // CSV header
 
-        // Get only the data rows (skip header and description rows)
-        assertThat(lines.subList(2, lines.size()))
+        // Get only the data rows (skip header)
+        assertThat(dataLines.subList(1, dataLines.size()))
           .hasSizeGreaterThanOrEqualTo(2)
           .anySatisfy(line -> assertThat(line).contains("com.google.guava", "guava"))
           .anySatisfy(line -> assertThat(line).contains("org.projectlombok", "lombok"));

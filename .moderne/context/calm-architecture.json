@@ -1,0 +1,10 @@
+{
+  "nodes" : [ {
+    "unique-id" : "rewrite-maven-plugin",
+    "node-type" : "system",
+    "name" : "rewrite-maven-plugin",
+    "description" : "Eliminate technical debt. At build time."
+  } ],
+  "relationships" : [ ],
+  "$schema" : "https://calm.finos.org/draft/2025-03/meta/calm.json"
+}
