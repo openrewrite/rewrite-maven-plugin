@@ -68,7 +68,6 @@ import org.openrewrite.maven.tree.ResolvedGroupArtifactVersion;
 import org.openrewrite.maven.utilities.MavenWrapper;
 import org.openrewrite.polyglot.OmniParser;
 import org.openrewrite.quark.QuarkParser;
-import org.openrewrite.style.NamedStyles;
 import org.openrewrite.text.PlainTextParser;
 import org.openrewrite.xml.tree.Xml;
 
@@ -92,10 +91,7 @@ import java.util.function.UnaryOperator;
 import java.util.regex.Pattern;
 import java.util.stream.Stream;
 
-import static java.util.Collections.emptyList;
-import static java.util.Collections.emptyMap;
-import static java.util.Collections.singletonList;
-import static java.util.Collections.singletonMap;
+import static java.util.Collections.*;
 import static java.util.stream.Collectors.joining;
 import static java.util.stream.Collectors.toList;
 import static java.util.stream.Collectors.toMap;
@@ -128,7 +124,7 @@ public class MavenMojoProjectParser {
     private static final String MAVEN_COMPILER_PLUGIN = "org.apache.maven.plugins:maven-compiler-plugin";
 
     @Nullable
-    public static MavenPomCache POM_CACHE;
+    private static MavenPomCache POM_CACHE;
 
     private final Log logger;
     private final AtomicBoolean firstWarningLogged = new AtomicBoolean(false);
@@ -173,13 +169,14 @@ public class MavenMojoProjectParser {
         return new JavaTypeCache();
     }
 
-    public Stream<SourceFile> listSourceFiles(MavenProject mavenProject, List<NamedStyles> styles,
-                                              ExecutionContext ctx) throws DependencyResolutionRequiredException, MojoExecutionException, MojoFailureException {
+    Stream<SourceFile> listSourceFiles(MavenProject mavenProject,
+                                       ExecutionContext ctx) throws DependencyResolutionRequiredException, MojoExecutionException, MojoFailureException {
         if (runPerSubmodule) {
             //If running per submodule, parse the source files for only the current project.
             List<Marker> projectProvenance = generateProvenance(mavenProject);
-            Xml.Document maven = parseMaven(mavenProject, projectProvenance, ctx);
-            return listSourceFiles(mavenProject, maven, projectProvenance, styles, ctx);
+            Xml.Document maven = parseMaven(singletonList(mavenProject), singletonMap(mavenProject, projectProvenance), ctx)
+                    .get(mavenProject);
+            return listSourceFiles(mavenProject, maven, projectProvenance, Arrays.asList(MAIN, TEST), ctx);
         }
         //If running across all projects, iterate and parse source files from each project
         Map<MavenProject, List<Marker>> projectProvenances = mavenSession.getProjects().stream()
@@ -189,20 +186,16 @@ public class MavenMojoProjectParser {
           .flatMap(project -> {
               List<Marker> projectProvenance = projectProvenances.get(project);
               try {
-                  return listSourceFiles(project, projectMap.get(project), projectProvenance, styles, ctx);
+                  Xml.@Nullable Document maven = projectMap.get(project);
+                  return listSourceFiles(project, maven, projectProvenance, Arrays.asList(MAIN, TEST), ctx);
               } catch (DependencyResolutionRequiredException | MojoExecutionException e) {
                   throw sneakyThrow(e);
               }
           });
     }
 
-    public Stream<SourceFile> listSourceFiles(MavenProject mavenProject, Xml.@Nullable Document maven, List<Marker> projectProvenance, List<NamedStyles> styles,
-                                              ExecutionContext ctx) throws DependencyResolutionRequiredException, MojoExecutionException {
-        return listSourceFiles(mavenProject, maven, projectProvenance, Arrays.asList(MAIN, TEST),  styles, ctx);
-    }
-
-    public Stream<SourceFile> listSourceFiles(MavenProject mavenProject, Xml.@Nullable Document maven, List<Marker> projectProvenance, List<MavenScope> scopes,
-                List<NamedStyles> styles, ExecutionContext ctx) throws DependencyResolutionRequiredException, MojoExecutionException {
+    private Stream<SourceFile> listSourceFiles(MavenProject mavenProject, Xml.@Nullable Document maven, List<Marker> projectProvenance, List<MavenScope> scopes,
+                ExecutionContext ctx) throws DependencyResolutionRequiredException, MojoExecutionException {
         Stream<SourceFile> sourceFiles = Stream.empty();
         Set<Path> parsedPaths = new HashSet<>();
 
@@ -212,10 +205,8 @@ public class MavenMojoProjectParser {
         }
 
         JavaParser.Builder<? extends JavaParser, ?> javaParserBuilder = JavaParser.fromJavaVersion()
-                .styles(styles)
                 .logCompilationWarningsAndErrors(false);
 
-        // todo, add styles from autoDetect
         KotlinParser.Builder kotlinParserBuilder = KotlinParser.builder();
         GroovyParser.Builder groovyParserBuilder = GroovyParser.builder();
 
@@ -342,7 +333,7 @@ public class MavenMojoProjectParser {
         return source;
     }
 
-    public List<Marker> generateProvenance(MavenProject mavenProject) {
+    private List<Marker> generateProvenance(MavenProject mavenProject) {
         BuildEnvironment buildEnvironment = BuildEnvironment.build(System::getenv);
         return Stream.of(
                         buildEnvironment,
@@ -653,11 +644,7 @@ public class MavenMojoProjectParser {
                 .map(addProvenance(testProjectProvenance));
     }
 
-    public Xml.@Nullable Document parseMaven(MavenProject mavenProject, List<Marker> projectProvenance, ExecutionContext ctx) throws MojoFailureException {
-        return parseMaven(singletonList(mavenProject), singletonMap(mavenProject, projectProvenance), ctx).get(mavenProject);
-    }
-
-    public Map<MavenProject, Xml.Document> parseMaven(List<MavenProject> mavenProjects, Map<MavenProject, List<Marker>> projectProvenances, ExecutionContext ctx) throws MojoFailureException {
+    private Map<MavenProject, Xml.Document> parseMaven(List<MavenProject> mavenProjects, Map<MavenProject, List<Marker>> projectProvenances, ExecutionContext ctx) throws MojoFailureException {
         if (skipMavenParsing) {
             logger.info("Skipping Maven parsing...");
             return emptyMap();
@@ -809,7 +796,7 @@ public class MavenMojoProjectParser {
         return POM_CACHE;
     }
 
-    public MavenSettings buildSettings() {
+    private MavenSettings buildSettings() {
         MavenExecutionRequest mer = mavenSession.getRequest();
 
         MavenSettings.Profiles profiles = new MavenSettings.Profiles();
