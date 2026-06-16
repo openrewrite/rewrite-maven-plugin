@@ -290,11 +290,7 @@ public abstract class AbstractRewriteBaseRunMojo extends AbstractRewriteMojo {
         stylesByType.put(K.CompilationUnit.class, kotlinDetector.build());
         stylesByType.put(Xml.Document.class, xmlDetector.build());
 
-        return ListUtils.map(sourceFileList, applyStyles(stylesByType, configuredStyles));
-    }
-
-    private UnaryOperator<SourceFile> applyStyles(Map<Class<? extends Tree>, NamedStyles> stylesByType, List<NamedStyles> configuredStyles) {
-        return before -> {
+        return ListUtils.map(sourceFileList, before -> {
             // Apply auto-detected styles first
             for (Map.Entry<Class<? extends Tree>, NamedStyles> styleTypeEntry : stylesByType.entrySet()) {
                 if (styleTypeEntry.getKey().isAssignableFrom(before.getClass())) {
@@ -306,7 +302,7 @@ public abstract class AbstractRewriteBaseRunMojo extends AbstractRewriteMojo {
                 before = before.withMarkers(before.getMarkers().add(configuredStyle));
             }
             return before;
-        };
+        });
     }
 
     private void merge(ClassLoader targetClassLoader, URLClassLoader sourceClassLoader) {

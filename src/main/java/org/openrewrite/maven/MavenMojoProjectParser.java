@@ -91,10 +91,7 @@ import java.util.function.UnaryOperator;
 import java.util.regex.Pattern;
 import java.util.stream.Stream;
 
-import static java.util.Collections.emptyList;
-import static java.util.Collections.emptyMap;
-import static java.util.Collections.singletonList;
-import static java.util.Collections.singletonMap;
+import static java.util.Collections.*;
 import static java.util.stream.Collectors.joining;
 import static java.util.stream.Collectors.toList;
 import static java.util.stream.Collectors.toMap;
@@ -177,8 +174,9 @@ public class MavenMojoProjectParser {
         if (runPerSubmodule) {
             //If running per submodule, parse the source files for only the current project.
             List<Marker> projectProvenance = generateProvenance(mavenProject);
-            Xml.Document maven = parseMaven(mavenProject, projectProvenance, ctx);
-            return listSourceFiles(mavenProject, maven, projectProvenance, ctx);
+            Xml.Document maven = parseMaven(singletonList(mavenProject), singletonMap(mavenProject, projectProvenance), ctx)
+                    .get(mavenProject);
+            return listSourceFiles(mavenProject, maven, projectProvenance, Arrays.asList(MAIN, TEST), ctx);
         }
         //If running across all projects, iterate and parse source files from each project
         Map<MavenProject, List<Marker>> projectProvenances = mavenSession.getProjects().stream()
@@ -188,16 +186,12 @@ public class MavenMojoProjectParser {
           .flatMap(project -> {
               List<Marker> projectProvenance = projectProvenances.get(project);
               try {
-                  return listSourceFiles(project, projectMap.get(project), projectProvenance, ctx);
+                  Xml.@Nullable Document maven = projectMap.get(project);
+                  return listSourceFiles(project, maven, projectProvenance, Arrays.asList(MAIN, TEST), ctx);
               } catch (DependencyResolutionRequiredException | MojoExecutionException e) {
                   throw sneakyThrow(e);
               }
           });
-    }
-
-    private Stream<SourceFile> listSourceFiles(MavenProject mavenProject, Xml.@Nullable Document maven, List<Marker> projectProvenance,
-                                               ExecutionContext ctx) throws DependencyResolutionRequiredException, MojoExecutionException {
-        return listSourceFiles(mavenProject, maven, projectProvenance, Arrays.asList(MAIN, TEST), ctx);
     }
 
     private Stream<SourceFile> listSourceFiles(MavenProject mavenProject, Xml.@Nullable Document maven, List<Marker> projectProvenance, List<MavenScope> scopes,
@@ -648,10 +642,6 @@ public class MavenMojoProjectParser {
 
         return sourceFiles
                 .map(addProvenance(testProjectProvenance));
-    }
-
-    private Xml.@Nullable Document parseMaven(MavenProject mavenProject, List<Marker> projectProvenance, ExecutionContext ctx) throws MojoFailureException {
-        return parseMaven(singletonList(mavenProject), singletonMap(mavenProject, projectProvenance), ctx).get(mavenProject);
     }
 
     private Map<MavenProject, Xml.Document> parseMaven(List<MavenProject> mavenProjects, Map<MavenProject, List<Marker>> projectProvenances, ExecutionContext ctx) throws MojoFailureException {
