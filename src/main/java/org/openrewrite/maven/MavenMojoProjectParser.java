@@ -145,10 +145,9 @@ public class MavenMojoProjectParser {
     private final MavenSession mavenSession;
     private final SettingsDecrypter settingsDecrypter;
     private final boolean runPerSubmodule;
-    private final boolean parseAdditionalResources;
 
     @SuppressWarnings("BooleanParameter")
-    public MavenMojoProjectParser(Log logger, Path baseDir, boolean pomCacheEnabled, @Nullable String pomCacheDirectory, RuntimeInformation runtime, boolean skipMavenParsing, Collection<String> exclusions, Collection<String> plainTextMasks, int sizeThresholdMb, MavenSession session, SettingsDecrypter settingsDecrypter, boolean runPerSubmodule, boolean parseAdditionalResources) {
+    public MavenMojoProjectParser(Log logger, Path baseDir, boolean pomCacheEnabled, @Nullable String pomCacheDirectory, RuntimeInformation runtime, boolean skipMavenParsing, Collection<String> exclusions, Collection<String> plainTextMasks, int sizeThresholdMb, MavenSession session, SettingsDecrypter settingsDecrypter, boolean runPerSubmodule) {
         this.logger = logger;
         this.baseDir = baseDir;
         this.repository = getRepository(baseDir);
@@ -162,7 +161,6 @@ public class MavenMojoProjectParser {
         this.mavenSession = session;
         this.settingsDecrypter = settingsDecrypter;
         this.runPerSubmodule = runPerSubmodule;
-        this.parseAdditionalResources = parseAdditionalResources;
     }
 
     protected JavaTypeCache createTypeCache() {
@@ -1097,9 +1095,6 @@ public class MavenMojoProjectParser {
     }
 
     protected Stream<SourceFile> parseNonProjectResources(MavenProject mavenProject, Set<Path> parsedPaths, ExecutionContext ctx) {
-        if (!parseAdditionalResources) {
-            return Stream.empty();
-        }
         //Collect any additional yaml/properties/xml files that are NOT already in a source set.
         OmniParser omniParser = omniParser(parsedPaths, mavenProject);
         List<Path> accepted = omniParser.acceptedPaths(baseDir, mavenProject.getBasedir().toPath());
