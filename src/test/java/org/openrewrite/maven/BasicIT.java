@@ -36,7 +36,19 @@ class BasicIT {
                 .isSuccessful()
                 .out()
                 .warn()
+                .filteredOn(BasicIT::isNotIgnorableWarning)
                 .containsOnly("JAR will be empty - no content was marked for inclusion!");
+    }
+
+    /**
+     * Filters out environment-dependent warnings that may or may not appear depending on where the build runs:
+     * the Mac OS X RocksDB warning (https://github.com/openrewrite/rewrite-maven-plugin/issues/506) and the
+     * Develocity remote build cache warnings emitted when the cache is unavailable (e.g. a 403 on forked PR builds).
+     */
+    private static boolean isNotIgnorableWarning(String warn) {
+        return !"Unable to initialize RocksdbMavenPomCache, falling back to InMemoryMavenPomCache".equals(warn) &&
+               !(warn.startsWith("Could not store entry ") && warn.contains("remote build cache")) &&
+               !"The remote build cache was disabled during the build due to errors.".equals(warn);
     }
 
     @Disabled
@@ -54,8 +66,7 @@ class BasicIT {
                 .isSuccessful()
                 .out()
                 .warn()
-                // Ignore warning logged on Mac OS X; https://github.com/openrewrite/rewrite-maven-plugin/issues/506
-                .filteredOn(warn -> !"Unable to initialize RocksdbMavenPomCache, falling back to InMemoryMavenPomCache".equals(warn))
+                .filteredOn(BasicIT::isNotIgnorableWarning)
                 .isEmpty();
     }
 
@@ -92,8 +103,7 @@ class BasicIT {
                 .isSuccessful()
                 .out()
                 .warn()
-                // Ignore warning logged on Mac OS X; https://github.com/openrewrite/rewrite-maven-plugin/issues/506
-                .filteredOn(warn -> !"Unable to initialize RocksdbMavenPomCache, falling back to InMemoryMavenPomCache".equals(warn))
+                .filteredOn(BasicIT::isNotIgnorableWarning)
                 .isEmpty();
         assertThat(result).out().info().contains("Running recipe(s)...");
     }
