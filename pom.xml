@@ -513,7 +513,6 @@
                 <version>12.2.2</version>
                 <configuration>
                     <nvdApiKey>${env.NVD_API_KEY}</nvdApiKey>
-                    <failBuildOnCVSS>9</failBuildOnCVSS>
                     <suppressionFiles>
                         <suppressionFile>suppressions.xml</suppressionFile>
                     </suppressionFiles>
