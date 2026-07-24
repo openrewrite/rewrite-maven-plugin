@@ -50,6 +50,7 @@ import org.openrewrite.java.marker.JavaProject;
 import org.openrewrite.java.marker.JavaSourceSet;
 import org.openrewrite.java.marker.JavaVersion;
 import org.openrewrite.jgit.api.Git;
+import org.openrewrite.jgit.dircache.DirCache;
 import org.openrewrite.jgit.lib.ObjectId;
 import org.openrewrite.jgit.revwalk.RevCommit;
 import org.openrewrite.jgit.revwalk.RevWalk;
@@ -130,6 +131,8 @@ public class MavenMojoProjectParser {
     private final AtomicBoolean firstWarningLogged = new AtomicBoolean(false);
     private final Path baseDir;
     private final org.openrewrite.jgit.lib.@Nullable Repository repository;
+    private @Nullable DirCache dirCache;
+    private boolean dirCacheInitialized;
     private final boolean pomCacheEnabled;
 
     @Nullable
@@ -227,8 +230,9 @@ public class MavenMojoProjectParser {
                 .map(pattern -> baseDir.getFileSystem().getPathMatcher("glob:" + pattern))
                 .collect(toList());
         Path buildDirectory = baseDir.relativize(Paths.get(mavenProject.getBuild().getDirectory()));
+        DirCache dirCache = dirCache();
         sourceFiles = sourceFiles
-                .filter(sourceFile -> !sourceFile.getSourcePath().startsWith(buildDirectory) && !isExcluded(repository, exclusionMatchers, sourceFile.getSourcePath()));
+                .filter(sourceFile -> !sourceFile.getSourcePath().startsWith(buildDirectory) && !isExcluded(repository, dirCache, exclusionMatchers, sourceFile.getSourcePath()));
 
         Stream<SourceFile> mavenWrapperFiles = parseMavenWrapperFiles(mavenProject, exclusionMatchers, parsedPaths, ctx);
         sourceFiles = Stream.concat(sourceFiles, mavenWrapperFiles);
@@ -241,7 +245,33 @@ public class MavenMojoProjectParser {
                 .map(this::logParseErrors);
     }
 
+    private @Nullable DirCache dirCache() {
+        if (!dirCacheInitialized) {
+            dirCacheInitialized = true;
+            if (repository != null) {
+                try {
+                    dirCache = repository.readDirCache();
+                } catch (IOException e) {
+                    throw new UncheckedIOException(e);
+                }
+            }
+        }
+        return dirCache;
+    }
+
     static boolean isExcluded(org.openrewrite.jgit.lib.@Nullable Repository repository, Collection<PathMatcher> exclusionMatchers, Path path) {
+        DirCache dirCache = null;
+        if (repository != null) {
+            try {
+                dirCache = repository.readDirCache();
+            } catch (IOException e) {
+                throw new UncheckedIOException(e);
+            }
+        }
+        return isExcluded(repository, dirCache, exclusionMatchers, path);
+    }
+
+    static boolean isExcluded(org.openrewrite.jgit.lib.@Nullable Repository repository, @Nullable DirCache dirCache, Collection<PathMatcher> exclusionMatchers, Path path) {
         for (PathMatcher excluded : exclusionMatchers) {
             if (excluded.matches(path)) {
                 return true;
@@ -258,8 +288,8 @@ public class MavenMojoProjectParser {
             }
         }
 
-        if (repository != null) {
-            return GitIgnore.isIgnoredAndUntracked(repository, separatorsToUnix(path.toString()));
+        if (repository != null && dirCache != null) {
+            return GitIgnore.isIgnoredAndUntracked(repository, dirCache, separatorsToUnix(path.toString()));
         }
         return false;
     }
@@ -1086,7 +1116,7 @@ public class MavenMojoProjectParser {
                             MavenWrapper.WRAPPER_SCRIPT_LOCATION)
                     .map(Path::toAbsolutePath)
                     .filter(Files::exists)
-                    .filter(it -> !isExcluded(repository, exclusions, it))
+                    .filter(it -> !isExcluded(repository, dirCache(), exclusions, it))
                     .filter(omniParser::accept)
                     .collect(toList());
             sourceFiles = omniParser.parse(mavenWrapperFiles, baseDir, ctx);
