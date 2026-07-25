@@ -18,6 +18,7 @@ package org.openrewrite.maven;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.io.TempDir;
 import org.openrewrite.jgit.api.Git;
+import org.openrewrite.jgit.dircache.DirCache;
 import org.openrewrite.jgit.lib.Repository;
 
 import java.nio.charset.StandardCharsets;
@@ -110,6 +111,38 @@ class MavenMojoProjectParserIsExcludedTest {
             assertThat(MavenMojoProjectParser.isExcluded(repo, emptyList(), Path.of("target/output.txt")))
                     .as("tracked file in gitignored directory should NOT be excluded")
                     .isFalse();
+        }
+    }
+
+    @Test
+    void sharedDirCacheMatchesPerCallResult(@TempDir Path tempDir) throws Exception {
+        try (Git git = Git.init().setDirectory(tempDir.toFile()).call()) {
+            Repository repo = git.getRepository();
+
+            writeFile(tempDir.resolve(".gitignore"), "generated.txt\n");
+            writeFile(tempDir.resolve("generated.txt"), "untracked content");
+            writeFile(tempDir.resolve("tracked-ignored.txt"), "content");
+            git.add().addFilepattern("tracked-ignored.txt").call();
+            writeFile(tempDir.resolve(".gitignore"), "generated.txt\ntracked-ignored.txt\n");
+            git.add().addFilepattern(".gitignore").call();
+            git.commit().setMessage("initial").call();
+
+            DirCache dirCache = repo.readDirCache();
+
+            assertThat(MavenMojoProjectParser.isExcluded(repo, dirCache, emptyList(), Path.of("generated.txt")))
+                    .as("untracked gitignored file, evaluated against a shared DirCache")
+                    .isTrue()
+                    .isEqualTo(MavenMojoProjectParser.isExcluded(repo, emptyList(), Path.of("generated.txt")));
+
+            assertThat(MavenMojoProjectParser.isExcluded(repo, dirCache, emptyList(), Path.of("tracked-ignored.txt")))
+                    .as("tracked gitignored file, evaluated against a shared DirCache")
+                    .isFalse()
+                    .isEqualTo(MavenMojoProjectParser.isExcluded(repo, emptyList(), Path.of("tracked-ignored.txt")));
+
+            assertThat(MavenMojoProjectParser.isExcluded(repo, dirCache, emptyList(), Path.of("not-ignored.txt")))
+                    .as("non-ignored file, evaluated against a shared DirCache")
+                    .isFalse()
+                    .isEqualTo(MavenMojoProjectParser.isExcluded(repo, emptyList(), Path.of("not-ignored.txt")));
         }
     }
 
