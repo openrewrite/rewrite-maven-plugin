@@ -67,7 +67,7 @@ public class RewriteTypeTableMojo extends AbstractRewriteMojo {
     }
 
     private Set<Artifact> resolveArtifacts(String recipeArtifactCoordinate) throws MojoExecutionException {
-        ArtifactResolver resolver = new ArtifactResolver(repositorySystem, mavenSession);
+        ArtifactResolver resolver = new ArtifactResolver(repositorySystem, mavenSession, getLog());
         Artifact artifact = resolver.createArtifact(recipeArtifactCoordinate);
         return resolver.resolveArtifactsAndDependencies(singleton(artifact));
     }

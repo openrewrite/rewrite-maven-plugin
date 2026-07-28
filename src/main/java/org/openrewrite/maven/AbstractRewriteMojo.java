@@ -185,7 +185,7 @@ public abstract class AbstractRewriteMojo extends ConfigurableRewriteMojo {
         if (getRecipeArtifactCoordinates().isEmpty()) {
             return null;
         }
-        ArtifactResolver resolver = new ArtifactResolver(repositorySystem, mavenSession);
+        ArtifactResolver resolver = new ArtifactResolver(repositorySystem, mavenSession, getLog());
 
         Set<Artifact> artifacts = new HashSet<>();
         for (String coordinate : getRecipeArtifactCoordinates()) {

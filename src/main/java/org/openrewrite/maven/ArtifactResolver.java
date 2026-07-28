@@ -18,6 +18,7 @@ package org.openrewrite.maven;
 import org.apache.maven.RepositoryUtils;
 import org.apache.maven.execution.MavenSession;
 import org.apache.maven.plugin.MojoExecutionException;
+import org.apache.maven.plugin.logging.Log;
 import org.eclipse.aether.RepositorySystem;
 import org.eclipse.aether.RepositorySystemSession;
 import org.eclipse.aether.artifact.Artifact;
@@ -43,11 +44,13 @@ public class ArtifactResolver {
     private final RepositorySystem repositorySystem;
     private final RepositorySystemSession repositorySystemSession;
     private final List<RemoteRepository> remoteRepositories;
+    private final Log log;
 
-    public ArtifactResolver(RepositorySystem repositorySystem, MavenSession session) {
+    public ArtifactResolver(RepositorySystem repositorySystem, MavenSession session, Log log) {
         this.repositorySystem = repositorySystem;
         this.repositorySystemSession = session.getRepositorySession();
         this.remoteRepositories = RepositoryUtils.toRepos(session.getCurrentProject().getRemoteArtifactRepositories());
+        this.log = log;
     }
 
     public Artifact createArtifact(String coordinates) throws MojoExecutionException {
@@ -76,6 +79,11 @@ public class ArtifactResolver {
 
             for (ArtifactResult resolved : dependencyResult.getArtifactResults()) {
                 elements.add(resolved.getArtifact());
+            }
+
+            String warning = StaleRecipeArtifactWarner.staleRecipeArtifactWarning(artifacts, dependencyResult.getArtifactResults());
+            if (warning != null) {
+                log.warn(warning);
             }
             return elements;
         } catch (DependencyResolutionException e) {
