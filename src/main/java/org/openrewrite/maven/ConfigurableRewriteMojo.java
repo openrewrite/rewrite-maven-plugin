@@ -35,9 +35,7 @@ import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.util.*;
 
-import static java.util.Collections.emptyMap;
-import static java.util.Collections.emptySet;
-import static java.util.Collections.unmodifiableSet;
+import static java.util.Collections.*;
 import static java.util.stream.Collectors.toCollection;
 import static org.openrewrite.java.style.CheckstyleConfigLoader.loadCheckstyleConfig;
 

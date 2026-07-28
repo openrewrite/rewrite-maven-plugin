@@ -1,7 +1,7 @@
 package sample;
 
-import lombok.Data;
 import lombok.Builder;
+import lombok.Data;
 import lombok.With;
 
 @Data

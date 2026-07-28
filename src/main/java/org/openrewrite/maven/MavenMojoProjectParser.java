@@ -93,10 +93,7 @@ import java.util.regex.Pattern;
 import java.util.stream.Stream;
 
 import static java.util.Collections.*;
-import static java.util.stream.Collectors.joining;
-import static java.util.stream.Collectors.toList;
-import static java.util.stream.Collectors.toMap;
-import static java.util.stream.Collectors.toSet;
+import static java.util.stream.Collectors.*;
 import static org.openrewrite.PathUtils.separatorsToUnix;
 import static org.openrewrite.Tree.randomId;
 import static org.openrewrite.maven.MavenMojoProjectParser.MavenScope.MAIN;
