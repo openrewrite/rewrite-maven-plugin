@@ -81,9 +81,12 @@ public class ArtifactResolver {
                 elements.add(resolved.getArtifact());
             }
 
-            String warning = StaleRecipeArtifactWarner.staleRecipeArtifactWarning(artifacts, dependencyResult.getArtifactResults());
+            String warning = CodeGenomeProjectWarning.warningFor(artifacts, dependencyResult.getArtifactResults());
             if (warning != null) {
-                log.warn(warning);
+                // Maven only prefixes the first line of a multi-line message with [WARNING]
+                for (String line : warning.split("\n")) {
+                    log.warn(line);
+                }
             }
             return elements;
         } catch (DependencyResolutionException e) {
