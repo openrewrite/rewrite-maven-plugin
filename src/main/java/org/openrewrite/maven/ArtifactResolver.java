@@ -83,7 +83,6 @@ public class ArtifactResolver {
 
             String warning = CodeGenomeProjectWarning.warningFor(artifacts, dependencyResult.getArtifactResults());
             if (warning != null) {
-                // Maven only prefixes the first line of a multi-line message with [WARNING]
                 for (String line : warning.split("\n")) {
                     log.warn(line);
                 }
