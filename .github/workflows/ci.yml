@@ -40,6 +40,16 @@ jobs:
           server-password: SONATYPE_PASSWORD
           gpg-private-key: ${{ secrets.OSSRH_SIGNING_KEY }}
           gpg-passphrase: SONATYPE_SIGNING_PASSWORD
+      # setup-java writes a single server per call, and the settings above are only read by the
+      # steps that pass --settings; this second call supplies the default ~/.m2/settings.xml that
+      # the build step uses to authenticate against codegenome.
+      - uses: actions/setup-java@v5
+        with:
+          distribution: temurin
+          java-version: 17
+          server-id: codegenome
+          server-username: CODEGENOME_USERNAME
+          server-password: CODEGENOME_TOKEN
       - name: validate-develocity-access-key
         run: |
           if [ -n "$DEVELOCITY_ACCESS_KEY" ] && ! echo "$DEVELOCITY_ACCESS_KEY" | grep -q '='; then
@@ -48,6 +58,11 @@ jobs:
           fi
       - name: build
         run: ./mvnw --show-version --update-snapshots clean verify --file=pom.xml --fail-at-end --batch-mode -Dstyle.color=always
+        env:
+          # Activates the codegenome profile in pom.xml; empty on pull requests from forks, which
+          # receive no secrets, leaving the profile inactive.
+          CODEGENOME_USERNAME: ${{ secrets.CGP_ARTIFACTS_MAVEN_USERNAME }}
+          CODEGENOME_TOKEN: ${{ secrets.CGP_ARTIFACTS_MAVEN_TOKEN }}
       - name: publish-snapshots
         if: github.event_name != 'pull_request'
         run: ./mvnw --show-version --settings=${{ github.workspace }}/settings.xml --file=pom.xml --batch-mode -Dstyle.color=always --activate-profiles=sign-artifacts clean deploy -DskipTests
