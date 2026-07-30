@@ -16,7 +16,7 @@
 
 <!-- Keep the gap above this line, otherwise they won't render correctly! -->
 [![ci](https://github.com/openrewrite/rewrite-maven-plugin/actions/workflows/ci.yml/badge.svg)](https://github.com/openrewrite/rewrite-maven-plugin/actions/workflows/ci.yml)
-[![Maven Central](https://img.shields.io/maven-central/v/org.openrewrite.maven/rewrite-maven-plugin.svg)](https://mvnrepository.com/artifact/org.openrewrite.maven/rewrite-maven-plugin)
+[![Code Genome Project](https://img.shields.io/badge/Code%20Genome%20Project-artifacts-blue)](https://artifacts.codegenomeproject.org/maven/org/openrewrite/maven/rewrite-maven-plugin/)
 [![Contributing Guide](https://img.shields.io/badge/Contributing-Guide-informational)](https://github.com/openrewrite/.github/blob/main/CONTRIBUTING.md)
 </div>
 
@@ -97,7 +97,7 @@ See the [Maven Plugin Configuration](https://docs.openrewrite.org/reference/rewr
 
 ### Snapshots
 
-To use the latest `-SNAPSHOT` version, add a `<pluginRepositories>` entry for OSSRH snapshots. For example:
+To use the latest `-SNAPSHOT` version, add a `<pluginRepositories>` entry for the Code Genome Project, which serves both releases and snapshots. It requires credentials, so pair it with a matching `<server>` in your `settings.xml`. For example:
 
 ```xml
 <?xml version="1.0" encoding="UTF-8"?>
@@ -129,8 +129,11 @@ To use the latest `-SNAPSHOT` version, add a `<pluginRepositories>` entry for OS
 
     <pluginRepositories>
         <pluginRepository>
-            <id>ossrh-snapshots</id>
-            <url>https://central.sonatype.com/repository/maven-snapshots</url>
+            <id>codegenome</id>
+            <url>https://artifacts.codegenomeproject.org/maven</url>
+            <snapshots>
+                <enabled>true</enabled>
+            </snapshots>
         </pluginRepository>
     </pluginRepositories>
 

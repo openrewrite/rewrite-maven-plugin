@@ -9,6 +9,11 @@ on:
         required: false
         type: string
 
+env:
+  # Dependencies resolve from the Code Genome Project repository declared in pom.xml.
+  CODEGENOME_USERNAME: ${{ secrets.CGP_ARTIFACTS_MAVEN_USERNAME }}
+  CODEGENOME_TOKEN: ${{ secrets.CGP_ARTIFACTS_MAVEN_TOKEN }}
+
 jobs:
   release:
     runs-on: ubuntu-latest
@@ -22,12 +27,13 @@ jobs:
           distribution: temurin
           java-version: 17
           cache: maven
-          server-id: ossrh
-          settings-path: ${{ github.workspace }}
-          server-username: SONATYPE_USERNAME
-          server-password: SONATYPE_PASSWORD
+          server-id: codegenome
+          server-username: CODEGENOME_USERNAME
+          server-password: CODEGENOME_TOKEN
           gpg-private-key: ${{ secrets.OSSRH_SIGNING_KEY }}
-          gpg-passphrase: SONATYPE_SIGNING_PASSWORD
+          # maven-gpg-plugin reads this variable by default; naming it here keeps the
+          # gpg.passphrase server setup-java writes pointing at the same secret
+          gpg-passphrase: MAVEN_GPG_PASSPHRASE
       - name: configure-git-user
         run: |
           git config user.email "team@moderne.io"
@@ -43,12 +49,13 @@ jobs:
           git diff-index --quiet HEAD pom.xml || git commit -m "Bump rewrite.version property" pom.xml && rm -f pom.xml.versionsBackup
 
       - name: publish-release
-        run: ./mvnw --show-version --settings=${{ github.workspace }}/settings.xml --file=pom.xml --activate-profiles=sign-artifacts,release,release-automation help:active-profiles release:prepare release:perform --batch-mode -Dstyle.color=always
+        run: ./mvnw --show-version --file=pom.xml --activate-profiles=sign-artifacts,release,release-automation help:active-profiles release:prepare release:perform --batch-mode -Dstyle.color=always
         env:
           GITHUB_TOKEN: ${{ github.token }}
-          SONATYPE_USERNAME: ${{ secrets.SONATYPE_USERNAME }}
-          SONATYPE_PASSWORD: ${{ secrets.SONATYPE_TOKEN }}
-          SONATYPE_SIGNING_PASSWORD: ${{ secrets.OSSRH_SIGNING_PASSWORD }}
+          MAVEN_GPG_PASSPHRASE: ${{ secrets.OSSRH_SIGNING_PASSWORD }}
+          AWS_ACCESS_KEY_ID: ${{ secrets.CGP_AWS_ACCESS_KEY_ID }}
+          AWS_SECRET_ACCESS_KEY: ${{ secrets.CGP_AWS_SECRET_ACCESS_KEY }}
+          AWS_REGION: us-west-2
 
       - name: github-release
         if: ${{ success() }}
@@ -63,7 +70,7 @@ jobs:
 
       - name: rollback
         if: ${{ failure() }}
-        run: ./mvnw --show-version --settings=${{github.workspace}}/settings.xml --file=pom.xml --activate-profiles=sign-artifacts,release,release-automation help:active-profiles release:rollback --batch-mode -Dstyle.color=always
+        run: ./mvnw --show-version --file=pom.xml --activate-profiles=sign-artifacts,release,release-automation help:active-profiles release:rollback --batch-mode -Dstyle.color=always
         env:
           GITHUB_TOKEN: ${{ github.token }}
 

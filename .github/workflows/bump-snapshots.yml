@@ -6,6 +6,11 @@ on:
   schedule:
     - cron: 0 11 * * THU
 
+env:
+  # Dependencies resolve from the Code Genome Project repository declared in pom.xml.
+  CODEGENOME_USERNAME: ${{ secrets.CGP_ARTIFACTS_MAVEN_USERNAME }}
+  CODEGENOME_TOKEN: ${{ secrets.CGP_ARTIFACTS_MAVEN_TOKEN }}
+
 jobs:
   bump-snapshots:
     timeout-minutes: 30
@@ -19,8 +24,9 @@ jobs:
           distribution: temurin
           java-version: 17
           cache: maven
-          server-id: ossrh
-          settings-path: ${{ github.workspace }}
+          server-id: codegenome
+          server-username: CODEGENOME_USERNAME
+          server-password: CODEGENOME_TOKEN
       - name: configure-git-user
         run: |
           git config user.email "team@moderne.io"
