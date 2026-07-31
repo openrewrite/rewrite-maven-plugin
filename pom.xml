@@ -534,6 +534,33 @@
 
     <profiles>
         <profile>
+            <id>codegenome</id>
+            <activation>
+                <property>
+                    <name>env.CODEGENOME_USERNAME</name>
+                </property>
+            </activation>
+            <repositories>
+                <repository>
+                    <id>codegenome</id>
+                    <url>https://artifacts.codegenomeproject.org/maven</url>
+                    <snapshots>
+                        <enabled>true</enabled>
+                    </snapshots>
+                </repository>
+            </repositories>
+            <pluginRepositories>
+                <pluginRepository>
+                    <id>codegenome</id>
+                    <url>https://artifacts.codegenomeproject.org/maven</url>
+                    <snapshots>
+                        <enabled>true</enabled>
+                    </snapshots>
+                </pluginRepository>
+            </pluginRepositories>
+        </profile>
+
+        <profile>
             <id>sign-artifacts</id>
             <build>
                 <plugins>
