@@ -50,13 +50,15 @@
     </issueManagement>
 
     <distributionManagement>
+        <!-- The Code Genome Project serves releases and snapshots from one flat repository, written to
+             through its backing S3 bucket; region and credentials come from the AWS environment. -->
         <snapshotRepository>
-            <id>ossrh</id>
-            <url>https://central.sonatype.com/repository/maven-snapshots</url>
+            <id>codegenome-s3</id>
+            <url>s3://codegenome-artifacts/maven</url>
         </snapshotRepository>
         <repository>
-            <id>ossrh</id>
-            <url>https://oss.sonatype.org/service/local/staging/deploy/maven2</url>
+            <id>codegenome-s3</id>
+            <url>s3://codegenome-artifacts/maven</url>
         </repository>
     </distributionManagement>
 
@@ -295,6 +297,15 @@
     </repositories>
 
     <build>
+        <extensions>
+            <extension>
+                <!-- Provides the s3:// wagon used by distributionManagement -->
+                <groupId>net.pennix</groupId>
+                <artifactId>maven-wagon-s3v2</artifactId>
+                <version>1.0.3</version>
+            </extension>
+        </extensions>
+
         <testResources>
             <testResource>
                 <directory>src/test/resources</directory>
@@ -590,24 +601,6 @@
         </profile>
         <profile>
             <id>release</id>
-            <build>
-                <plugins>
-                    <plugin>
-                        <groupId>org.sonatype.plugins</groupId>
-                        <artifactId>nexus-staging-maven-plugin</artifactId>
-                        <version>1.7.0</version>
-                        <extensions>true</extensions>
-                        <configuration>
-                            <!-- https://help.sonatype.com/repomanager2/staging-releases/configuring-your-project-for-deployment -->
-                            <serverId>ossrh</serverId>
-                            <nexusUrl>https://ossrh-staging-api.central.sonatype.com/</nexusUrl>
-                            <autoReleaseAfterClose>true</autoReleaseAfterClose>
-                            <stagingProgressTimeoutMinutes>20</stagingProgressTimeoutMinutes>
-                            <keepStagingRepositoryOnCloseRuleFailure>true</keepStagingRepositoryOnCloseRuleFailure>
-                        </configuration>
-                    </plugin>
-                </plugins>
-            </build>
             <properties>
                 <!-- save time by skipping the tests during deploy -->
                 <maven.test.skip>true</maven.test.skip>
