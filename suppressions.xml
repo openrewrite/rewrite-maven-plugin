@@ -1,6 +1,6 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <suppressions xmlns="https://jeremylong.github.io/DependencyCheck/dependency-suppression.1.3.xsd">
-    <suppress until="2026-08-01Z">
+    <suppress until="2026-09-01Z">
         <notes><![CDATA[
        CVE-2026-53914 is unsafe deserialization of untrusted Kotlin build-cache
        metadata, allowing code execution (fixed in Kotlin 2.4.20). It requires local
@@ -9,13 +9,15 @@
        runtime dependency of the rewrite-kotlin recipe module, but the vulnerable code
        path is the Kotlin build-cache metadata deserialization in the Kotlin Gradle
        plugin / build tooling, which is not present in kotlin-stdlib and is not used by
-       this Maven plugin. No GA toolchain at 2.4.20 has been released yet (only
-       2.4.20-Beta1), so there is nothing to bump to. Re-evaluate when 2.4.20 goes GA.
+       this Maven plugin. No GA toolchain at 2.4.20 has been released yet (as of
+       2026-08-03 Maven Central has only 2.4.20-Beta2), so there is nothing to bump to.
+       Re-evaluate when 2.4.20 goes GA.
        Added: 2026-07-03
        ]]></notes>
+       <packageUrl regex="true">^pkg:maven/org\.jetbrains\.kotlin/.*@.*$</packageUrl>
         <cve>CVE-2026-53914</cve>
     </suppress>
-    <suppress until="2026-08-01Z">
+    <suppress until="2026-09-01Z">
         <notes><![CDATA[
        jackson-databind polymorphic-typing / deserialization advisories:
        CVE-2026-54512 (PolymorphicTypeValidator bypass via generic type parameters),
@@ -29,6 +31,7 @@
        when the jackson-bom moves to the clean 2.21.5+ patch release.
        Added: 2026-07-03
        ]]></notes>
+       <packageUrl regex="true">^pkg:maven/com\.fasterxml\.jackson\.core/jackson-databind@.*$</packageUrl>
         <cve>CVE-2026-54512</cve>
         <cve>CVE-2026-54513</cve>
         <cve>CVE-2026-54514</cve>
