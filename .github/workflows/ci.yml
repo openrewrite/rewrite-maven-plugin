@@ -65,12 +65,14 @@ jobs:
           CODEGENOME_TOKEN: ${{ secrets.CGP_ARTIFACTS_MAVEN_TOKEN }}
       - name: publish-snapshots
         if: github.event_name != 'pull_request'
-        run: ./mvnw --show-version --settings=${{ github.workspace }}/settings.xml --file=pom.xml --batch-mode -Dstyle.color=always --activate-profiles=sign-artifacts clean deploy -DskipTests
+        run: ./mvnw --show-version --global-settings=$HOME/.m2/settings.xml --settings=${{ github.workspace }}/settings.xml --file=pom.xml --batch-mode -Dstyle.color=always --activate-profiles=sign-artifacts clean deploy -DskipTests
         env:
           GITHUB_TOKEN: ${{ github.token }}
           SONATYPE_USERNAME: ${{ secrets.SONATYPE_USERNAME }}
           SONATYPE_PASSWORD: ${{ secrets.SONATYPE_TOKEN }}
           SONATYPE_SIGNING_PASSWORD: ${{ secrets.OSSRH_SIGNING_PASSWORD }}
+          CODEGENOME_USERNAME: ${{ secrets.CGP_ARTIFACTS_MAVEN_USERNAME }}
+          CODEGENOME_TOKEN: ${{ secrets.CGP_ARTIFACTS_MAVEN_TOKEN }}
       - name: slack-notification
         if: failure() && github.event_name == 'schedule' && (github.repository_owner == 'openrewrite' || github.repository_owner == 'moderneinc')
         uses: rtCamp/action-slack-notify@33ca3be66c6f378fe1610fd1d5258632dbed5e58
