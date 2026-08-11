@@ -132,7 +132,7 @@
             <dependency>
                 <groupId>org.apache.maven</groupId>
                 <artifactId>maven-api-xml</artifactId>
-                <version>4.0.0-rc-5</version>
+                <version>4.0.0-rc-6</version>
                 <scope>provided</scope>
             </dependency>
             <dependency>
@@ -472,8 +472,7 @@
             <plugin>
                 <groupId>com.mycila</groupId>
                 <artifactId>license-maven-plugin</artifactId>
-                <!-- 4.6 is the last version supporting Java 8 -->
-                <version>4.6</version>
+                <version>5.1.1</version>
                 <configuration>
                     <licenseSets>
                         <licenseSet>
@@ -493,14 +492,6 @@
                         </licenseSet>
                     </licenseSets>
                 </configuration>
-                <dependencies>
-                    <dependency>
-                        <groupId>com.mycila</groupId>
-                        <artifactId>license-maven-plugin-git</artifactId>
-                        <!-- make sure you use the same version as license-maven-plugin -->
-                        <version>4.6</version>
-                    </dependency>
-                </dependencies>
                 <executions>
                     <execution>
                         <id>first</id>
@@ -521,7 +512,7 @@
             <plugin>
                 <groupId>org.owasp</groupId>
                 <artifactId>dependency-check-maven</artifactId>
-                <version>12.2.2</version>
+                <version>13.0.0</version>
                 <configuration>
                     <nvdApiKey>${env.NVD_API_KEY}</nvdApiKey>
                     <suppressionFiles>
