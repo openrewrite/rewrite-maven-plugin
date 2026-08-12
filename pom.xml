@@ -552,6 +552,23 @@
         </profile>
 
         <profile>
+            <!-- Deploy to the Code Genome Project alongside Maven Central; artifacts.codegenomeproject.org
+                 is read-only, so writes go straight to the bucket behind it, through the s3 wagon in
+                 .mvn/extensions.xml. Credentials and region come from the AWS environment. -->
+            <id>codegenome-publish</id>
+            <distributionManagement>
+                <repository>
+                    <id>codegenome-s3</id>
+                    <url>s3://codegenome-artifacts/maven</url>
+                </repository>
+                <snapshotRepository>
+                    <id>codegenome-s3</id>
+                    <url>s3://codegenome-artifacts/maven</url>
+                </snapshotRepository>
+            </distributionManagement>
+        </profile>
+
+        <profile>
             <id>sign-artifacts</id>
             <build>
                 <plugins>
