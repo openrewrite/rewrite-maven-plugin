@@ -96,7 +96,7 @@ See the [Maven Plugin Configuration](https://docs.openrewrite.org/reference/rewr
 
 ### Snapshots
 
-To use the latest `-SNAPSHOT` version, add a `<pluginRepositories>` entry for OSSRH snapshots. For example:
+`-SNAPSHOT` versions are published to the [Code Genome Project](https://artifacts.codegenomeproject.org/maven), which requires credentials; add a matching `<server>` entry to your `~/.m2/settings.xml`. To use the latest `-SNAPSHOT` version, add a `<pluginRepositories>` entry for it. For example:
 
 ```xml
 <?xml version="1.0" encoding="UTF-8"?>
@@ -128,8 +128,11 @@ To use the latest `-SNAPSHOT` version, add a `<pluginRepositories>` entry for OS
 
     <pluginRepositories>
         <pluginRepository>
-            <id>ossrh-snapshots</id>
-            <url>https://central.sonatype.com/repository/maven-snapshots</url>
+            <id>codegenome</id>
+            <url>https://artifacts.codegenomeproject.org/maven</url>
+            <snapshots>
+                <enabled>true</enabled>
+            </snapshots>
         </pluginRepository>
     </pluginRepositories>
 
