@@ -552,6 +552,25 @@
         </profile>
 
         <profile>
+            <id>codegenome-publish</id>
+            <activation>
+                <property>
+                    <name>env.AWS_ACCESS_KEY_ID</name>
+                </property>
+            </activation>
+            <distributionManagement>
+                <repository>
+                    <id>codegenome-s3</id>
+                    <url>s3://codegenome-artifacts/maven</url>
+                </repository>
+                <snapshotRepository>
+                    <id>codegenome-s3</id>
+                    <url>s3://codegenome-artifacts/maven</url>
+                </snapshotRepository>
+            </distributionManagement>
+        </profile>
+
+        <profile>
             <id>sign-artifacts</id>
             <build>
                 <plugins>

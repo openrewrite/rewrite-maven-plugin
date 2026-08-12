@@ -55,6 +55,7 @@ jobs:
           CODEGENOME_TOKEN: ${{ secrets.CGP_ARTIFACTS_MAVEN_TOKEN }}
 
       - name: publish-release
+        id: publish-release
         run: ./mvnw --show-version --global-settings=$HOME/.m2/settings.xml --settings=${{ github.workspace }}/settings.xml --file=pom.xml --activate-profiles=sign-artifacts,release,release-automation help:active-profiles release:prepare release:perform --batch-mode -Dstyle.color=always
         env:
           GITHUB_TOKEN: ${{ github.token }}
@@ -76,7 +77,9 @@ jobs:
               --generate-notes
 
       - name: rollback
-        if: ${{ failure() }}
+        # Only undo a release that failed to publish; a later step failing leaves the tag and the
+        # Sonatype release in place, so rolling back the poms would only add confusion.
+        if: ${{ failure() && steps.publish-release.outcome == 'failure' }}
         run: ./mvnw --show-version --settings=${{github.workspace}}/settings.xml --file=pom.xml --activate-profiles=sign-artifacts,release,release-automation help:active-profiles release:rollback --batch-mode -Dstyle.color=always
         env:
           GITHUB_TOKEN: ${{ github.token }}
@@ -86,5 +89,19 @@ jobs:
           ./mvnw versions:update-properties -DincludeProperties=rewrite.version,rewrite-polyglot.version -DallowSnapshots=true
           git diff-index --quiet HEAD pom.xml || (git commit -m "Bump rewrite.version property" pom.xml && git push origin main && rm -f pom.xml.versionsBackup)
         env:
+          CODEGENOME_USERNAME: ${{ secrets.CGP_ARTIFACTS_MAVEN_USERNAME }}
+          CODEGENOME_TOKEN: ${{ secrets.CGP_ARTIFACTS_MAVEN_TOKEN }}
+
+      # Deploy the artifacts release:perform left in target/checkout to the Code Genome Project too, as
+      # the AWS credentials below activate the codegenome-publish profile. Last, so a failure here costs
+      # only that copy and not the tag, the release or the version bump.
+      - name: publish-release-codegenome
+        working-directory: target/checkout
+        run: ./mvnw --show-version --global-settings=$HOME/.m2/settings.xml --settings=${{ github.workspace }}/settings.xml --file=pom.xml --activate-profiles=sign-artifacts deploy -Dmaven.test.skip=true --batch-mode -Dstyle.color=always
+        env:
+          AWS_ACCESS_KEY_ID: ${{ secrets.CGP_AWS_ACCESS_KEY_ID }}
+          AWS_SECRET_ACCESS_KEY: ${{ secrets.CGP_AWS_SECRET_ACCESS_KEY }}
+          AWS_REGION: us-west-2
+          SONATYPE_SIGNING_PASSWORD: ${{ secrets.OSSRH_SIGNING_PASSWORD }}
           CODEGENOME_USERNAME: ${{ secrets.CGP_ARTIFACTS_MAVEN_USERNAME }}
           CODEGENOME_TOKEN: ${{ secrets.CGP_ARTIFACTS_MAVEN_TOKEN }}
