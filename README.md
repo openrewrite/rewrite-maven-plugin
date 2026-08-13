@@ -31,6 +31,68 @@ This `README` may not have the most up-to-date documentation. For the most up-to
 - [Maven Plugin Configuration](https://docs.openrewrite.org/reference/rewrite-maven-plugin)
 - [OpenRewrite Quickstart Guide](https://docs.openrewrite.org/running-recipes/getting-started)
 
+### Artifact repository
+
+OpenRewrite artifacts are published to the [Code Genome Project](https://artifacts.codegenomeproject.org/maven) rather than Maven Central. Versions released to Maven Central before the switch remain available there, but new releases are published only to the Code Genome Project.
+
+Reads require authentication. Sign in to the Code Genome Project and create a download token, then add a server to your `~/.m2/settings.xml` using the email or username you signed in with, plus that token as the password. See the [OpenRewrite Quickstart Guide](https://docs.openrewrite.org/running-recipes/getting-started) for details.
+
+```xml
+<?xml version="1.0" encoding="UTF-8"?>
+<settings>
+    <servers>
+        <server>
+            <id>codegenome</id>
+            <username>USERNAME</username>
+            <password>TOKEN</password>
+        </server>
+    </servers>
+</settings>
+```
+
+Then declare the repository in your POM, under both `<repositories>` and `<pluginRepositories>`, using the same `codegenome` id as the server above:
+
+```xml
+<?xml version="1.0" encoding="UTF-8"?>
+<project>
+    ...
+    <repositories>
+        <repository>
+            <id>codegenome</id>
+            <url>https://artifacts.codegenomeproject.org/maven</url>
+            <snapshots>
+                <enabled>true</enabled>
+            </snapshots>
+        </repository>
+    </repositories>
+
+    <pluginRepositories>
+        <pluginRepository>
+            <id>codegenome</id>
+            <url>https://artifacts.codegenomeproject.org/maven</url>
+            <snapshots>
+                <enabled>true</enabled>
+            </snapshots>
+        </pluginRepository>
+    </pluginRepositories>
+
+</project>
+```
+
+Both entries are needed, as they cover different resolution paths. `<pluginRepositories>` resolves the plugin itself and any recipe modules declared in its `<dependencies>`, while `<repositories>` resolves `rewrite.recipeArtifactCoordinates` and any OpenRewrite artifacts in your project's own dependency tree. Snapshots are enabled on both because releases and snapshots are served from this one repository.
+
+If your `settings.xml` defines a catch-all mirror, exclude the Code Genome Project from it so that the `codegenome` credentials still apply; otherwise configure the mirror itself to proxy the repository:
+
+```xml
+<mirror>
+    <id>internal-repository</id>
+    <url>https://repo.example.com/maven2</url>
+    <mirrorOf>*,!codegenome</mirrorOf>
+</mirror>
+```
+
+### Plugin configuration
+
 To configure, add the plugin to your POM:
 
 ```xml
@@ -96,7 +158,7 @@ See the [Maven Plugin Configuration](https://docs.openrewrite.org/reference/rewr
 
 ### Snapshots
 
-To use the latest `-SNAPSHOT` version, add a `<pluginRepositories>` entry for OSSRH snapshots. For example:
+Snapshots are served from the same Code Genome Project repository as releases, so the configuration above is all that is needed to resolve them. Set the plugin version, and the version of any recipe modules, to the `-SNAPSHOT` you want:
 
 ```xml
 <?xml version="1.0" encoding="UTF-8"?>
@@ -125,14 +187,6 @@ To use the latest `-SNAPSHOT` version, add a `<pluginRepositories>` entry for OS
             </plugin>
         </plugins>
     </build>
-
-    <pluginRepositories>
-        <pluginRepository>
-            <id>ossrh-snapshots</id>
-            <url>https://central.sonatype.com/repository/maven-snapshots</url>
-        </pluginRepository>
-    </pluginRepositories>
-
 </project>
 ```
 
