@@ -142,9 +142,10 @@ public abstract class AbstractRewriteBaseRunMojo extends AbstractRewriteMojo {
             if (!failedValidations.isEmpty()) {
                 failedValidations.forEach(failedValidation -> getLog().error(
                         String.format(
-                                "Recipe validation error in %s for property %s: %s",
+                                "Recipe validation error in %s for property %s with invalid value %s: %s",
                                 recipe.getName(),
                                 failedValidation.getProperty(),
+                                failedValidation.getInvalidValue(),
                                 failedValidation.getMessage()),
                         failedValidation.getException()));
                 if (failOnInvalidActiveRecipes) {
