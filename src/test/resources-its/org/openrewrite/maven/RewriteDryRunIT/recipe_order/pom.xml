@@ -35,10 +35,43 @@
                     <dependency>
                         <groupId>org.openrewrite.recipe</groupId>
                         <artifactId>rewrite-static-analysis</artifactId>
-                        <version>1.0.4</version>
+                        <version>2.41.1</version>
                     </dependency>
                 </dependencies>
             </plugin>
         </plugins>
     </build>
+
+    <profiles>
+        <profile>
+            <!-- Resolve org.openrewrite artifacts from the Code Genome Project rather than Maven Central.
+                 Inactive on fork builds, which receive no credentials and fall back to Maven Central.
+                 Releases only: the plugin under test is served from the itf repository, and fetching
+                 snapshot metadata from the Code Genome Project emits checksum warnings the ITs assert against. -->
+            <id>codegenome</id>
+            <activation>
+                <property>
+                    <name>env.CODEGENOME_USERNAME</name>
+                </property>
+            </activation>
+            <repositories>
+                <repository>
+                    <id>codegenome</id>
+                    <url>https://artifacts.codegenomeproject.org/maven</url>
+                    <snapshots>
+                        <enabled>false</enabled>
+                    </snapshots>
+                </repository>
+            </repositories>
+            <pluginRepositories>
+                <pluginRepository>
+                    <id>codegenome</id>
+                    <url>https://artifacts.codegenomeproject.org/maven</url>
+                    <snapshots>
+                        <enabled>false</enabled>
+                    </snapshots>
+                </pluginRepository>
+            </pluginRepositories>
+        </profile>
+    </profiles>
 </project>
