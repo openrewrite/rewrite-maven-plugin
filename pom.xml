@@ -85,6 +85,8 @@
 
         <!-- filtered into the integration test fixtures under src/test/resources-its -->
         <rewrite-all.version>1.28.1</rewrite-all.version>
+        <rewrite-java.version>8.90.4</rewrite-java.version>
+        <rewrite-migrate-java.version>3.42.1</rewrite-migrate-java.version>
         <rewrite-static-analysis.version>2.41.1</rewrite-static-analysis.version>
     </properties>
 
