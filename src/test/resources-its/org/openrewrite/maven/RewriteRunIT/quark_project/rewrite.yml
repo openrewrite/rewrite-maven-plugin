@@ -1,0 +1,7 @@
+---
+type: specs.openrewrite.org/v1beta/recipe
+name: com.example.RewriteRunIT.QuarkProject
+
+recipeList:
+  - org.openrewrite.FindSourceFiles:
+      filePattern: '**/*.jks'

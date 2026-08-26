@@ -129,7 +129,7 @@ class RewriteRunIT {
     }
 
     @MavenTest
-    void cloud_suitability_project(MavenExecutionResult result) {
+    void quark_project(MavenExecutionResult result) {
         assertThat(result)
           .isSuccessful()
           .out()
