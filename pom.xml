@@ -50,13 +50,17 @@
     </issueManagement>
 
     <distributionManagement>
+        <!-- Publishing only; consumers resolve from https://artifacts.codegenomeproject.org/maven, which
+             serves both releases and snapshots. The s3:// URL below is that same Code Genome Project
+             repository's write side, as its HTTP service is read-only; region and credentials for it come
+             from the AWS environment. -->
         <snapshotRepository>
-            <id>ossrh</id>
-            <url>https://central.sonatype.com/repository/maven-snapshots</url>
+            <id>codegenome-s3</id>
+            <url>s3://codegenome-artifacts/maven</url>
         </snapshotRepository>
         <repository>
-            <id>ossrh</id>
-            <url>https://oss.sonatype.org/service/local/staging/deploy/maven2</url>
+            <id>codegenome-s3</id>
+            <url>s3://codegenome-artifacts/maven</url>
         </repository>
     </distributionManagement>
 
@@ -558,25 +562,6 @@
         </profile>
 
         <profile>
-            <id>codegenome-publish</id>
-            <activation>
-                <property>
-                    <name>env.AWS_ACCESS_KEY_ID</name>
-                </property>
-            </activation>
-            <distributionManagement>
-                <repository>
-                    <id>codegenome-s3</id>
-                    <url>s3://codegenome-artifacts/maven</url>
-                </repository>
-                <snapshotRepository>
-                    <id>codegenome-s3</id>
-                    <url>s3://codegenome-artifacts/maven</url>
-                </snapshotRepository>
-            </distributionManagement>
-        </profile>
-
-        <profile>
             <id>sign-artifacts</id>
             <build>
                 <plugins>
@@ -606,24 +591,6 @@
         </profile>
         <profile>
             <id>release</id>
-            <build>
-                <plugins>
-                    <plugin>
-                        <groupId>org.sonatype.plugins</groupId>
-                        <artifactId>nexus-staging-maven-plugin</artifactId>
-                        <version>1.7.0</version>
-                        <extensions>true</extensions>
-                        <configuration>
-                            <!-- https://help.sonatype.com/repomanager2/staging-releases/configuring-your-project-for-deployment -->
-                            <serverId>ossrh</serverId>
-                            <nexusUrl>https://ossrh-staging-api.central.sonatype.com/</nexusUrl>
-                            <autoReleaseAfterClose>true</autoReleaseAfterClose>
-                            <stagingProgressTimeoutMinutes>20</stagingProgressTimeoutMinutes>
-                            <keepStagingRepositoryOnCloseRuleFailure>true</keepStagingRepositoryOnCloseRuleFailure>
-                        </configuration>
-                    </plugin>
-                </plugins>
-            </build>
             <properties>
                 <!-- save time by skipping the tests during deploy -->
                 <maven.test.skip>true</maven.test.skip>
