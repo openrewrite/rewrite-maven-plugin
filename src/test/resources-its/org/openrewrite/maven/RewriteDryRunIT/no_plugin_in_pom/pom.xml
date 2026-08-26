@@ -29,4 +29,37 @@
         <maven.compiler.target>1.8</maven.compiler.target>
         <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
     </properties>
+
+    <profiles>
+        <profile>
+            <!-- Resolve org.openrewrite artifacts from the Code Genome Project rather than Maven Central.
+                 Inactive on fork builds, which receive no credentials and fall back to Maven Central.
+                 Releases only: the plugin under test is served from the itf repository, and fetching
+                 snapshot metadata from the Code Genome Project emits checksum warnings the ITs assert against. -->
+            <id>codegenome</id>
+            <activation>
+                <property>
+                    <name>env.CODEGENOME_USERNAME</name>
+                </property>
+            </activation>
+            <repositories>
+                <repository>
+                    <id>codegenome</id>
+                    <url>https://artifacts.codegenomeproject.org/maven</url>
+                    <snapshots>
+                        <enabled>false</enabled>
+                    </snapshots>
+                </repository>
+            </repositories>
+            <pluginRepositories>
+                <pluginRepository>
+                    <id>codegenome</id>
+                    <url>https://artifacts.codegenomeproject.org/maven</url>
+                    <snapshots>
+                        <enabled>false</enabled>
+                    </snapshots>
+                </pluginRepository>
+            </pluginRepositories>
+        </profile>
+    </profiles>
 </project>

@@ -67,7 +67,7 @@ class RewriteDryRunIT {
 
     @MavenTest
     @SystemProperties({
-            @SystemProperty(value = "rewrite.recipeArtifactCoordinates", content = "org.openrewrite.recipe:rewrite-testing-frameworks:2.0.3"),
+            @SystemProperty(value = "rewrite.recipeArtifactCoordinates", content = "org.openrewrite.recipe:rewrite-testing-frameworks:3.44.0"),
             @SystemProperty(value = "rewrite.activeRecipes", content = "org.openrewrite.java.testing.cleanup.AssertTrueNullToAssertNull")
     })
     void no_plugin_in_pom(MavenExecutionResult result) {
