@@ -84,6 +84,7 @@
         <maven-plugin-tools.version>3.15.2</maven-plugin-tools.version>
 
         <!-- filtered into the integration test fixtures under src/test/resources-its -->
+        <rewrite-all.version>1.28.1</rewrite-all.version>
         <rewrite-static-analysis.version>2.41.1</rewrite-static-analysis.version>
     </properties>
 

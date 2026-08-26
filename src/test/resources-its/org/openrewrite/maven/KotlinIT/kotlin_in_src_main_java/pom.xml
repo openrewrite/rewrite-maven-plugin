@@ -87,7 +87,7 @@
                     <dependency>
                         <groupId>org.openrewrite.recipe</groupId>
                         <artifactId>rewrite-all</artifactId>
-                        <version>1.28.1</version>
+                        <version>@rewrite-all.version@</version>
                     </dependency>
                 </dependencies>
             </plugin>
