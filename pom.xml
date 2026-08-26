@@ -50,8 +50,10 @@
     </issueManagement>
 
     <distributionManagement>
-        <!-- The Code Genome Project serves releases and snapshots from one flat repository, written to
-             through its backing S3 bucket; region and credentials come from the AWS environment. -->
+        <!-- Publishing only; consumers resolve from https://artifacts.codegenomeproject.org/maven, which
+             serves both releases and snapshots. The s3:// URL below is that same Code Genome Project
+             repository's write side, as its HTTP service is read-only; region and credentials for it come
+             from the AWS environment. -->
         <snapshotRepository>
             <id>codegenome-s3</id>
             <url>s3://codegenome-artifacts/maven</url>
