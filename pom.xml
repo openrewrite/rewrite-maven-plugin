@@ -118,7 +118,7 @@
             <dependency>
                 <groupId>org.codehaus.plexus</groupId>
                 <artifactId>plexus-utils</artifactId>
-                <version>3.6.1</version>
+                <version>3.6.2</version>
             </dependency>
             <!-- Transitive through Plexus, but with provided scope -->
             <dependency>
