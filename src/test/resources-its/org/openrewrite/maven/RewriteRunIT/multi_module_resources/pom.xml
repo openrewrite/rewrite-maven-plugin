@@ -36,7 +36,7 @@
                     <dependency>
                         <groupId>org.openrewrite.recipe</groupId>
                         <artifactId>rewrite-static-analysis</artifactId>
-                        <version>2.41.1</version>
+                        <version>@rewrite-static-analysis.version@</version>
                     </dependency>
                 </dependencies>
             </plugin>
