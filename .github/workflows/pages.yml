@@ -37,8 +37,15 @@ jobs:
           distribution: temurin
           java-version: 17
           cache: maven
+          server-id: codegenome
+          server-username: CODEGENOME_USERNAME
+          server-password: CODEGENOME_TOKEN
       - name: site
         run: ./mvnw --show-version --update-snapshots clean site --file=pom.xml --fail-at-end --batch-mode -Dstyle.color=always -Ddependency-check.skip=true
+        env:
+          # Activates the codegenome profile in pom.xml, which serves the upstream OpenRewrite snapshots.
+          CODEGENOME_USERNAME: ${{ secrets.CODEGENOME_USERNAME }}
+          CODEGENOME_TOKEN: ${{ secrets.CODEGENOME_TOKEN }}
       - uses: actions/configure-pages@v6
       - uses: actions/upload-pages-artifact@v5
         with:
