@@ -47,8 +47,8 @@
         <profile>
             <!-- Resolve org.openrewrite artifacts from the Code Genome Project rather than Maven Central.
                  Inactive on fork builds, which receive no credentials and fall back to Maven Central.
-                 Releases only: the plugin under test is served from the itf repository, and fetching
-                 snapshot metadata from the Code Genome Project emits checksum warnings the ITs assert against. -->
+                 Snapshots enabled: the plugin under test depends on org.openrewrite snapshots, which
+                 are published solely to the Code Genome Project. -->
             <id>codegenome</id>
             <activation>
                 <property>
@@ -60,7 +60,7 @@
                     <id>codegenome</id>
                     <url>https://artifacts.codegenomeproject.org/maven</url>
                     <snapshots>
-                        <enabled>false</enabled>
+                        <enabled>true</enabled>
                     </snapshots>
                 </repository>
             </repositories>
@@ -69,7 +69,7 @@
                     <id>codegenome</id>
                     <url>https://artifacts.codegenomeproject.org/maven</url>
                     <snapshots>
-                        <enabled>false</enabled>
+                        <enabled>true</enabled>
                     </snapshots>
                 </pluginRepository>
             </pluginRepositories>
