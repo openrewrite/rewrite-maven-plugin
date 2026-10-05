@@ -81,7 +81,7 @@
 
         <!-- dependencies and plugins -->
         <jackson-bom.version>2.21.7</jackson-bom.version>
-        <rocksdbjni.version>8.8.1</rocksdbjni.version>
+        <rocksdbjni.version>11.0.4</rocksdbjni.version>
         <itf-maven.version>0.13.1</itf-maven.version>
         <maven-dependencies.version>3.9.16</maven-dependencies.version>
         <maven-release-plugin.version>3.3.1</maven-release-plugin.version>
