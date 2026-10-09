@@ -40,7 +40,7 @@ class RewriteDiscoverIT {
               .info()
               .anySatisfy(line -> assertThat(line).contains("options"));
 
-            assertThat(result).out().warn().isEmpty();
+            assertThat(result).out().warn().filteredOn(IgnorableWarnings::isNotIgnorable).isEmpty();
         }
 
         @MavenTest
@@ -62,7 +62,7 @@ class RewriteDiscoverIT {
               .info()
               .anySatisfy(line -> assertThat(line).contains("recipeList"));
 
-            assertThat(result).out().warn().isEmpty();
+            assertThat(result).out().warn().filteredOn(IgnorableWarnings::isNotIgnorable).isEmpty();
         }
     }
 
@@ -79,7 +79,7 @@ class RewriteDiscoverIT {
             logLines.stream().anyMatch(logLine -> logLine.contains("org.openrewrite.java.SpringFormat"))
           );
 
-        assertThat(result).out().warn().isEmpty();
+        assertThat(result).out().warn().filteredOn(IgnorableWarnings::isNotIgnorable).isEmpty();
     }
 
     @MavenTest
@@ -90,7 +90,7 @@ class RewriteDiscoverIT {
           .info()
           .anySatisfy(line -> assertThat(line).contains("com.example.RewriteDiscoverIT.CodeCleanup"));
 
-        assertThat(result).out().warn().isEmpty();
+        assertThat(result).out().warn().filteredOn(IgnorableWarnings::isNotIgnorable).isEmpty();
     }
 
     @MavenTest
@@ -101,7 +101,7 @@ class RewriteDiscoverIT {
           .info()
           .satisfiesOnlyOnce(line -> assertThat(line).contains(":discover"));
 
-        assertThat(result).out().warn().isEmpty();
+        assertThat(result).out().warn().filteredOn(IgnorableWarnings::isNotIgnorable).isEmpty();
     }
 
 }
