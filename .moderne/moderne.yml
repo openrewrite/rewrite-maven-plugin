@@ -1,0 +1,6 @@
+# WARNING: Manual edits may be overwritten or cause unexpected behavior, settings should be managed via `mod config *`.
+specs: specs.moderne.ai/v1/cli
+maven:
+  build:
+    arguments:
+      - -Pcodegenome
