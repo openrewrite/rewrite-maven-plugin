@@ -15,5 +15,6 @@ pom.xml.versionsBackup
 # Moderne CLI
 .moderne/*
 !.moderne/context/
+!.moderne/moderne.yml
 
 .context/
