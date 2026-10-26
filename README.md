@@ -15,7 +15,7 @@
 <div align="center">
 
 <!-- Keep the gap above this line, otherwise they won't render correctly! -->
-[![ci](https://github.com/openrewrite/rewrite-maven-plugin/actions/workflows/ci.yml/badge.svg)](https://github.com/openrewrite/rewrite-maven-plugin/actions/workflows/ci.yml)
+[![ci](https://codegenomeproject.org/ci/modules/openrewrite/rewrite-maven-plugin/badge.svg)](https://codegenomeproject.org/ci/modules/openrewrite/rewrite-maven-plugin/builds/latest)
 [![Contributing Guide](https://img.shields.io/badge/Contributing-Guide-informational)](https://github.com/openrewrite/.github/blob/main/CONTRIBUTING.md)
 </div>
 
