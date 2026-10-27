@@ -17,24 +17,4 @@
        <packageUrl regex="true">^pkg:maven/org\.jetbrains\.kotlin/.*@.*$</packageUrl>
         <cve>CVE-2026-53914</cve>
     </suppress>
-    <suppress until="2026-10-01Z">
-        <notes><![CDATA[
-       jackson-databind polymorphic-typing / deserialization advisories:
-       CVE-2026-54512 (PolymorphicTypeValidator bypass via generic type parameters),
-       CVE-2026-54513 (allowIfSubTypeIsArray allowlist bypass), CVE-2026-54514
-       (InetSocketAddress eager DNS resolution / SSRF) and CVE-2026-54515
-       (case-insensitive deserialization bypasses per-property @JsonIgnoreProperties).
-       All require enabling default/polymorphic typing on attacker-controlled input;
-       rewrite-maven-plugin uses jackson only to read Maven/recipe configuration and
-       serialized LSTs, not untrusted polymorphic JSON, so the gadget paths are not
-       reachable. jackson is managed centrally via jackson-bom (2.21.4). Re-evaluate
-       when the jackson-bom moves to the clean 2.21.5+ patch release.
-       Added: 2026-07-03
-       ]]></notes>
-       <packageUrl regex="true">^pkg:maven/com\.fasterxml\.jackson\.core/jackson-databind@.*$</packageUrl>
-        <cve>CVE-2026-54512</cve>
-        <cve>CVE-2026-54513</cve>
-        <cve>CVE-2026-54514</cve>
-        <cve>CVE-2026-54515</cve>
-    </suppress>
 </suppressions>
