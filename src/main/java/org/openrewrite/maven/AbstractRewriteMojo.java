@@ -50,8 +50,7 @@ public abstract class AbstractRewriteMojo extends ConfigurableRewriteMojo {
     protected MavenProject project;
 
     /**
-     * Whether to resolve properties in YAML configuration files, like{@code ${project.artifactId} }.
-     * Default true; set to false to disable.
+     * Whether to resolve Maven properties, like <code>${project.artifactId}</code>, in the YAML configuration file.
      */
     @Parameter(property = "rewrite.resolvePropertiesInYaml", defaultValue = "true")
     protected boolean resolvePropertiesInYaml;

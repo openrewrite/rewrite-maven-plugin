@@ -39,12 +39,16 @@ import java.util.stream.Stream;
  */
 public class AbstractRewriteDryRunMojo extends AbstractRewriteBaseRunMojo {
 
+    /**
+     * The directory to write {@code rewrite.patch} to. Defaults to {@code target/rewrite} in the top-level project,
+     * or in each module when {@code runPerSubmodule} is enabled.
+     */
     @Parameter(property = "reportOutputDirectory")
     @Nullable
     private String reportOutputDirectory;
 
     /**
-     * Whether to throw an exception if there are any result changes produced.
+     * Whether to fail the build when recipes would make changes, to use the goal as a check in continuous integration.
      */
     @Parameter(property = "failOnDryRunResults", defaultValue = "false")
     private boolean failOnDryRunResults;
