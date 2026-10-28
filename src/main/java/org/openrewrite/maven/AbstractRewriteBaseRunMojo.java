@@ -56,15 +56,23 @@ import static java.util.stream.Collectors.toList;
 
 public abstract class AbstractRewriteBaseRunMojo extends AbstractRewriteMojo {
 
+    /**
+     * Whether to export the data tables that recipes produce as CSV files, to {@code target/rewrite/datatables}.
+     */
     @Parameter(property = "rewrite.exportDatatables", defaultValue = "false")
     protected boolean exportDatatables;
 
+    /**
+     * Options to configure the active recipe with, as {@code key=value} pairs.
+     * Only a single recipe that does not include other recipes can be configured this way.
+     * For example, {@code -Drewrite.options=methodPattern=java.util.List add(..),key2=value2}.
+     */
     @Parameter(property = "rewrite.options")
     @Nullable
     protected LinkedHashSet<String> options;
 
     /**
-     * The level used to log changes performed by recipes.
+     * The level to log the changes that recipes make at: {@code ERROR}, {@code WARN}, {@code INFO} or {@code DEBUG}.
      */
     @Parameter(property = "rewrite.recipeChangeLogLevel", defaultValue = "WARN")
     protected LogLevel recipeChangeLogLevel;

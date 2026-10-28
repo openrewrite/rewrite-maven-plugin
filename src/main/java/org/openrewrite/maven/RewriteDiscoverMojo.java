@@ -38,21 +38,21 @@ import java.util.*;
 public class RewriteDiscoverMojo extends AbstractRewriteMojo {
 
     /**
-     * The name of a specific recipe to show details for. For example:<br>
-     * {@code ./mvnw rewrite:discover -Ddetail=true -Drecipe=org.openrewrite.java.format.AutoFormat}
+     * The name of a recipe to show, instead of every recipe.
+     * For example, {@code ./mvnw rewrite:discover -Ddetail=true -Drecipe=org.openrewrite.java.format.AutoFormat}.
      */
     @Parameter(property = "recipe")
     @Nullable
     String recipe;
 
     /**
-     * Whether to display recipe details such as displayName, description, and configuration options.
+     * Whether to show the display name, description and options of each recipe.
      */
     @Parameter(property = "detail", defaultValue = "false")
     boolean detail;
 
     /**
-     * The maximum level of recursion to display recipe descriptors under recipeList.
+     * How many levels of the recipes that a recipe includes to show.
      */
     @Parameter(property = "recursion", defaultValue = "0")
     int recursion;

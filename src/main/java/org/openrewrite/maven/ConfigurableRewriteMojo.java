@@ -48,41 +48,76 @@ public abstract class ConfigurableRewriteMojo extends AbstractMojo {
                                                      "\"-//Checkstyle//DTD Checkstyle Configuration 1.3//EN\" " +
                                                      "\"https://checkstyle.org/dtds/configuration_1_3.dtd\"";
 
+    /**
+     * The OpenRewrite YAML configuration file, as a path or an {@code http(s)} URL.
+     * A relative path is resolved against the directory of each module, so prefixing it with
+     * <code>${maven.multiModuleProjectDirectory}</code> has every module use the same file at the root of the repository.
+     */
     @Parameter(property = "rewrite.configLocation", alias = "configLocation", defaultValue = "${maven.multiModuleProjectDirectory}/rewrite.yml")
     protected String configLocation;
 
+    /**
+     * The recipes to run, by the name they are given in their {@code specs.openrewrite.org/v1beta/recipe} resource.
+     * No recipe runs unless it is listed here.
+     */
     @Parameter(property = "rewrite.activeRecipes")
     @Nullable
     protected LinkedHashSet<String> activeRecipes;
 
+    /**
+     * The styles to apply, by the name they are given in their {@code specs.openrewrite.org/v1beta/style} resource.
+     * No style is applied unless it is listed here.
+     */
     @Parameter(property = "rewrite.activeStyles")
     @Nullable
     protected LinkedHashSet<String> activeStyles;
 
+    /**
+     * Whether to cache downloaded POMs and Maven metadata on disk, in {@code pomCacheDirectory}.
+     * When disabled, an in-memory cache is used instead, which makes runs slower on projects with deep dependency trees.
+     */
     @Parameter(property = "rewrite.pomCacheEnabled", alias = "pomCacheEnabled", defaultValue = "true")
     protected boolean pomCacheEnabled;
 
+    /**
+     * The directory to create the {@code .rewrite-cache} directory with cached POMs and Maven metadata in.
+     * Defaults to the user's home directory. Deleting the cache is safe, as it is populated again on the next run.
+     */
     @Parameter(property = "rewrite.pomCacheDirectory", alias = "pomCacheDirectory")
     @Nullable
     protected String pomCacheDirectory;
 
+    /**
+     * Whether to skip the execution of the plugin, to disable it without removing its configuration.
+     */
     @Parameter(property = "rewrite.skip", defaultValue = "false")
     protected boolean rewriteSkip;
 
     /**
-     * When enabled, skip parsing Maven `pom.xml`s, and any transitive poms, as source files.
-     * This can be an efficiency improvement in certain situations.
+     * Whether to skip parsing {@code pom.xml} files, and the POMs they inherit from, as source files.
+     * This can make runs faster when no recipe changes POMs.
      */
     @Parameter(property = "skipMavenParsing", defaultValue = "false")
     protected boolean skipMavenParsing;
 
+    /**
+     * A Checkstyle configuration file to derive the coding style from, instead of detecting it from the Checkstyle plugin.
+     */
     @Parameter(property = "rewrite.checkstyleConfigFile", alias = "checkstyleConfigFile")
     @Nullable
     protected String checkstyleConfigFile;
 
+    /**
+     * Whether to derive the coding style from the configuration of the Checkstyle plugin, when the build uses it.
+     */
     @Parameter(property = "rewrite.checkstyleDetectionEnabled", alias = "checkstyleDetectionEnabled", defaultValue = "true")
     protected boolean checkstyleDetectionEnabled;
 
+    /**
+     * Paths not to parse, as <a href="https://docs.oracle.com/javase/8/docs/api/java/nio/file/PathMatcher.html">{@code PathMatcher}</a>
+     * glob patterns relative to the root of the repository, where {@code **} matches any number of directories and
+     * {@code *} a single directory or file name. For example, {@code docs&#47;**}.
+     */
     @Parameter(property = "rewrite.exclusions")
     @Nullable
     private LinkedHashSet<String> exclusions;
@@ -92,16 +127,17 @@ public abstract class ConfigurableRewriteMojo extends AbstractMojo {
     }
 
     /**
-     * Override default plain text masks. If this is specified,
-     * {@code rewrite.additionalPlainTextMasks} will have no effect.
+     * The files to parse as plain text, as glob patterns like those of {@code exclusions}, replacing the default masks.
+     * The defaults cover common text files without a dedicated parser, such as Markdown, shell scripts and Dockerfiles.
+     * Exclusions take precedence over plain text masks, and {@code additionalPlainTextMasks} has no effect when this is set.
      */
     @Parameter(property = "rewrite.plainTextMasks")
     @Nullable
     private LinkedHashSet<String> plainTextMasks;
 
     /**
-     * Allows adding additional plain text masks without overriding
-     * the defaults.
+     * Files to parse as plain text in addition to the default masks, as glob patterns like those of {@code exclusions}.
+     * For example, {@code **&#47;*.ext}.
      */
     @Parameter(property = "rewrite.additionalPlainTextMasks")
     @Nullable
@@ -157,19 +193,22 @@ public abstract class ConfigurableRewriteMojo extends AbstractMojo {
         return unmodifiableSet(masks);
     }
 
+    /**
+     * The size in megabytes above which files other than Java sources are not parsed.
+     */
     @Parameter(property = "sizeThresholdMb", defaultValue = "10")
     protected int sizeThresholdMb;
 
     /**
-     * Whether to throw an exception if an activeRecipe fails configuration validation.
-     * This may happen if the activeRecipe is improperly configured, or any downstream recipes are improperly configured.
-     * <p>
-     * For the time, this default is "false" to prevent one improper recipe from failing the build.
-     * In the future, this default may be changed to "true" to be more restrictive.
+     * Whether to fail the build when an active recipe, or a recipe it includes, is not configured correctly.
+     * This may default to {@code true} in the future.
      */
     @Parameter(property = "rewrite.failOnInvalidActiveRecipes", alias = "failOnInvalidActiveRecipes", defaultValue = "false")
     protected boolean failOnInvalidActiveRecipes;
 
+    /**
+     * Whether to run recipes on each module separately, rather than once on all the modules of the build.
+     */
     @Parameter(property = "rewrite.runPerSubmodule", alias = "runPerSubmodule", defaultValue = "false")
     protected boolean runPerSubmodule;
 
@@ -201,6 +240,10 @@ public abstract class ConfigurableRewriteMojo extends AbstractMojo {
         return mavenSession.getProjects().stream().allMatch(this::hasState);
     }
 
+    /**
+     * Recipe artifacts to add, as {@code groupId:artifactId:version} coordinates, instead of or in addition to plugin dependencies.
+     * These are resolved from the repositories of the project rather than its plugin repositories.
+     */
     @Parameter(property = "rewrite.recipeArtifactCoordinates")
     @Nullable
     private LinkedHashSet<String> recipeArtifactCoordinates;
