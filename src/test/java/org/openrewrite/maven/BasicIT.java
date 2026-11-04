@@ -73,6 +73,8 @@ class BasicIT {
 
     @MavenGoal("${project.groupId}:${project.artifactId}:${project.version}:dryRun")
     @MavenOption(value = MavenCLIOptions.SETTINGS, parameter = "settings-user.xml")
+    @MavenOption("--errors")
+    @MavenOption("--debug")
     @MavenProfile("example_profile_id")
     @MavenTest
     @SystemProperty(value = "REPOSITORY_URL", content = "https://packages.nuxeo.com/repository/maven-public/")
