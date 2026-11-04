@@ -6,8 +6,8 @@
     <mirrors>
         <mirror>
             <id>moderne-cache</id>
-            <mirrorOf>${its.mirrorOf}</mirrorOf>
-            <url>${its.mirrorUrl}</url>
+            <mirrorOf>@its.mirrorOf@</mirrorOf>
+            <url>${env.MAVEN_CENTRAL_MIRROR_URL}</url>
         </mirror>
     </mirrors>
     <servers>

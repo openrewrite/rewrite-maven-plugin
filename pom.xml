@@ -94,7 +94,6 @@
         <rewrite-static-analysis.version>2.41.1</rewrite-static-analysis.version>
         <!-- a mirror of no repository, unless the maven-central-mirror profile sets one -->
         <its.mirrorOf>none</its.mirrorOf>
-        <its.mirrorUrl>https://repo.maven.apache.org/maven2</its.mirrorUrl>
     </properties>
 
     <dependencyManagement>
@@ -587,7 +586,6 @@
             </activation>
             <properties>
                 <its.mirrorOf>*</its.mirrorOf>
-                <its.mirrorUrl>${env.MAVEN_CENTRAL_MIRROR_URL}</its.mirrorUrl>
             </properties>
         </profile>
 
