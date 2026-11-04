@@ -1,9 +1,21 @@
 <settings xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xmlns="http://maven.apache.org/SETTINGS/1.0.0"
           xsi:schemaLocation="http://maven.apache.org/SETTINGS/1.0.0
                     http://maven.apache.org/xsd/settings-1.0.0.xsd">
-    <!-- Replaces the user settings written by the CI job, so the plugin under test can still resolve
-         its org.openrewrite snapshot dependencies from the Code Genome Project. -->
+    <!-- Replaces the user settings of CGP's build image, so keeps their Maven Central mirror, and the
+         credentials the plugin under test needs to resolve its org.openrewrite snapshots from CGP. -->
+    <mirrors>
+        <mirror>
+            <id>moderne-cache</id>
+            <mirrorOf>@its.mirrorOf@</mirrorOf>
+            <url>${env.MAVEN_CENTRAL_MIRROR_URL}</url>
+        </mirror>
+    </mirrors>
     <servers>
+        <server>
+            <id>moderne-cache</id>
+            <username>${env.MAVEN_CENTRAL_MIRROR_USERNAME}</username>
+            <password>${env.MAVEN_CENTRAL_MIRROR_PASSWORD}</password>
+        </server>
         <server>
             <id>codegenome</id>
             <username>${env.CODEGENOME_USERNAME}</username>
