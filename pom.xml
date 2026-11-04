@@ -92,6 +92,9 @@
         <rewrite-java.version>8.90.4</rewrite-java.version>
         <rewrite-migrate-java.version>3.42.1</rewrite-migrate-java.version>
         <rewrite-static-analysis.version>2.41.1</rewrite-static-analysis.version>
+        <!-- a mirror of no repository, unless the maven-central-mirror profile sets one -->
+        <its.mirrorOf>none</its.mirrorOf>
+        <its.mirrorUrl>https://repo.maven.apache.org/maven2</its.mirrorUrl>
     </properties>
 
     <dependencyManagement>
@@ -571,6 +574,21 @@
                     </snapshots>
                 </pluginRepository>
             </pluginRepositories>
+        </profile>
+
+        <profile>
+            <!-- CGP's build image mirrors every repository through the Maven Central mirror in its user settings,
+                 as Central rate-limits CGP's address; ITs that bring their own user settings need it too -->
+            <id>maven-central-mirror</id>
+            <activation>
+                <property>
+                    <name>env.MAVEN_CENTRAL_MIRROR_URL</name>
+                </property>
+            </activation>
+            <properties>
+                <its.mirrorOf>*</its.mirrorOf>
+                <its.mirrorUrl>${env.MAVEN_CENTRAL_MIRROR_URL}</its.mirrorUrl>
+            </properties>
         </profile>
 
         <profile>
