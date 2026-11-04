@@ -291,14 +291,6 @@
     </dependencies>
 
     <build>
-        <extensions>
-            <!-- s3 wagon for distributionManagement; artifacts.codegenomeproject.org is read-only -->
-            <extension>
-                <groupId>net.pennix</groupId>
-                <artifactId>maven-wagon-s3v2</artifactId>
-                <version>1.0.3</version>
-            </extension>
-        </extensions>
         <testResources>
             <testResource>
                 <directory>src/test/resources</directory>
