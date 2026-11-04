@@ -1,5 +1,5 @@
 /*
- * Copyright 2026 the original author or authors.
+ * Copyright 2020 the original author or authors.
  * <p>
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -17,9 +17,8 @@ package org.openrewrite.maven;
 
 /**
  * Warnings that depend on where the build runs rather than on the plugin: the Mac OS X RocksDB warning
- * (https://github.com/openrewrite/rewrite-maven-plugin/issues/506), the Develocity remote build cache warnings
- * emitted when the cache is unavailable (e.g. a 403 on forked PR builds), and the Maven 3.10 / Resolver 2
- * warnings about the CI-provided `codegenome` credentials and repository lookups.
+ * (https://github.com/openrewrite/rewrite-maven-plugin/issues/506) and the Maven 3.10 / Resolver 2 warnings
+ * about the CI-provided `codegenome` credentials and repository lookups.
  */
 final class IgnorableWarnings {
 
@@ -28,8 +27,6 @@ final class IgnorableWarnings {
 
     static boolean isNotIgnorable(String warn) {
         return !"Unable to initialize RocksdbMavenPomCache, falling back to InMemoryMavenPomCache".equals(warn) &&
-               !(warn.startsWith("Could not store entry ") && warn.contains("remote build cache")) &&
-               !"The remote build cache was disabled during the build due to errors.".equals(warn) &&
                !(warn.startsWith("Using credentials of server ") && warn.contains("<repositoryOrigins>")) &&
                !warn.startsWith("Not applying session authentication to repository ") &&
                !warn.contains("while a cached not-found from a previous attempt suppresses re-checking");
