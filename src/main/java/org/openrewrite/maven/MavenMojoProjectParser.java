@@ -29,6 +29,7 @@ import org.apache.maven.plugin.MojoFailureException;
 import org.apache.maven.plugin.logging.Log;
 import org.apache.maven.project.MavenProject;
 import org.apache.maven.rtinfo.RuntimeInformation;
+import org.apache.maven.settings.Proxy;
 import org.apache.maven.settings.crypto.DefaultSettingsDecryptionRequest;
 import org.apache.maven.settings.crypto.SettingsDecrypter;
 import org.apache.maven.settings.crypto.SettingsDecryptionRequest;
@@ -883,7 +884,7 @@ public class MavenMojoProjectParser {
             SettingsDecryptionRequest decryptionRequest = new DefaultSettingsDecryptionRequest();
             decryptionRequest.setProxies(singletonList(p));
             SettingsDecryptionResult decryptionResult = settingsDecrypter.decrypt(decryptionRequest);
-            org.apache.maven.settings.Proxy decryptedProxy = decryptionResult.getProxies().isEmpty() ? p : decryptionResult.getProxies().get(0);
+            Proxy decryptedProxy = decryptionResult.getProxies().isEmpty() ? p : decryptionResult.getProxies().get(0);
             return new MavenSettings.Proxy(
                     p.getId(),
                     p.isActive(),
