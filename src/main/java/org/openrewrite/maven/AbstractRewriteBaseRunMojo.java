@@ -29,6 +29,7 @@ import org.openrewrite.config.Environment;
 import org.openrewrite.config.RecipeDescriptor;
 import org.openrewrite.internal.InMemoryLargeSourceSet;
 import org.openrewrite.internal.ListUtils;
+import org.openrewrite.java.style.Autodetect;
 import org.openrewrite.java.tree.J;
 import org.openrewrite.kotlin.tree.K;
 import org.openrewrite.marker.*;
@@ -279,7 +280,7 @@ public abstract class AbstractRewriteBaseRunMojo extends AbstractRewriteMojo {
     }
 
     private List<SourceFile> sourcesWithAutoDetectedStyles(Stream<SourceFile> sourceFiles, List<NamedStyles> configuredStyles) {
-        org.openrewrite.java.style.Autodetect.Detector javaDetector = org.openrewrite.java.style.Autodetect.detector();
+        Autodetect.Detector javaDetector = Autodetect.detector();
         org.openrewrite.kotlin.style.Autodetect.Detector kotlinDetector = org.openrewrite.kotlin.style.Autodetect.detector();
         org.openrewrite.xml.style.Autodetect.Detector xmlDetector = org.openrewrite.xml.style.Autodetect.detector();
 

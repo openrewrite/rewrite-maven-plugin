@@ -27,6 +27,7 @@ import org.intellij.lang.annotations.Language;
 import org.jspecify.annotations.Nullable;
 import org.openrewrite.config.Environment;
 import org.openrewrite.style.NamedStyles;
+import org.openrewrite.tools.checkstyle.Checker;
 
 import java.io.IOException;
 import java.io.InputStream;
@@ -304,7 +305,7 @@ public abstract class ConfigurableRewriteMojo extends AbstractMojo {
                         styles.add(loadCheckstyleConfig(toCheckStyleDocument(xmlCheckstyleRules.getChild(0)), emptyMap()));
                     } else {
                         // When no config location is specified, the maven-checkstyle-plugin falls back on sun_checks.xml
-                        try (InputStream is = org.openrewrite.tools.checkstyle.Checker.class.getResourceAsStream("/sun_checks.xml")) {
+                        try (InputStream is = Checker.class.getResourceAsStream("/sun_checks.xml")) {
                             if (is != null) {
                                 styles.add(loadCheckstyleConfig(is, emptyMap()));
                             }
