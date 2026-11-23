@@ -24,10 +24,7 @@ concurrency:
   cancel-in-progress: false
 
 jobs:
-  pages:
-    environment:
-      name: github-pages
-      url: ${{steps.deployment.outputs.page_url}}
+  build:
     runs-on: ubuntu-latest
     timeout-minutes: 30
     steps:
@@ -50,4 +47,15 @@ jobs:
       - uses: actions/upload-pages-artifact@v5
         with:
           path: target/site
-      - uses: actions/deploy-pages@v5
+
+  # Deploying from the same job as the upload can race the artifact listing; see actions/deploy-pages#451
+  deploy:
+    needs: build
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    environment:
+      name: github-pages
+      url: ${{ steps.deployment.outputs.page_url }}
+    steps:
+      - id: deployment
+        uses: actions/deploy-pages@v5
