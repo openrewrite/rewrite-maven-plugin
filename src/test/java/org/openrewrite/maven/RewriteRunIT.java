@@ -98,7 +98,8 @@ class RewriteRunIT {
           .contains(
             "Changes have been made to %s by:".formatted(separatorsToSystem("project/src/main/java/sample/Main.java")),
             "Changes have been made to %s by:".formatted(separatorsToSystem("project/src/test/java/sample/MainTest.java"))
-          );
+          )
+          .noneSatisfy(line -> assertThat(line).contains("org.openrewrite.FindCollidingSourceFiles"));
     }
 
     @MavenTest
