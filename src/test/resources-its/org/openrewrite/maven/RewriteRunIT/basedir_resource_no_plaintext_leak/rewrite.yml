@@ -1,0 +1,9 @@
+---
+type: specs.openrewrite.org/v1beta/recipe
+name: com.example.RewriteRunIT.BasedirResourceNoPlaintextLeak
+displayName: Find typed `List` usages and colliding source files
+description: Finds `java.util.List` usages, which need type attribution, and source files sharing a path with another one.
+recipeList:
+  - org.openrewrite.java.search.FindTypes:
+      fullyQualifiedTypeName: java.util.List
+  - org.openrewrite.FindCollidingSourceFiles

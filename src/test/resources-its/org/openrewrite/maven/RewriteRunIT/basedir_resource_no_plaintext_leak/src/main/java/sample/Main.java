@@ -1,7 +1,9 @@
 package sample;
 
+import java.util.List;
+
 public class Main {
-    public void hello() {
-        if(true) {}
+    public List<String> hello() {
+        return null;
     }
 }
