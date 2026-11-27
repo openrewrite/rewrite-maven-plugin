@@ -5,7 +5,7 @@
     <groupId>org.openrewrite.maven</groupId>
     <artifactId>rewrite-maven-plugin</artifactId>
     <!-- Each release sets its own version in place of 999-SNAPSHOT -->
-    <version>999-SNAPSHOT</version>
+    <version>6.77.0</version>
     <packaging>maven-plugin</packaging>
 
     <name>rewrite-maven-plugin</name>
@@ -67,8 +67,8 @@
 
     <properties>
         <!-- A published pom.xml names the versions it was built against in place of LATEST -->
-        <rewrite.version>LATEST</rewrite.version>
-        <rewrite-polyglot.version>LATEST</rewrite-polyglot.version>
+        <rewrite.version>8.119.0</rewrite.version>
+        <rewrite-polyglot.version>2.40.0</rewrite-polyglot.version>
 
         <!-- using 'ssh' url scheme by default, which assumes a human is performing git operations leveraging an ssh key -->
         <developerConnectionUrl>scm:git:ssh://git@github.com/openrewrite/rewrite-maven-plugin.git
